@@ -21,7 +21,15 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Dynamic resource rooting.
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
+// app.use('/login', loginRouter);
+// app.use('/logout', logoutRouter);
+// app.use('/mypage', mypageRouter);
+// app.use('/config', configRouter);
+// app.use('/detail', detailRouter);
+// app.use('/regist', registRouter);
+// app.use('/edit', editRouter);
+// app.use('/delete', deleteRouter);
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
