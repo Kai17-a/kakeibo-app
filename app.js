@@ -23,7 +23,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 // app.use('/login', loginRouter);
 // app.use('/logout', logoutRouter);
-// app.use('/mypage', mypageRouter);
+app.use('/mypage', require('./routes/mypage.js'));
 // app.use('/config', configRouter);
 // app.use('/detail', detailRouter);
 // app.use('/regist', registRouter);
