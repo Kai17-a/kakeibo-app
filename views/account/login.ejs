@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <%- include('../_share/metadata.ejs') %> 
+  <title><%= title %></title>
+  <%- include('../_share/stylesheets.ejs') %>
+</head>
+<body class="text-center">
+  
+  <main class="form-signin">
+    <form action="/" method="post">
+
+      <h1 class="h3 mb-3 fw-normal">ログイン</h1>
+      <div class="form-floating">
+        <input type="text" name="name" id="name" class="form-control" placeholder="ユーザ名">
+        <label for="nameInput">ユーザ名</label>
+      </div>
+      <div class="form-floating">
+        <input type="password" name="password" id="password" class="form-control" placeholder="パスワード">
+        <label for="passwordInput">パスワード</label>パスワード
+      </div>
+      <button type="submit" class="w-100 btn btn-lg btn-primary">ログイン</button>
+    </form>
+  </main>
+
+  <%- include('../_share/footer.ejs') %>
+  <%- include('../_share/javascript.ejs') %>
+</body>
+</html>

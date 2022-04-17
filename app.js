@@ -21,7 +21,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Dynamic resource rooting.
 app.use('/', indexRouter);
-// app.use('/login', loginRouter);
+app.use('/login', require('./routes/login.js'));
 // app.use('/logout', logoutRouter);
 app.use('/mypage', require('./routes/mypage.js'));
 // app.use('/config', configRouter);
