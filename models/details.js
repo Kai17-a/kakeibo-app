@@ -14,7 +14,10 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   Details.init({
-    detail_id: DataTypes.INTEGER,
+    detail_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true
+    },
     category_id: DataTypes.INTEGER,
     payment_id: DataTypes.INTEGER,
     user_id: DataTypes.INTEGER,
