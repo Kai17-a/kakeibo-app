@@ -7,7 +7,22 @@
 </head>
 <body>
   <%- include('../_share/navbar.ejs') %>
-  test
+  
+  <h1 class="display-4">
+    <%= title %>
+  </h1>
+
+  <div role="main">
+    <table class="table">
+      <% for (var i in content) { %>
+        <tr>
+          <% var obj = content[i] %>
+          <th><%= obj.user_id %></th>
+          <td><%= obj.user_name %></td>
+        </tr>
+      <% } %> 
+    </table>
+  </div>
 
   <%- include('../_share/footer.ejs') %>
   <%- include('../_share/javascript.ejs') %>
