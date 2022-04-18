@@ -4,9 +4,6 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
-
 var app = express();
 
 // view engine setup
@@ -20,7 +17,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Dynamic resource rooting.
-app.use('/', indexRouter);
+app.use('/', require('./routes/index'));
 app.use('/login', require('./routes/login.js'));
 // app.use('/logout', logoutRouter);
 app.use('/mypage', require('./routes/mypage.js'));
