@@ -100,3 +100,53 @@ CREATE TABLE expenses (
   recurring_expense_id TEXT REFERENCES recurring_expenses (id),
   description TEXT -- noqa: RF04
 );
+
+
+-- 収入テーブル
+CREATE TABLE incomes (
+  id TEXT NOT NULL PRIMARY KEY DEFAULT (
+    lower(
+      hex(randomblob(4))
+      || '-'
+      || hex(randomblob(2))
+      || '-'
+      || '4'
+      || substr(hex(randomblob(2)), 2)
+      || '-'
+      || substr('AB89', 1 + (abs(random()) % 4), 1)
+      || substr(hex(randomblob(2)), 2)
+      || '-'
+      || hex(randomblob(6))
+    )
+  ),
+  created_at TEXT NOT NULL DEFAULT current_timestamp,
+  updated_at TEXT NOT NULL DEFAULT current_timestamp,
+  category_id TEXT NOT NULL REFERENCES income_categories (id),
+  transaction_date TEXT NOT NULL,
+  amount TEXT NOT NULL, -- 言語側でDecimal管理
+  description TEXT -- noqa: RF04
+);
+
+
+-- 収入カテゴリテーブル
+CREATE TABLE income_categories (
+  id TEXT NOT NULL PRIMARY KEY DEFAULT (
+    lower(
+      hex(randomblob(4))
+      || '-'
+      || hex(randomblob(2))
+      || '-'
+      || '4'
+      || substr(hex(randomblob(2)), 2)
+      || '-'
+      || substr('AB89', 1 + (abs(random()) % 4), 1)
+      || substr(hex(randomblob(2)), 2)
+      || '-'
+      || hex(randomblob(6))
+    )
+  ),
+  created_at TEXT NOT NULL DEFAULT current_timestamp,
+  updated_at TEXT NOT NULL DEFAULT current_timestamp,
+  name TEXT NOT NULL, -- noqa: RF04
+  description TEXT -- noqa: RF04
+);
