@@ -1,0 +1,70 @@
+[tools]
+gh = "latest"
+prek = "latest"
+rust = "latest"
+
+[tasks.setup]
+description = "Initialize"
+run = [
+  "mise install",
+  "prek install --hook-type pre-commit",
+  "prek install --hook-type pre-push"
+]
+
+
+[tasks.build]
+description = "Build the CLI"
+run = "cargo build"
+
+[tasks.build-release]
+description = "Build the CLI for release"
+run = "cargo build --release"
+
+[tasks.check]
+description = "Check the project without building"
+run = "cargo check --all-targets --all-features"
+
+[tasks.test]
+description = "Run tests"
+run = "cargo test --all-features"
+
+[tasks.test-release]
+description = "Run tests in release mode"
+run = "cargo test --release --all-features"
+
+[tasks.format]
+description = "Format the source code"
+run = "cargo fmt --all"
+
+[tasks.format-check]
+description = "Check source code formatting"
+run = "cargo fmt --all -- --check"
+
+[tasks.clippy]
+description = "Run Clippy"
+run = "cargo clippy --all-targets --all-features -- -D warnings"
+
+[tasks.fix]
+description = "Automatically fix lint warnings"
+run = "cargo clippy --fix --allow-dirty --allow-staged --all-targets --all-features"
+
+[tasks.run]
+description = "Run the CLI"
+run = "cargo run"
+
+[tasks.run-release]
+description = "Run the CLI in release mode"
+run = "cargo run --release"
+
+[tasks.clean]
+description = "Remove build artifacts"
+run = "cargo clean"
+
+[tasks.ci]
+description = "Run all CI checks"
+depends = [
+    "format-check",
+    "check",
+    "clippy",
+    "test",
+]

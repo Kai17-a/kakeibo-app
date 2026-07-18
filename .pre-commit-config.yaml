@@ -1,0 +1,44 @@
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+  - pre-push
+
+repos:
+  - repo: local
+    hooks:
+      # git commit 前にフォーマットを検査
+      - id: cargo-fmt
+        name: Check Rust formatting
+        entry: cargo fmt --all -- --check
+        language: system
+        pass_filenames: false
+        stages:
+          - pre-commit
+
+      # git commit 前に静的解析
+      - id: cargo-clippy
+        name: Run Clippy
+        entry: cargo clippy --workspace --all-targets --all-features -- -D warnings
+        language: system
+        pass_filenames: false
+        stages:
+          - pre-commit
+
+      # git push 前にテスト
+      - id: cargo-test
+        name: Run Rust tests
+        entry: cargo test --workspace
+        language: system
+        pass_filenames: false
+        stages:
+          - pre-push
+
+      # コミットメッセージを検査
+      - id: commit-message
+        name: Check commit message
+        entry: ./scripts/check-commit-message.sh
+        language: system
+        pass_filenames: true
+        always_run: true
+        stages:
+          - commit-msg
