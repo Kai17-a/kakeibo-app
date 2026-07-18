@@ -1,15 +1,17 @@
 [tools]
 gh = "latest"
+"pipx:sqlfluff" = "latest"
 prek = "latest"
 rust = "latest"
 
 [tasks.setup]
-description = "Initialize"
+description = "Install tools and Git hooks"
 run = [
   "mise install",
   "prek install --hook-type pre-commit",
   "prek install --hook-type commit-msg",
-  "prek install --hook-type pre-push"
+  "prek install --hook-type pre-push",
+  "prek install-hooks",
 ]
 
 [tasks.build]
@@ -33,11 +35,11 @@ description = "Run tests in release mode"
 run = "cargo test --release --all-features"
 
 [tasks.format]
-description = "Format the source code"
+description = "Format Rust source code"
 run = "cargo fmt --all"
 
 [tasks.format-check]
-description = "Check source code formatting"
+description = "Check Rust source code formatting"
 run = "cargo fmt --all -- --check"
 
 [tasks.clippy]
@@ -45,7 +47,7 @@ description = "Run Clippy"
 run = "cargo clippy --all-targets --all-features -- -D warnings"
 
 [tasks.fix]
-description = "Automatically fix lint warnings"
+description = "Automatically fix Clippy warnings"
 run = "cargo clippy --fix --allow-dirty --allow-staged --all-targets --all-features"
 
 [tasks.run]
@@ -60,11 +62,24 @@ run = "cargo run --release"
 description = "Remove build artifacts"
 run = "cargo clean"
 
+[tasks.sql-format]
+description = "Format SQL files"
+run = "sqlfluff format ."
+
+[tasks.sql-lint]
+description = "Lint SQL files"
+run = "sqlfluff lint ."
+
+[tasks.prek]
+description = "Run all prek hooks"
+run = "prek run --all-files"
+
 [tasks.ci]
 description = "Run all CI checks"
 depends = [
-    "format-check",
-    "check",
-    "clippy",
-    "test",
+  "format-check",
+  "check",
+  "clippy",
+  "test",
+  "sql-lint",
 ]

@@ -33,6 +33,15 @@ repos:
         stages:
           - pre-push
 
+      - id: sqlfluff-format
+        name: Format SQL files
+        entry: sqlfluff format
+        language: system
+        files: \.sql$
+        pass_filenames: true
+        stages:
+          - pre-commit
+
       # コミットメッセージを検査
       - id: commit-message
         name: Check commit message
