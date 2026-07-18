@@ -59,3 +59,28 @@ erDiagram
 
   定期支出設定 o|--o{ 支出 : "支出を生成する"
 ```
+
+```mermaid
+erDiagram
+    %% 収入テーブル %%
+    収入[incomes] {
+        UUID id PK "収入ID"
+        timestamp created_at "作成日時"
+        timestamp updated_at "更新日時"
+        UUID category_id FK "収入カテゴリID"
+        date transaction_date "取引日"
+        decimal amount "金額"
+        text description "備考"
+    }
+
+    %% 収入カテゴリテーブル %%
+    収入カテゴリ[income_categories] {
+        UUID id PK "収入カテゴリID"
+        timestamp created_at "作成日時"
+        timestamp updated_at "更新日時"
+        text name "名前"
+        text description "備考"
+    }
+
+    収入カテゴリ ||--o{ 収入 : "分類する"
+```
