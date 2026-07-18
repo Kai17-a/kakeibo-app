@@ -8,9 +8,9 @@ description = "Initialize"
 run = [
   "mise install",
   "prek install --hook-type pre-commit",
+  "prek install --hook-type commit-msg",
   "prek install --hook-type pre-push"
 ]
-
 
 [tasks.build]
 description = "Build the CLI"
