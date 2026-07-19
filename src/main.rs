@@ -1,5 +1,7 @@
 mod database;
-use crate::database::database::migrate;
+mod utils;
+
+use crate::database::migration::migrate;
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
