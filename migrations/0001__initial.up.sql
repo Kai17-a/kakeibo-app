@@ -1,5 +1,5 @@
 -- 支出カテゴリテーブル
-CREATE TABLE expense_categories (
+CREATE TABLE IF NOT EXISTS expense_categories (
   id TEXT NOT NULL PRIMARY KEY DEFAULT (
     lower(
       hex(randomblob(4))
@@ -22,7 +22,7 @@ CREATE TABLE expense_categories (
 );
 
 -- 支払方法テーブル
-CREATE TABLE payment_methods (
+CREATE TABLE IF NOT EXISTS payment_methods (
   id TEXT NOT NULL PRIMARY KEY DEFAULT (
     lower(
       hex(randomblob(4))
@@ -45,7 +45,7 @@ CREATE TABLE payment_methods (
 );
 
 -- 定期支出設定テーブル
-CREATE TABLE recurring_expenses (
+CREATE TABLE IF NOT EXISTS recurring_expenses (
   id TEXT NOT NULL PRIMARY KEY DEFAULT (
     lower(
       hex(randomblob(4))
@@ -75,7 +75,7 @@ CREATE TABLE recurring_expenses (
 );
 
 -- 支出テーブル
-CREATE TABLE expenses (
+CREATE TABLE IF NOT EXISTS expenses (
   id TEXT NOT NULL PRIMARY KEY DEFAULT (
     lower(
       hex(randomblob(4))
@@ -103,7 +103,7 @@ CREATE TABLE expenses (
 
 
 -- 収入テーブル
-CREATE TABLE incomes (
+CREATE TABLE IF NOT EXISTS incomes (
   id TEXT NOT NULL PRIMARY KEY DEFAULT (
     lower(
       hex(randomblob(4))
@@ -129,7 +129,7 @@ CREATE TABLE incomes (
 
 
 -- 収入カテゴリテーブル
-CREATE TABLE income_categories (
+CREATE TABLE IF NOT EXISTS income_categories (
   id TEXT NOT NULL PRIMARY KEY DEFAULT (
     lower(
       hex(randomblob(4))

@@ -4,8 +4,9 @@ mod utils;
 use crate::database::migration::migrate;
 use std::process::ExitCode;
 
-fn main() -> ExitCode {
-    if let Err(error) = migrate() {
+#[tokio::main]
+async fn main() -> ExitCode {
+    if let Err(error) = migrate().await {
         eprintln!("Failed to initialize the database: {error}");
         return ExitCode::FAILURE;
     }
