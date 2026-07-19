@@ -14,11 +14,11 @@ CREATE TABLE expense_categories (
       || '-'
       || hex(randomblob(6))
     )
-  ),
-  created_at TEXT NOT NULL DEFAULT current_timestamp,
-  updated_at TEXT NOT NULL DEFAULT current_timestamp,
-  name TEXT NOT NULL, -- noqa: RF04
-  description TEXT -- noqa: RF04
+  )
+  , created_at TEXT NOT NULL DEFAULT current_timestamp
+  , updated_at TEXT NOT NULL DEFAULT current_timestamp
+  , name TEXT NOT NULL -- noqa: RF04
+  , description TEXT -- noqa: RF04
 );
 
 -- 支払方法テーブル
@@ -37,11 +37,11 @@ CREATE TABLE payment_methods (
       || '-'
       || hex(randomblob(6))
     )
-  ),
-  created_at TEXT NOT NULL DEFAULT current_timestamp,
-  updated_at TEXT NOT NULL DEFAULT current_timestamp,
-  name TEXT NOT NULL, -- noqa: RF04
-  description TEXT -- noqa: RF04
+  )
+  , created_at TEXT NOT NULL DEFAULT current_timestamp
+  , updated_at TEXT NOT NULL DEFAULT current_timestamp
+  , name TEXT NOT NULL -- noqa: RF04
+  , description TEXT -- noqa: RF04
 );
 
 -- 定期支出設定テーブル
@@ -60,18 +60,18 @@ CREATE TABLE recurring_expenses (
       || '-'
       || hex(randomblob(6))
     )
-  ),
-  created_at TEXT NOT NULL DEFAULT current_timestamp,
-  updated_at TEXT NOT NULL DEFAULT current_timestamp,
-  name TEXT NOT NULL, -- noqa: RF04
-  amount TEXT NOT NULL, -- 言語側でDecimal管理
-  payment_day INTEGER NOT NULL,
-  start_date TEXT NOT NULL,
-  end_date TEXT,
-  category_id TEXT NOT NULL REFERENCES expense_categories (id),
-  payment_method_id TEXT NOT NULL REFERENCES payment_methods (id),
-  is_active INTEGER NOT NULL,
-  description TEXT -- noqa: RF04
+  )
+  , created_at TEXT NOT NULL DEFAULT current_timestamp
+  , updated_at TEXT NOT NULL DEFAULT current_timestamp
+  , name TEXT NOT NULL -- noqa: RF04
+  , amount TEXT NOT NULL -- 言語側でDecimal管理
+  , payment_day INTEGER NOT NULL
+  , start_date TEXT NOT NULL
+  , end_date TEXT
+  , category_id TEXT NOT NULL REFERENCES expense_categories (id)
+  , payment_method_id TEXT NOT NULL REFERENCES payment_methods (id)
+  , is_active INTEGER NOT NULL
+  , description TEXT -- noqa: RF04
 );
 
 -- 支出テーブル
@@ -90,15 +90,15 @@ CREATE TABLE expenses (
       || '-'
       || hex(randomblob(6))
     )
-  ),
-  created_at TEXT NOT NULL DEFAULT current_timestamp,
-  updated_at TEXT NOT NULL DEFAULT current_timestamp,
-  transaction_date TEXT NOT NULL,
-  amount TEXT NOT NULL, -- 言語側でDecimal管理
-  category_id TEXT NOT NULL REFERENCES expense_categories (id),
-  payment_method_id TEXT NOT NULL REFERENCES payment_methods (id),
-  recurring_expense_id TEXT REFERENCES recurring_expenses (id),
-  description TEXT -- noqa: RF04
+  )
+  , created_at TEXT NOT NULL DEFAULT current_timestamp
+  , updated_at TEXT NOT NULL DEFAULT current_timestamp
+  , transaction_date TEXT NOT NULL
+  , amount TEXT NOT NULL -- 言語側でDecimal管理
+  , category_id TEXT NOT NULL REFERENCES expense_categories (id)
+  , payment_method_id TEXT NOT NULL REFERENCES payment_methods (id)
+  , recurring_expense_id TEXT REFERENCES recurring_expenses (id)
+  , description TEXT -- noqa: RF04
 );
 
 
@@ -118,13 +118,13 @@ CREATE TABLE incomes (
       || '-'
       || hex(randomblob(6))
     )
-  ),
-  created_at TEXT NOT NULL DEFAULT current_timestamp,
-  updated_at TEXT NOT NULL DEFAULT current_timestamp,
-  category_id TEXT NOT NULL REFERENCES income_categories (id),
-  transaction_date TEXT NOT NULL,
-  amount TEXT NOT NULL, -- 言語側でDecimal管理
-  description TEXT -- noqa: RF04
+  )
+  , created_at TEXT NOT NULL DEFAULT current_timestamp
+  , updated_at TEXT NOT NULL DEFAULT current_timestamp
+  , category_id TEXT NOT NULL REFERENCES income_categories (id)
+  , transaction_date TEXT NOT NULL
+  , amount TEXT NOT NULL -- 言語側でDecimal管理
+  , description TEXT -- noqa: RF04
 );
 
 
@@ -144,9 +144,9 @@ CREATE TABLE income_categories (
       || '-'
       || hex(randomblob(6))
     )
-  ),
-  created_at TEXT NOT NULL DEFAULT current_timestamp,
-  updated_at TEXT NOT NULL DEFAULT current_timestamp,
-  name TEXT NOT NULL, -- noqa: RF04
-  description TEXT -- noqa: RF04
+  )
+  , created_at TEXT NOT NULL DEFAULT current_timestamp
+  , updated_at TEXT NOT NULL DEFAULT current_timestamp
+  , name TEXT NOT NULL -- noqa: RF04
+  , description TEXT -- noqa: RF04
 );
