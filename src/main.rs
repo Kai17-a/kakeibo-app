@@ -1,10 +1,12 @@
-use kakeibo_app::{database::migration::connect, router, utils};
+use clap::Parser;
+use kakeibo_app::{cli::Cli, database::migration::connect, router, utils};
 use std::process::ExitCode;
 use tokio::net::TcpListener;
 use tracing::{error, info};
 
 #[tokio::main]
 async fn main() -> ExitCode {
+    let cli = Cli::parse();
     utils::logging::init();
     info!("Starting application");
 
@@ -16,7 +18,7 @@ async fn main() -> ExitCode {
         }
     };
 
-    let address = ("0.0.0.0", 8000);
+    let address = ("0.0.0.0", cli.port);
     let listener = match TcpListener::bind(address).await {
         Ok(listener) => listener,
         Err(error) => {
@@ -24,10 +26,7 @@ async fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    info!(
-        address = "0.0.0.0:8000",
-        "Application initialized successfully"
-    );
+    info!(address = %format_args!("0.0.0.0:{}", cli.port), "Application initialized successfully");
 
     if let Err(error) = axum::serve(listener, router::incomes::create(pool)).await {
         error!(%error, "HTTP server stopped unexpectedly");
