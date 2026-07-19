@@ -21,6 +21,8 @@ sqlx = {
     ]
 }
 axum = "0.8.9"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 utoipa = "5"
 utoipa-swagger-ui = {
     version = "9",

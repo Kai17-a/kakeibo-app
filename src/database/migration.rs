@@ -3,10 +3,14 @@ use sqlx::{
     migrate::Migrator,
     sqlite::{SqliteConnectOptions, SqlitePoolOptions},
 };
+use tracing::{info, instrument};
 
 static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
 
+#[instrument(name = "database.migrate", skip_all)]
 pub async fn migrate() -> AppResult<()> {
+    info!("Opening database");
+
     let options = SqliteConnectOptions::new()
         .filename("kakeibo.db")
         .create_if_missing(true)
@@ -23,5 +27,6 @@ pub async fn migrate() -> AppResult<()> {
         .await
         .map_err(|error| AppError::context("Failed to apply migrations", error))?;
 
+    info!("Database migrations applied");
     Ok(())
 }
