@@ -8,6 +8,7 @@ tokio = {
     version = "1",
     features = ["macros", "rt-multi-thread"]
 }
+serde = { version = "1", features = ["derive"] }
 
 sqlx = {
     version = "0.9",
@@ -18,4 +19,10 @@ sqlx = {
         "macros",
         "migrate",
     ]
+}
+axum = "0.8.9"
+utoipa = "5"
+utoipa-swagger-ui = {
+    version = "9",
+    features = ["axum", "vendored"]
 }
