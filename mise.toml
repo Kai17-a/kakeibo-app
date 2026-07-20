@@ -83,3 +83,11 @@ depends = [
   "test",
   "sql-lint",
 ]
+
+[tasks.test-data-add]
+description = "Add test data to the database"
+run = "./scripts/test-data.sh add"
+
+[tasks.test-data-clear]
+description = "Clear test data from the database"
+run = "./scripts/test-data.sh clear"
