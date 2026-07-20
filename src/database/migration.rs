@@ -1,5 +1,6 @@
 use crate::utils::error::{AppError, AppResult};
 use sqlx::{
+    SqlitePool,
     migrate::Migrator,
     sqlite::{SqliteConnectOptions, SqlitePoolOptions},
 };
@@ -8,7 +9,7 @@ use tracing::{info, instrument};
 static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
 
 #[instrument(name = "database.migrate", skip_all)]
-pub async fn migrate() -> AppResult<()> {
+pub async fn connect() -> AppResult<SqlitePool> {
     info!("Opening database");
 
     let options = SqliteConnectOptions::new()
@@ -28,5 +29,5 @@ pub async fn migrate() -> AppResult<()> {
         .map_err(|error| AppError::context("Failed to apply migrations", error))?;
 
     info!("Database migrations applied");
-    Ok(())
+    Ok(pool)
 }

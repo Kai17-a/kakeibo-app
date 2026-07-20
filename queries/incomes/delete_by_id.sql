@@ -2,4 +2,4 @@ DELETE
 FROM
   incomes
 WHERE
-  id = :id;
+  id = ?;

@@ -9,4 +9,4 @@ SELECT
 FROM
   incomes
 WHERE
-  id = :id;
+  id = ?;
