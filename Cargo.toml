@@ -27,8 +27,5 @@ chrono = { version = "0.4", default-features = false }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 utoipa = "5"
-utoipa-swagger-ui = {
-    version = "9",
-    features = ["axum", "vendored"]
-}
+utoipa-redoc = { version = "6", features = ["axum"] }
 tower = { version = "0.5", features = ["util"] }

@@ -28,7 +28,9 @@ async fn main() -> ExitCode {
     };
     info!(address = %format_args!("0.0.0.0:{}", cli.port), "Application initialized successfully");
 
-    let app = router::incomes::create(pool).merge(router::health::create());
+    let app = router::incomes::create(pool)
+        .merge(router::health::create())
+        .merge(router::redoc::create());
     if let Err(error) = axum::serve(listener, app).await {
         error!(%error, "HTTP server stopped unexpectedly");
         return ExitCode::FAILURE;
