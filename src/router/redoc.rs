@@ -5,16 +5,22 @@ use utoipa_redoc::{Redoc, Servable};
 use crate::{
     handler::incomes,
     model::incomes::{
-        Income, IncomeInput, IncomeListResponse, IncomeSortBy, Pagination, SortOrder,
+        Income, IncomeListResponse, IncomeSortBy, IncomeUpsertRequest, Pagination, SortOrder,
     },
 };
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(incomes::list, incomes::get, incomes::create, incomes::update, incomes::delete),
+    paths(
+        incomes::list,
+        incomes::get,
+        incomes::create,
+        incomes::update,
+        incomes::delete
+    ),
     components(schemas(
         Income,
-        IncomeInput,
+        IncomeUpsertRequest,
         IncomeListResponse,
         Pagination,
         IncomeSortBy,

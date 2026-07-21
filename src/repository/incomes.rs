@@ -2,7 +2,7 @@ use sqlx::{QueryBuilder, Sqlite, SqlitePool};
 
 use crate::{
     database::models::incomes::IncomeRow,
-    model::incomes::{IncomeInput, IncomeQuery, IncomeSortBy, SortOrder},
+    model::incomes::{IncomeQuery, IncomeSortBy, IncomeUpsertRequest, SortOrder},
     utils::error::AppResult,
 };
 
@@ -54,7 +54,7 @@ impl IncomeRepository {
             .map_err(Into::into)
     }
 
-    pub async fn insert(&self, input: &IncomeInput) -> AppResult<IncomeRow> {
+    pub async fn insert(&self, input: &IncomeUpsertRequest) -> AppResult<IncomeRow> {
         sqlx::query_as(include_str!("../../queries/incomes/insert.sql"))
             .bind(&input.category_id)
             .bind(&input.transaction_date)
@@ -65,7 +65,11 @@ impl IncomeRepository {
             .map_err(Into::into)
     }
 
-    pub async fn update(&self, id: &str, input: &IncomeInput) -> AppResult<Option<IncomeRow>> {
+    pub async fn update(
+        &self,
+        id: &str,
+        input: &IncomeUpsertRequest,
+    ) -> AppResult<Option<IncomeRow>> {
         sqlx::query_as(include_str!("../../queries/incomes/update.sql"))
             .bind(&input.category_id)
             .bind(&input.transaction_date)

@@ -29,7 +29,7 @@ impl From<IncomeRow> for Income {
 }
 
 #[derive(Debug, Clone, Deserialize, ToSchema)]
-pub struct IncomeInput {
+pub struct IncomeUpsertRequest {
     pub category_id: String,
     pub transaction_date: String,
     pub amount: String,

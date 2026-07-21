@@ -5,7 +5,7 @@ use axum::{
 };
 
 use crate::{
-    model::incomes::{Income, IncomeInput, IncomeListResponse, IncomeQuery},
+    model::incomes::{Income, IncomeListResponse, IncomeQuery, IncomeUpsertRequest},
     service::incomes::IncomeService,
     utils::error::AppResult,
 };
@@ -36,10 +36,10 @@ pub async fn get(State(state): State<AppState>, Path(id): Path<String>) -> AppRe
     Ok(Json(state.incomes.get(&id).await?))
 }
 
-#[utoipa::path(post, path = "/api/incomes", request_body = IncomeInput, responses((status = 201, body = Income)))]
+#[utoipa::path(post, path = "/api/incomes", request_body = IncomeUpsertRequest, responses((status = 201, body = Income)))]
 pub async fn create(
     State(state): State<AppState>,
-    Json(input): Json<IncomeInput>,
+    Json(input): Json<IncomeUpsertRequest>,
 ) -> AppResult<(StatusCode, Json<Income>)> {
     Ok((
         StatusCode::CREATED,
@@ -47,11 +47,11 @@ pub async fn create(
     ))
 }
 
-#[utoipa::path(put, path = "/api/incomes/{id}", params(("id" = String, Path)), request_body = IncomeInput, responses((status = 200, body = Income), (status = 404)))]
+#[utoipa::path(put, path = "/api/incomes/{id}", params(("id" = String, Path)), request_body = IncomeUpsertRequest, responses((status = 200, body = Income), (status = 404)))]
 pub async fn update(
     State(state): State<AppState>,
     Path(id): Path<String>,
-    Json(input): Json<IncomeInput>,
+    Json(input): Json<IncomeUpsertRequest>,
 ) -> AppResult<Json<Income>> {
     Ok(Json(state.incomes.update(&id, &input).await?))
 }

@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 
 use crate::{
-    model::incomes::{Income, IncomeInput, IncomeListResponse, IncomeQuery, Pagination},
+    model::incomes::{Income, IncomeListResponse, IncomeQuery, IncomeUpsertRequest, Pagination},
     repository::incomes::IncomeRepository,
     utils::error::{AppError, AppResult},
 };
@@ -42,12 +42,12 @@ impl IncomeService {
             .ok_or_else(|| AppError::not_found("income", id))
     }
 
-    pub async fn create(&self, input: &IncomeInput) -> AppResult<Income> {
+    pub async fn create(&self, input: &IncomeUpsertRequest) -> AppResult<Income> {
         validate(input)?;
         self.repository.insert(input).await.map(Into::into)
     }
 
-    pub async fn update(&self, id: &str, input: &IncomeInput) -> AppResult<Income> {
+    pub async fn update(&self, id: &str, input: &IncomeUpsertRequest) -> AppResult<Income> {
         validate(input)?;
         self.repository
             .update(id, input)
@@ -91,7 +91,7 @@ fn parse_date(value: &str) -> AppResult<NaiveDate> {
         .map_err(|_| AppError::bad_request("dates must use YYYY-MM-DD format"))
 }
 
-fn validate(input: &IncomeInput) -> AppResult<()> {
+fn validate(input: &IncomeUpsertRequest) -> AppResult<()> {
     if input.category_id.trim().is_empty()
         || input.transaction_date.trim().is_empty()
         || input.amount.trim().is_empty()
