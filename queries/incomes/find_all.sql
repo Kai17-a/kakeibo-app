@@ -8,4 +8,4 @@ SELECT
   , description
 FROM
   incomes
-ORDER BY transaction_date DESC, id;
+ORDER BY transaction_date DESC, id ASC;

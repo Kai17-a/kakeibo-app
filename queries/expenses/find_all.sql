@@ -10,4 +10,4 @@ SELECT
   , description
 FROM
   expenses
-ORDER BY transaction_date DESC, id;
+ORDER BY transaction_date DESC, id ASC;

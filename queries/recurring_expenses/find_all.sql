@@ -13,4 +13,4 @@ SELECT
   , description
 FROM
   recurring_expenses
-ORDER BY start_date DESC, id;
+ORDER BY start_date DESC, id ASC;

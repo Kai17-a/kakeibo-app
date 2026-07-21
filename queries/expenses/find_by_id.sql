@@ -11,4 +11,4 @@ SELECT
 FROM
   expenses
 WHERE
-  id = :id;
+  id = ?;

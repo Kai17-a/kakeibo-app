@@ -7,4 +7,4 @@ SELECT
 FROM
   payment_methods
 WHERE
-  id = :id;
+  id = ?;
