@@ -20,6 +20,7 @@ async fn serves_api_documentation() {
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let html = String::from_utf8(body.to_vec()).unwrap();
     assert!(html.contains("redoc"));
+    assert!(html.contains("/api/income-categories"));
     assert!(html.contains(r#""name":"page""#));
     assert!(html.contains(r#""default":1"#));
     assert!(html.contains(r#""name":"per_page""#));
