@@ -105,3 +105,32 @@ run = "./scripts/test-data.sh add"
 [tasks.test-data-clear]
 description = "Clear test data from the database"
 run = "./scripts/test-data.sh clear"
+
+[tasks.web-install]
+description = "Install frontend dependencies"
+dir = "apps/web"
+run = "bun install"
+
+[tasks.web-dev]
+description = "Run the frontend development server"
+dir = "apps/web"
+run = "bun run dev"
+
+[tasks.web-build]
+description = "Build the frontend"
+dir = "apps/web"
+run = "bun run build"
+
+[tasks.web-check]
+description = "Check the frontend"
+dir = "apps/web"
+run = "bun run check"
+
+[tasks.web-test]
+description = "Test the frontend"
+dir = "apps/web"
+run = "bun run test"
+
+[tasks.web-ci]
+description = "Run all frontend checks"
+depends = ["web-check", "web-test", "web-build"]

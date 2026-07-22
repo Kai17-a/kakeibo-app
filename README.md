@@ -28,10 +28,26 @@ mise run run -- --port 3000
 
 初回起動時に `apps/api/kakeibo.db` が作成され、マイグレーションが自動で適用されます。
 
+別のターミナルでフロントエンドを起動します。
+
+```bash
+mise run web-install
+mise run web-dev
+```
+
+`http://localhost:5173` を開いてください。開発サーバーは `/api` を
+`http://localhost:8000` にプロキシします。
+
 ### Check
 
 ```bash
 mise run ci
+```
+
+フロントエンドだけを確認する場合:
+
+```bash
+mise run web-ci
 ```
 
 個別のタスクは `mise tasks` で確認できます。
