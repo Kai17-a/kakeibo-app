@@ -1,5 +1,9 @@
 /target
-.env
+/apps/api/target
+/apps/api/.env
+/apps/web/node_modules
+/apps/web/dist
+/apps/web/.env
 
 *.db
 *.sqlite

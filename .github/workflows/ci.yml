@@ -16,6 +16,9 @@ jobs:
   check:
     name: Check
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
 
     steps:
       - name: Check out repository
@@ -28,6 +31,8 @@ jobs:
 
       - name: Cache Cargo files
         uses: Swatinem/rust-cache@v2.9.1
+        with:
+          workspaces: apps/api
 
       - name: Check formatting
         run: cargo fmt --all -- --check

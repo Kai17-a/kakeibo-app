@@ -9,7 +9,7 @@ repos:
       # git commit 前にフォーマットを検査
       - id: cargo-fmt
         name: Check Rust formatting
-        entry: cargo fmt --all -- --check
+        entry: cargo fmt --manifest-path apps/api/Cargo.toml --all -- --check
         language: system
         pass_filenames: false
         stages:
@@ -18,7 +18,7 @@ repos:
       # git commit 前に静的解析
       - id: cargo-clippy
         name: Run Clippy
-        entry: cargo clippy --workspace --all-targets --all-features -- -D warnings
+        entry: cargo clippy --manifest-path apps/api/Cargo.toml --all-targets --all-features -- -D warnings
         language: system
         pass_filenames: false
         stages:
@@ -27,7 +27,7 @@ repos:
       # git push 前にテスト
       - id: cargo-test
         name: Run Rust tests
-        entry: cargo test --workspace
+        entry: cargo test --manifest-path apps/api/Cargo.toml --all-features
         language: system
         pass_filenames: false
         stages:
@@ -35,9 +35,9 @@ repos:
 
       - id: sqlfluff-format
         name: Format SQL files
-        entry: sqlfluff format
+        entry: sqlfluff format --config apps/api/.sqlfluff
         language: system
-        files: \.sql$
+        files: ^apps/api/.*\.sql$
         pass_filenames: true
         stages:
           - pre-commit

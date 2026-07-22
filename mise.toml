@@ -16,58 +16,72 @@ run = [
 
 [tasks.build]
 description = "Build the CLI"
+dir = "apps/api"
 run = "cargo build"
 
 [tasks.build-release]
 description = "Build the CLI for release"
+dir = "apps/api"
 run = "cargo build --release"
 
 [tasks.check]
 description = "Check the project without building"
+dir = "apps/api"
 run = "cargo check --all-targets --all-features"
 
 [tasks.test]
 description = "Run tests"
+dir = "apps/api"
 run = "cargo test --all-features"
 
 [tasks.test-release]
 description = "Run tests in release mode"
+dir = "apps/api"
 run = "cargo test --release --all-features"
 
 [tasks.format]
 description = "Format Rust source code"
+dir = "apps/api"
 run = "cargo fmt --all"
 
 [tasks.format-check]
 description = "Check Rust source code formatting"
+dir = "apps/api"
 run = "cargo fmt --all -- --check"
 
 [tasks.clippy]
 description = "Run Clippy"
+dir = "apps/api"
 run = "cargo clippy --all-targets --all-features -- -D warnings"
 
 [tasks.fix]
 description = "Automatically fix Clippy warnings"
+dir = "apps/api"
 run = "cargo clippy --fix --allow-dirty --allow-staged --all-targets --all-features"
 
 [tasks.run]
 description = "Run the CLI"
-run = "cargo run"
+dir = "apps/api"
+run = "cargo run --"
 
 [tasks.run-release]
 description = "Run the CLI in release mode"
-run = "cargo run --release"
+dir = "apps/api"
+run = "cargo run --release --"
 
 [tasks.clean]
 description = "Remove build artifacts"
+dir = "apps/api"
 run = "cargo clean"
 
 [tasks.sql-format]
 description = "Format SQL files"
+dir = "apps/api"
 run = "sqlfluff format ."
 
 [tasks.sql-lint]
 description = "Lint SQL files"
+dir = "apps/api"
 run = "sqlfluff lint ."
 
 [tasks.prek]

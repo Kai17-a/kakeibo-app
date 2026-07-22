@@ -2,7 +2,8 @@
 
 set -euo pipefail
 
-readonly DEFAULT_DATABASE="kakeibo.db"
+readonly REPOSITORY_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly DEFAULT_DATABASE="$REPOSITORY_ROOT/apps/api/kakeibo.db"
 
 usage() {
   cat <<'EOF'
@@ -10,7 +11,7 @@ Usage:
   scripts/test-data.sh <add|clear> [--database <path>]
 
 Options:
-  -d, --database <path>  SQLite database path (default: kakeibo.db)
+  -d, --database <path>  SQLite database path (default: apps/api/kakeibo.db)
   -h, --help             Show this help
 EOF
 }

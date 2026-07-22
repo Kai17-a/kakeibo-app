@@ -11,7 +11,7 @@
 
 ```bash
 mise run setup
-cp .env.example .env
+cp apps/api/.env.example apps/api/.env
 ```
 
 ### Run
@@ -23,10 +23,10 @@ mise run run
 デフォルトでは `http://localhost:8000` で起動します。ポートを変更する場合は、次のように指定します。
 
 ```bash
-cargo run -- --port 3000
+mise run run -- --port 3000
 ```
 
-初回起動時に `kakeibo.db` が作成され、マイグレーションが自動で適用されます。
+初回起動時に `apps/api/kakeibo.db` が作成され、マイグレーションが自動で適用されます。
 
 ### Check
 
@@ -57,18 +57,21 @@ mise run test-data-clear
 
 ```text
 .
-├── migrations/       # SQLxマイグレーション
-├── queries/          # リソースごとのSQLクエリ
+├── apps/
+│   ├── api/
+│   │   ├── migrations/  # SQLxマイグレーション
+│   │   ├── queries/     # リソースごとのSQLクエリ
+│   │   ├── src/
+│   │   │   ├── database/    # DB接続、マイグレーション、DBモデル
+│   │   │   ├── handler/     # HTTPリクエスト・レスポンス処理
+│   │   │   ├── model/       # APIのリクエスト・レスポンスモデル
+│   │   │   ├── repository/  # データアクセス
+│   │   │   ├── router/      # ルーティングとAPIドキュメント
+│   │   │   ├── service/     # ユースケースとバリデーション
+│   │   │   └── utils/       # エラー処理、ロギングなどの共通処理
+│   │   ├── tests/       # API統合テスト
+│   │   └── Cargo.toml   # Rustパッケージ設定
+│   └── web/             # フロントエンド配置先
 ├── scripts/          # 開発・運用補助スクリプト
-├── src/
-│   ├── database/     # DB接続、マイグレーション、DBモデル
-│   ├── handler/      # HTTPリクエスト・レスポンス処理
-│   ├── model/        # APIのリクエスト・レスポンスモデル
-│   ├── repository/   # データアクセス
-│   ├── router/       # ルーティングとAPIドキュメント
-│   ├── service/      # ユースケースとバリデーション
-│   └── utils/        # エラー処理、ロギングなどの共通処理
-├── tests/            # API統合テスト
-├── Cargo.toml        # Rustパッケージ設定
 └── mise.toml         # ツールとタスクの定義
 ```
