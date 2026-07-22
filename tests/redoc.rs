@@ -25,6 +25,12 @@ async fn serves_api_documentation() {
     assert!(html.contains("/api/recurring-expenses"));
     assert!(html.contains("/api/expenses"));
     assert!(html.contains("/api/income-categories"));
+    assert!(html.contains("/health"));
+    assert!(html.contains("Kakeibo API"));
+    assert!(html.contains("収入カテゴリ"));
+    assert!(html.contains("支出カテゴリ"));
+    assert!(html.contains(r##""primary":{"main":"#0f766e"}"##));
+    assert!(html.contains(r#""hideDownloadButton":true"#));
     assert!(html.contains(r#""name":"page""#));
     assert!(html.contains(r#""default":1"#));
     assert!(html.contains(r#""name":"per_page""#));

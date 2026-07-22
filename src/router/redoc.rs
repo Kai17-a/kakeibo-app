@@ -1,10 +1,11 @@
 use axum::Router;
-use utoipa::OpenApi;
+use serde_json::json;
+use utoipa::{Modify, OpenApi, openapi::path::Operation};
 use utoipa_redoc::{Redoc, Servable};
 
 use crate::{
     handler::{
-        expense_categories, expenses, income_categories, incomes, payment_methods,
+        expense_categories, expenses, health, income_categories, incomes, payment_methods,
         recurring_expenses,
     },
     model::expense_categories::{
@@ -12,6 +13,7 @@ use crate::{
         ExpenseCategorySortBy, ExpenseCategorySortOrder, ExpenseCategoryUpsertRequest,
     },
     model::expenses::{Expense, ExpenseUpsertRequest},
+    model::health::Health,
     model::income_categories::{
         IncomeCategory, IncomeCategoryListResponse, IncomeCategoryPagination, IncomeCategorySortBy,
         IncomeCategorySortOrder, IncomeCategoryUpsertRequest,
@@ -58,7 +60,8 @@ use crate::{
         incomes::get,
         incomes::create,
         incomes::update,
-        incomes::delete
+        incomes::delete,
+        health::get
     ),
     components(schemas(
         ExpenseCategory,
@@ -88,19 +91,108 @@ use crate::{
         IncomeListResponse,
         Pagination,
         IncomeSortBy,
-        SortOrder
+        SortOrder,
+        Health
     )),
+    modifiers(&Documentation),
+    info(
+        title = "Kakeibo API",
+        version = "0.1.0"
+    ),
     tags(
-        (name = "expense categories", description = "Expense category CRUD API"),
-        (name = "expenses", description = "Expense CRUD API"),
-        (name = "payment methods", description = "Payment method CRUD API"),
-        (name = "recurring expenses", description = "Recurring expense CRUD API"),
-        (name = "income categories", description = "Income category CRUD API"),
-        (name = "incomes", description = "Income CRUD API")
+        (name = "収入", description = "収入の登録・参照・更新・削除"),
+        (name = "収入カテゴリ", description = "収入カテゴリの管理"),
+        (name = "支出", description = "支出の登録・参照・更新・削除"),
+        (name = "支出カテゴリ", description = "支出カテゴリの管理"),
+        (name = "支払方法", description = "支払方法の管理"),
+        (name = "定期支出", description = "定期支出の管理"),
+        (name = "システム", description = "稼働状態の確認")
     )
 )]
 struct ApiDoc;
 
+struct Documentation;
+
+impl Modify for Documentation {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        for (path, item) in &mut openapi.paths.paths {
+            let tag = tag_for_path(path);
+            set_operation(&mut item.get, tag, operation_summary("GET", path));
+            set_operation(&mut item.post, tag, operation_summary("POST", path));
+            set_operation(&mut item.put, tag, operation_summary("PUT", path));
+            set_operation(&mut item.delete, tag, operation_summary("DELETE", path));
+        }
+    }
+}
+
+fn set_operation(operation: &mut Option<Operation>, tag: &str, summary: &str) {
+    if let Some(operation) = operation {
+        operation.tags = Some(vec![tag.to_owned()]);
+        operation.summary = Some(summary.to_owned());
+    }
+}
+
+fn tag_for_path(path: &str) -> &'static str {
+    match path {
+        "/api/incomes" | "/api/incomes/{id}" => "収入",
+        "/api/income-categories" | "/api/income-categories/{id}" => "収入カテゴリ",
+        "/api/expenses" | "/api/expenses/{id}" => "支出",
+        "/api/expense-categories" | "/api/expense-categories/{id}" => "支出カテゴリ",
+        "/api/payment-methods" | "/api/payment-methods/{id}" => "支払方法",
+        "/api/recurring-expenses" | "/api/recurring-expenses/{id}" => "定期支出",
+        _ => "システム",
+    }
+}
+
+fn operation_summary(method: &str, path: &str) -> &'static str {
+    match (method, path.ends_with("{id}")) {
+        ("GET", false) if path == "/health" => "稼働状態を確認",
+        ("GET", false) => "一覧を取得",
+        ("GET", true) => "詳細を取得",
+        ("POST", _) => "新規登録",
+        ("PUT", _) => "更新",
+        ("DELETE", _) => "削除",
+        _ => "API操作",
+    }
+}
+
 pub fn create() -> Router {
-    Router::new().merge(Redoc::with_url("/docs", ApiDoc::openapi()))
+    let config = || {
+        json!({
+            "disableSearch": false,
+            "expandResponses": "200,201",
+            "hideDownloadButton": true,
+            "hideHostname": true,
+            "nativeScrollbars": true,
+            "pathInMiddlePanel": true,
+            "requiredPropsFirst": true,
+            "sortPropsAlphabetically": true,
+            "theme": {
+                "colors": {
+                    "primary": { "main": "#0f766e" },
+                    "success": { "main": "#15803d" }
+                },
+                "sidebar": {
+                    "backgroundColor": "#f8fafc",
+                    "textColor": "#334155",
+                    "activeTextColor": "#0f766e",
+                    "width": "300px"
+                },
+                "typography": {
+                    "fontFamily": "'Noto Sans JP', sans-serif",
+                    "fontSize": "15px",
+                    "headings": {
+                        "fontFamily": "'Noto Sans JP', sans-serif",
+                        "fontWeight": "700"
+                    }
+                }
+            }
+        })
+    };
+
+    Router::new().merge(Redoc::with_url_and_config(
+        "/docs",
+        ApiDoc::openapi(),
+        config,
+    ))
 }
