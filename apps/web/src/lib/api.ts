@@ -1,3 +1,4 @@
+import ky, { isHTTPError, type Options } from 'ky';
 import type {
   Expense,
   ExpenseCategory,
@@ -20,17 +21,28 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
-    ...init,
-    headers: init?.body ? { 'Content-Type': 'application/json', ...init.headers } : init?.headers,
-  });
-  if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as { message?: string } | null;
-    throw new ApiError(response.status, body?.message ?? `API request failed (${response.status})`);
-  }
+const client = ky.create({
+  retry: 0,
+  hooks: {
+    beforeError: [
+      ({ error }) => {
+        if (!isHTTPError<{ message?: string }>(error)) return error;
+        const message =
+          typeof error.data === 'object' && error.data !== null ? error.data.message : undefined;
+        return new ApiError(
+          error.response.status,
+          message ?? `API request failed (${error.response.status})`,
+        );
+      },
+    ],
+  },
+});
+
+async function request<T>(path: string, options?: Options): Promise<T> {
+  const baseUrl = globalThis.location?.origin ?? 'http://localhost';
+  const response = await client(new URL(path, baseUrl), options);
   if (response.status === 204) return undefined as T;
-  return response.json() as Promise<T>;
+  return response.json<T>();
 }
 
 export const api = {
@@ -61,14 +73,16 @@ export const api = {
     ),
   recurringExpenses: () => request<RecurringExpense[]>('/api/recurring-expenses'),
   createExpense: (input: ExpenseInput) =>
-    request<Expense>('/api/expenses', { method: 'POST', body: JSON.stringify(input) }),
+    request<Expense>('/api/expenses', { method: 'post', json: input }),
+  updateExpense: (id: string, input: ExpenseInput) =>
+    request<Expense>(`/api/expenses/${id}`, { method: 'put', json: input }),
   createIncome: (input: IncomeInput) =>
-    request<Income>('/api/incomes', { method: 'POST', body: JSON.stringify(input) }),
+    request<Income>('/api/incomes', { method: 'post', json: input }),
   createRecurringExpense: (input: RecurringExpenseInput) =>
     request<RecurringExpense>('/api/recurring-expenses', {
-      method: 'POST',
-      body: JSON.stringify(input),
+      method: 'post',
+      json: input,
     }),
-  deleteExpense: (id: string) => request<void>(`/api/expenses/${id}`, { method: 'DELETE' }),
-  deleteIncome: (id: string) => request<void>(`/api/incomes/${id}`, { method: 'DELETE' }),
+  deleteExpense: (id: string) => request<void>(`/api/expenses/${id}`, { method: 'delete' }),
+  deleteIncome: (id: string) => request<void>(`/api/incomes/${id}`, { method: 'delete' }),
 };

@@ -21,7 +21,7 @@
     event.preventDefault();
     return onsubmit({
       name,
-      amount,
+      amount: String(amount),
       payment_day: paymentDay,
       start_date: startDate,
       end_date: endDate || null,

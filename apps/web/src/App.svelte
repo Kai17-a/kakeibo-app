@@ -32,6 +32,7 @@
   let selectedYear = $state(currentMonth().slice(0, 4));
   let view = $state<SummaryView>('monthly');
   let formKind = $state<'expense' | 'income' | null>(null);
+  let editingExpense = $state<Expense | null>(null);
   let recurringFormOpen = $state(false);
   let loading = $state(true);
   let saving = $state(false);
@@ -95,16 +96,39 @@
     saving = true;
     error = '';
     try {
-      if (formKind === 'expense')
+      if (formKind === 'expense' && editingExpense) {
+        const updated = await api.updateExpense(editingExpense.id, input as ExpenseInput);
+        expenses = expenses.map((item) => (item.id === updated.id ? updated : item));
+        notice = '支出を更新しました。';
+      } else if (formKind === 'expense') {
         expenses = [await api.createExpense(input as ExpenseInput), ...expenses];
-      else incomes = [await api.createIncome(input as IncomeInput), ...incomes];
-      notice = `${formKind === 'expense' ? '支出' : '収入'}を登録しました。`;
+        notice = '支出を登録しました。';
+      } else {
+        incomes = [await api.createIncome(input as IncomeInput), ...incomes];
+        notice = '収入を登録しました。';
+      }
       formKind = null;
+      editingExpense = null;
     } catch (caught) {
       error = message(caught, '登録できませんでした。');
     } finally {
       saving = false;
     }
+  }
+
+  function openTransaction(kind: 'expense' | 'income') {
+    editingExpense = null;
+    formKind = kind;
+  }
+
+  function editExpense(expense: Expense) {
+    editingExpense = expense;
+    formKind = 'expense';
+  }
+
+  function closeTransaction() {
+    formKind = null;
+    editingExpense = null;
   }
 
   async function saveRecurring(input: RecurringExpenseInput) {
@@ -137,6 +161,17 @@
     }
   }
 
+  async function removeExpense(item: Expense) {
+    if (!confirm('この明細を削除しますか？')) return;
+    try {
+      await api.deleteExpense(item.id);
+      expenses = expenses.filter((row) => row.id !== item.id);
+      notice = '明細を削除しました。';
+    } catch (caught) {
+      error = message(caught, '削除できませんでした。');
+    }
+  }
+
   function message(caught: unknown, fallback: string) {
     return caught instanceof Error ? caught.message : fallback;
   }
@@ -151,8 +186,8 @@
 
 <div class="min-h-screen bg-[#f4f1e9]">
   <Header
-    onIncome={() => (formKind = 'income')}
-    onExpense={() => (formKind = 'expense')}
+    onIncome={() => openTransaction('income')}
+    onExpense={() => openTransaction('expense')}
     onRecurring={() => (recurringFormOpen = true)}
   />
   <main class="mx-auto max-w-7xl px-5 py-8 lg:px-10 lg:py-12">
@@ -196,6 +231,8 @@
         {paymentMethods}
         {recurringExpenses}
         onRecurring={() => (recurringFormOpen = true)}
+        onedit={editExpense}
+        ondelete={removeExpense}
       />
     {:else}<MonthlySummary
         {monthLabel}
@@ -215,8 +252,9 @@
     categories={formKind === 'expense' ? expenseCategories : incomeCategories}
     {paymentMethods}
     {saving}
+    initialExpense={editingExpense ?? undefined}
     initialDate={`${selectedMonth}-${String(Math.min(new Date().getDate(), 28)).padStart(2, '0')}`}
-    onclose={() => (formKind = null)}
+    onclose={closeTransaction}
     onsubmit={saveTransaction}
   />{/if}
 {#if recurringFormOpen}<RecurringExpenseForm

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type {
+    Expense,
     ExpenseCategory,
     ExpenseInput,
     IncomeCategory,
@@ -12,31 +13,40 @@
     paymentMethods: PaymentMethod[];
     saving: boolean;
     initialDate: string;
+    initialExpense?: Expense;
     onclose(): void;
     onsubmit(input: ExpenseInput | IncomeInput): Promise<void>;
   }
-  let { kind, categories, paymentMethods, saving, initialDate, onclose, onsubmit }: Props =
-    $props();
-  let date = $derived(initialDate);
-  let amount = $state('');
-  let categoryId = $derived(categories[0]?.id ?? '');
-  let paymentMethodId = $derived(paymentMethods[0]?.id ?? '');
-  let description = $state('');
+  let {
+    kind,
+    categories,
+    paymentMethods,
+    saving,
+    initialDate,
+    initialExpense,
+    onclose,
+    onsubmit,
+  }: Props = $props();
+  let date = $derived(initialExpense?.transaction_date ?? initialDate);
+  let amount = $derived(initialExpense?.amount ?? '');
+  let categoryId = $derived(initialExpense?.category_id ?? categories[0]?.id ?? '');
+  let paymentMethodId = $derived(initialExpense?.payment_method_id ?? paymentMethods[0]?.id ?? '');
+  let description = $derived(initialExpense?.description ?? '');
   function submit(event: SubmitEvent) {
     event.preventDefault();
     return onsubmit(
       kind === 'expense'
         ? {
             transaction_date: date,
-            amount,
+            amount: String(amount),
             category_id: categoryId,
             payment_method_id: paymentMethodId,
-            recurring_expense_id: null,
+            recurring_expense_id: initialExpense?.recurring_expense_id ?? null,
             description: description || null,
           }
         : {
             transaction_date: date,
-            amount,
+            amount: String(amount),
             category_id: categoryId,
             description: description || null,
           },
@@ -61,7 +71,7 @@
       <div>
         <p class="text-xs font-bold tracking-widest text-[#39705d]">NEW ENTRY</p>
         <h2 class="mt-1 font-serif text-2xl font-semibold" id="transaction-title">
-          {kind === 'expense' ? '支出' : '収入'}を登録
+          {initialExpense ? '支出を編集' : `${kind === 'expense' ? '支出' : '収入'}を登録`}
         </h2>
       </div>
       <button
@@ -120,7 +130,7 @@
         ><button
           class="rounded-xl bg-[#245c4a] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
           type="submit"
-          disabled={saving}>{saving ? '登録中…' : '登録する'}</button
+          disabled={saving}>{saving ? '保存中…' : initialExpense ? '更新する' : '登録する'}</button
         >
       </div>
     </form>

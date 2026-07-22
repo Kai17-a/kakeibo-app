@@ -21,6 +21,8 @@
     paymentMethods: PaymentMethod[];
     recurringExpenses: RecurringExpense[];
     onRecurring(): void;
+    onedit(item: Expense): void;
+    ondelete(item: Expense): void;
   }
   let {
     month,
@@ -32,6 +34,8 @@
     paymentMethods,
     recurringExpenses,
     onRecurring,
+    onedit,
+    ondelete,
   }: Props = $props();
   let tab = $state<'summary' | 'details' | 'categories'>('summary');
   const incomeTotal = $derived(sumAmounts(incomes));
@@ -107,7 +111,9 @@
             ><tr
               ><th class="p-2 text-left">日付</th><th class="text-left">摘要</th><th
                 class="text-left">支払種別</th
-              ><th class="text-right">金額</th><th class="text-left">備考</th></tr
+              ><th class="text-right">金額</th><th class="text-left">備考</th><th class="text-right"
+                >操作</th
+              ></tr
             ></thead
           ><tbody
             >{#each ledger as item (item.id)}<tr class="border-t"
@@ -115,7 +121,19 @@
                   >{categoryNames.get(item.category_id)}</td
                 ><td>{paymentNames.get(item.payment_method_id)}</td><td class="text-right"
                   >{Number(item.amount).toLocaleString('ja-JP')}</td
-                ><td class="pl-3">{item.description ?? ''}</td></tr
+                ><td class="pl-3">{item.description ?? ''}</td><td class="pl-3"
+                  ><div class="flex justify-end gap-2">
+                    <button
+                      class="rounded-lg px-2 py-1 font-bold text-[#245c4a] hover:bg-[#e5eee9]"
+                      aria-label={`${formatDate(item.transaction_date)} ${categoryNames.get(item.category_id) ?? ''}を編集`}
+                      onclick={() => onedit(item)}>編集</button
+                    ><button
+                      class="rounded-lg px-2 py-1 font-bold text-[#9a3f31] hover:bg-[#f7e8e4]"
+                      aria-label={`${formatDate(item.transaction_date)} ${categoryNames.get(item.category_id) ?? ''}を削除`}
+                      onclick={() => ondelete(item)}>削除</button
+                    >
+                  </div></td
+                ></tr
               >{/each}</tbody
           >
         </table>
