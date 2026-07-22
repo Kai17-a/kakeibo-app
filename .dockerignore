@@ -1,0 +1,16 @@
+.git
+.github
+.devcontainer
+.agents
+.codex
+**/.env
+**/node_modules
+**/dist
+**/target
+**/*.db
+**/*.sqlite
+apps/api/tests
+apps/web/e2e
+docs
+playwright-report
+test-results

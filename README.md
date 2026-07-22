@@ -38,6 +38,16 @@ mise run web-dev
 `http://localhost:5173` を開いてください。開発サーバーは `/api` を
 `http://localhost:8000` にプロキシします。
 
+### Run with Docker
+
+```bash
+docker build -t kakeibo-app .
+docker run --rm -p 8000:8000 -v kakeibo-data:/data kakeibo-app
+```
+
+`http://localhost:8000` を開いてください。フロントエンドとAPIを同じコンテナで配信します。
+SQLiteデータベースは `kakeibo-data` ボリュームに保存されます。
+
 ### Check
 
 ```bash
