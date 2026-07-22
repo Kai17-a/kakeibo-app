@@ -126,6 +126,16 @@ description = "Check the frontend"
 dir = "apps/web"
 run = "bun run check"
 
+[tasks.web-format]
+description = "Format the frontend"
+dir = "apps/web"
+run = "bun run format"
+
+[tasks.web-format-check]
+description = "Check frontend formatting"
+dir = "apps/web"
+run = "bun run format:check"
+
 [tasks.web-test]
 description = "Test the frontend"
 dir = "apps/web"
@@ -133,4 +143,4 @@ run = "bun run test"
 
 [tasks.web-ci]
 description = "Run all frontend checks"
-depends = ["web-check", "web-test", "web-build"]
+depends = ["web-format-check", "web-check", "web-test", "web-build"]
