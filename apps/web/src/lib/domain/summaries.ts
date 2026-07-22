@@ -13,7 +13,7 @@ export function sumAmounts(items: Array<{ amount: string }>): number {
 export function mergeTransactions(expenses: Expense[], incomes: Income[]): Transaction[] {
   return [
     ...expenses.map((item) => ({ ...item, kind: 'expense' as const })),
-    ...incomes.map((item) => ({ ...item, kind: 'income' as const }))
+    ...incomes.map((item) => ({ ...item, kind: 'income' as const })),
   ].sort((a, b) => b.transaction_date.localeCompare(a.transaction_date));
 }
 
@@ -21,13 +21,13 @@ export function categoryTotals(expenses: Expense[], categories: ExpenseCategory[
   return categories.map((category) => ({
     id: category.id,
     name: category.name,
-    total: sumAmounts(expenses.filter((item) => item.category_id === category.id))
+    total: sumAmounts(expenses.filter((item) => item.category_id === category.id)),
   }));
 }
 
 export function dailyCategoryTotals(
   expenses: Array<Pick<Expense, 'transaction_date' | 'amount' | 'category_id'>>,
-  month: string
+  month: string,
 ) {
   const days = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate();
   return Array.from({ length: days }, (_, index) => {

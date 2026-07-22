@@ -5,7 +5,7 @@ describe('summary calculations', () => {
   const expenses = [
     { transaction_date: '2026-07-02', amount: '100', category_id: 'food' },
     { transaction_date: '2026-07-02', amount: '250', category_id: 'food' },
-    { transaction_date: '2026-08-01', amount: '500', category_id: 'other' }
+    { transaction_date: '2026-08-01', amount: '500', category_id: 'other' },
   ];
 
   it('filters items by month', () => expect(inPeriod(expenses, '2026-07')).toHaveLength(2));

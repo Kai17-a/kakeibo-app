@@ -6,10 +6,10 @@ export default defineConfig({
   plugins: [tailwindcss(), svelte()],
   server: {
     port: 5173,
-    proxy: { '/api': 'http://localhost:8000' }
+    proxy: { '/api': 'http://localhost:8000' },
   },
   test: {
     environment: 'jsdom',
-    setupFiles: ['./src/test-setup.ts']
-  }
+    setupFiles: ['./src/test-setup.ts'],
+  },
 });
