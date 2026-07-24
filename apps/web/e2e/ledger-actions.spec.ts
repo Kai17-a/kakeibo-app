@@ -69,8 +69,8 @@ async function mockLedgerApi(page: Page) {
 
 async function openExpenseDetails(page: Page) {
   await page.goto('/');
-  await page.getByRole('button', { name: '日別集計' }).click();
-  await page.getByRole('button', { name: '支出明細' }).click();
+  await page.getByRole('radio', { name: '日別集計' }).click();
+  await page.getByRole('tab', { name: '支出明細' }).click();
 }
 
 test('支出明細から支出を更新する', async ({ page }) => {

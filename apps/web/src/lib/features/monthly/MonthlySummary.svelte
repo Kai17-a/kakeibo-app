@@ -1,5 +1,12 @@
 <script lang="ts">
   import { SvelteMap } from 'svelte/reactivity';
+  import ArrowDownLeftIcon from '@lucide/svelte/icons/arrow-down-left';
+  import ArrowUpRightIcon from '@lucide/svelte/icons/arrow-up-right';
+  import { Badge } from '$lib/components/ui/badge';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
+  import * as Empty from '$lib/components/ui/empty';
+  import { Progress } from '$lib/components/ui/progress';
   import { categoryTotals, mergeTransactions, sumAmounts } from '../../domain/summaries';
   import { formatDate, formatYen } from '../../format';
   import type {
@@ -56,94 +63,106 @@
 </script>
 
 <section class="grid gap-4 md:grid-cols-3" aria-label={`${monthLabel}の収支概要`}>
-  <article class="rounded-2xl border border-[#d8d5cc] bg-white p-6">
-    <p class="text-sm font-semibold text-[#6d7872]">収入</p>
-    <p class="mt-3 font-serif text-3xl font-semibold text-[#245c4a]">{formatYen(incomeTotal)}</p>
-    <p class="mt-4 text-xs text-[#8a918d]">{incomes.length} 件の入金</p>
-  </article>
-  <article class="rounded-2xl border border-[#d8d5cc] bg-white p-6">
-    <p class="text-sm font-semibold text-[#6d7872]">支出</p>
-    <p class="mt-3 font-serif text-3xl font-semibold text-[#b45845]">{formatYen(expenseTotal)}</p>
-    <p class="mt-4 text-xs text-[#8a918d]">{expenses.length} 件の支払い</p>
-  </article>
-  <article class="rounded-2xl bg-[#203e34] p-6 text-white">
-    <p class="text-sm font-semibold text-[#bcd3c9]">残り</p>
-    <p class="mt-3 font-serif text-3xl font-semibold">{formatYen(balance)}</p>
-    <div class="mt-4 h-1.5 overflow-hidden rounded-full bg-white/15">
-      <div
-        class="h-full rounded-full bg-[#e4c476]"
-        style:width={`${incomeTotal ? Math.min(100, Math.max(0, (balance / incomeTotal) * 100)) : 0}%`}
-      ></div>
-    </div>
-  </article>
+  <Card.Root>
+    <Card.Header
+      ><Card.Description>収入</Card.Description><Card.Title>{formatYen(incomeTotal)}</Card.Title
+      ></Card.Header
+    >
+    <Card.Content><Badge variant="secondary">{incomes.length} 件の入金</Badge></Card.Content>
+  </Card.Root>
+  <Card.Root>
+    <Card.Header
+      ><Card.Description>支出</Card.Description><Card.Title>{formatYen(expenseTotal)}</Card.Title
+      ></Card.Header
+    >
+    <Card.Content><Badge variant="secondary">{expenses.length} 件の支払い</Badge></Card.Content>
+  </Card.Root>
+  <Card.Root>
+    <Card.Header
+      ><Card.Description>残り</Card.Description><Card.Title>{formatYen(balance)}</Card.Title
+      ></Card.Header
+    >
+    <Card.Content
+      ><Progress
+        value={incomeTotal ? Math.min(100, Math.max(0, (balance / incomeTotal) * 100)) : 0}
+      /></Card.Content
+    >
+  </Card.Root>
 </section>
 <div class="mt-8 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-  <section class="overflow-hidden rounded-2xl border border-[#d8d5cc] bg-white">
-    <div class="flex items-center justify-between border-b px-5 py-4">
-      <div>
-        <h2 class="font-serif text-xl font-semibold">最近の明細</h2>
-        <p class="text-xs text-[#7b847f]">{monthLabel}</p>
-      </div>
-      <span class="text-xs font-bold">{transactions.length} 件</span>
-    </div>
-    {#if transactions.length}<ul class="divide-y">
-        {#each transactions as item (item.id)}<li class="group flex items-center gap-3 px-5 py-4">
-            <span
-              class={[
-                'grid size-10 place-items-center rounded-xl',
-                item.kind === 'income'
-                  ? 'bg-[#e4f0ea] text-[#245c4a]'
-                  : 'bg-[#f6e9e5] text-[#ad4f3d]',
-              ]}>{item.kind === 'income' ? '↘' : '↗'}</span
-            >
-            <div class="min-w-0 flex-1">
-              <p class="truncate text-sm font-bold">{label(item)}</p>
-              <p class="text-xs text-[#7d8681]">
-                {formatDate(item.transaction_date)}{item.kind === 'expense'
-                  ? ` · ${paymentNames.get(item.payment_method_id) ?? ''}`
-                  : ''}
+  <Card.Root class="overflow-hidden">
+    <Card.Header>
+      <Card.Title>最近の明細</Card.Title>
+      <Card.Description>{monthLabel}</Card.Description>
+      <Card.Action><Badge variant="outline">{transactions.length} 件</Badge></Card.Action>
+    </Card.Header>
+    <Card.Content class="px-0">
+      {#if transactions.length}<ul class="divide-y">
+          {#each transactions as item (item.id)}<li class="group flex items-center gap-3 px-5 py-4">
+              <span
+                class={[
+                  'grid size-10 place-items-center rounded-xl',
+                  item.kind === 'income'
+                    ? 'bg-secondary text-secondary-foreground'
+                    : 'bg-muted text-destructive',
+                ]}
+                >{#if item.kind === 'income'}<ArrowDownLeftIcon />{:else}<ArrowUpRightIcon
+                  />{/if}</span
+              >
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-bold">{label(item)}</p>
+                <p class="text-xs text-muted-foreground">
+                  {formatDate(item.transaction_date)}{item.kind === 'expense'
+                    ? ` · ${paymentNames.get(item.payment_method_id) ?? ''}`
+                    : ''}
+                </p>
+              </div>
+              <p class="font-serif font-semibold">
+                {item.kind === 'income' ? '+' : '−'}{formatYen(item.amount)}
               </p>
-            </div>
-            <p class="font-serif font-semibold">
-              {item.kind === 'income' ? '+' : '−'}{formatYen(item.amount)}
-            </p>
-            <button
-              class="text-sm text-[#9a3f31] opacity-0 group-hover:opacity-100"
-              onclick={() => ondelete(item)}>削除</button
-            >
-          </li>{/each}
-      </ul>{:else}<p class="py-24 text-center text-sm text-[#7d8681]">
-        この月の明細はまだありません
-      </p>{/if}
-  </section>
+              <Button
+                variant="ghost"
+                size="sm"
+                class="opacity-0 group-hover:opacity-100"
+                onclick={() => ondelete(item)}>削除</Button
+              >
+            </li>{/each}
+        </ul>{:else}<Empty.Root
+          ><Empty.Header
+            ><Empty.Title>この月の明細はまだありません</Empty.Title><Empty.Description
+              >収入または支出を登録すると、ここに表示されます。</Empty.Description
+            ></Empty.Header
+          ></Empty.Root
+        >{/if}
+    </Card.Content>
+  </Card.Root>
   <div class="grid content-start gap-6">
-    <section class="rounded-2xl border border-[#d8d5cc] bg-white p-5">
-      <h2 class="font-serif text-xl font-semibold">支出の内訳</h2>
-      <div class="mt-5 grid gap-4">
+    <Card.Root>
+      <Card.Header><Card.Title>支出の内訳</Card.Title></Card.Header>
+      <Card.Content class="grid gap-4">
         {#each spending as category (category.id)}<div>
             <div class="flex justify-between text-sm">
               <b>{category.name}</b><span>{formatYen(category.total)}</span>
             </div>
-            <div class="mt-1 h-2 rounded-full bg-[#edeae2]">
-              <div
-                class="h-full rounded-full bg-[#d29a62]"
-                style:width={`${expenseTotal ? (category.total / expenseTotal) * 100 : 0}%`}
-              ></div>
-            </div>
+            <Progress
+              class="mt-1"
+              value={expenseTotal ? (category.total / expenseTotal) * 100 : 0}
+            />
           </div>{/each}
-      </div>
-    </section>
-    <section class="rounded-2xl border border-[#d8d5cc] bg-[#e9eee8] p-5">
-      <h2 class="font-serif text-xl font-semibold">定期支出</h2>
-      <ul class="mt-3 divide-y">
-        {#each recurringExpenses.filter((item) => item.is_active) as item (item.id)}<li
-            class="flex justify-between py-3 text-sm"
-          >
-            <span><b class="block">{item.name}</b><small>毎月 {item.payment_day} 日</small></span><b
-              >{formatYen(item.amount)}</b
+      </Card.Content>
+    </Card.Root>
+    <Card.Root>
+      <Card.Header><Card.Title>定期支出</Card.Title></Card.Header>
+      <Card.Content>
+        <ul class="mt-3 divide-y">
+          {#each recurringExpenses.filter((item) => item.is_active) as item (item.id)}<li
+              class="flex justify-between py-3 text-sm"
             >
-          </li>{/each}
-      </ul>
-    </section>
+              <span><b class="block">{item.name}</b><small>毎月 {item.payment_day} 日</small></span
+              ><b>{formatYen(item.amount)}</b>
+            </li>{/each}
+        </ul>
+      </Card.Content>
+    </Card.Root>
   </div>
 </div>

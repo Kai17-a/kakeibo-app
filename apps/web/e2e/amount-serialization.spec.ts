@@ -62,12 +62,30 @@ test('支出金額を文字列としてAPIへ送信する', async ({ page }) => 
   });
 
   await page.goto('/');
-  await page.getByRole('button', { name: '＋ 支出' }).click();
+  await page.getByRole('button', { name: '収支を登録' }).click();
+  await expect(page.getByRole('tab', { name: '支出' })).toHaveAttribute('data-state', 'active');
   await page.getByLabel('金額').fill('3333');
   await page.getByRole('button', { name: '登録する' }).click();
 
   await expect(page.getByText('支出を登録しました。')).toBeVisible();
   expect(requestBody?.amount).toBe('3333');
+  expect(typeof requestBody?.amount).toBe('string');
+});
+
+test('収入タブから収入金額を文字列としてAPIへ送信する', async ({ page }) => {
+  let requestBody: Record<string, unknown> | undefined;
+  await mockApi(page, (path, body) => {
+    if (path === '/api/incomes') requestBody = body as Record<string, unknown>;
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: '収支を登録' }).click();
+  await page.getByRole('tab', { name: '収入' }).click();
+  await page.getByLabel('金額').fill('50000');
+  await page.getByRole('button', { name: '登録する' }).click();
+
+  await expect(page.getByText('収入を登録しました。')).toBeVisible();
+  expect(requestBody?.amount).toBe('50000');
   expect(typeof requestBody?.amount).toBe('string');
 });
 
@@ -78,7 +96,7 @@ test('固定費金額を文字列としてAPIへ送信する', async ({ page }) 
   });
 
   await page.goto('/');
-  await page.getByRole('button', { name: '＋ 固定費' }).click();
+  await page.getByRole('button', { name: '固定費' }).click();
   await page.getByLabel('名称').fill('家賃');
   await page.getByLabel('金額').fill('61100');
   await page.getByRole('button', { name: '固定費を登録' }).click();
@@ -86,4 +104,34 @@ test('固定費金額を文字列としてAPIへ送信する', async ({ page }) 
   await expect(page.getByText('固定費を登録しました。')).toBeVisible();
   expect(requestBody?.amount).toBe('61100');
   expect(typeof requestBody?.amount).toBe('string');
+});
+
+test('小さい画面でも固定費登録ボタンまでスクロールできる', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 480 });
+  await mockApi(page, () => {});
+
+  await page.goto('/');
+  await page.getByRole('button', { name: '固定費' }).click();
+
+  const submitButton = page.getByRole('button', { name: '固定費を登録' });
+  await submitButton.scrollIntoViewIfNeeded();
+  await expect(submitButton).toBeVisible();
+});
+
+test('テーマを切り替えて選択を保存する', async ({ page }) => {
+  await mockApi(page, () => {});
+  await page.goto('/');
+
+  const initiallyDark = await page
+    .locator('html')
+    .evaluate((element) => element.classList.contains('dark'));
+  await page.getByRole('button', { name: 'テーマを切り替え' }).click();
+  await expect
+    .poll(() => page.locator('html').evaluate((element) => element.classList.contains('dark')))
+    .toBe(!initiallyDark);
+
+  await page.reload();
+  await expect
+    .poll(() => page.locator('html').evaluate((element) => element.classList.contains('dark')))
+    .toBe(!initiallyDark);
 });

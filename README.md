@@ -97,7 +97,7 @@ mise run test-data-clear
 │   │   │   └── utils/       # エラー処理、ロギングなどの共通処理
 │   │   ├── tests/       # API統合テスト
 │   │   └── Cargo.toml   # Rustパッケージ設定
-│   └── web/             # フロントエンド配置先
+│   └── web/             # SvelteKit + shadcn-svelteフロントエンド
 ├── scripts/          # 開発・運用補助スクリプト
 └── mise.toml         # ツールとタスクの定義
 ```

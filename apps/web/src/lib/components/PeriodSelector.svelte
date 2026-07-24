@@ -1,4 +1,8 @@
 <script lang="ts">
+  import * as Field from '$lib/components/ui/field';
+  import * as NativeSelect from '$lib/components/ui/native-select';
+  import * as ToggleGroup from '$lib/components/ui/toggle-group';
+  import { Input } from '$lib/components/ui/input';
   export type SummaryView = 'monthly' | 'daily' | 'annual';
   interface Props {
     view: SummaryView;
@@ -14,36 +18,46 @@
 
 <section class="mb-8 flex flex-wrap items-end justify-between gap-5">
   <div>
-    <p class="mb-1 text-sm font-bold tracking-widest text-[#39705d]">OVERVIEW</p>
+    <p class="mb-1 text-sm font-bold tracking-widest text-muted-foreground">OVERVIEW</p>
     <h1 class="font-serif text-3xl font-semibold lg:text-4xl">
       {view === 'annual' ? `${year}年の家計` : view === 'daily' ? '日別カテゴリ集計' : '今月の家計'}
     </h1>
   </div>
   <div class="flex flex-wrap items-end gap-3">
-    <div class="flex rounded-xl border border-[#cbc9c0] bg-white p-1" aria-label="集計期間">
-      {#each [['monthly', '月間'], ['daily', '日別集計'], ['annual', '年間']] as item (item[0])}<button
-          class={[
-            'rounded-lg px-4 py-2 text-sm font-bold',
-            view === item[0] ? 'bg-[#245c4a] text-white' : 'text-[#68746e] hover:bg-[#f0eee7]',
-          ]}
-          aria-pressed={view === item[0]}
-          onclick={() => onchange(item[0] as SummaryView)}>{item[1]}</button
-        >{/each}
-    </div>
-    {#if view === 'annual'}<label class="grid gap-1.5 text-xs font-bold text-[#59665f]"
-        >表示する年<select
-          class="rounded-xl border border-[#cbc9c0] bg-white px-3 py-2 text-sm"
+    <ToggleGroup.Root
+      type="single"
+      value={view}
+      variant="outline"
+      aria-label="集計期間"
+      onValueChange={(value) => value && onchange(value as SummaryView)}
+    >
+      <ToggleGroup.Item value="monthly">月間</ToggleGroup.Item>
+      <ToggleGroup.Item value="daily">日別集計</ToggleGroup.Item>
+      <ToggleGroup.Item value="annual">年間</ToggleGroup.Item>
+    </ToggleGroup.Root>
+    {#if view === 'annual'}
+      <Field.Field>
+        <Field.FieldLabel for="display-year">表示する年</Field.FieldLabel>
+        <NativeSelect.Root
+          id="display-year"
           value={year}
           onchange={(event) => onyear(event.currentTarget.value)}
-          >{#each years as item (item)}<option value={item}>{item}年</option>{/each}</select
-        ></label
-      >{:else}<label class="grid gap-1.5 text-xs font-bold text-[#59665f]"
-        >表示する月<input
-          class="rounded-xl border border-[#cbc9c0] bg-white px-3 py-2 text-sm"
+        >
+          {#each years as item (item)}
+            <NativeSelect.Option value={item}>{item}年</NativeSelect.Option>
+          {/each}
+        </NativeSelect.Root>
+      </Field.Field>
+    {:else}
+      <Field.Field>
+        <Field.FieldLabel for="display-month">表示する月</Field.FieldLabel>
+        <Input
+          id="display-month"
           type="month"
           value={month}
           onchange={(event) => onmonth(event.currentTarget.value)}
-        /></label
-      >{/if}
+        />
+      </Field.Field>
+    {/if}
   </div>
 </section>

@@ -1,4 +1,12 @@
 <script lang="ts">
+  import { Button } from '$lib/components/ui/button';
+  import * as Dialog from '$lib/components/ui/dialog';
+  import * as Field from '$lib/components/ui/field';
+  import { Input } from '$lib/components/ui/input';
+  import * as NativeSelect from '$lib/components/ui/native-select';
+  import { Spinner } from '$lib/components/ui/spinner';
+  import * as Tabs from '$lib/components/ui/tabs';
+  import { Textarea } from '$lib/components/ui/textarea';
   import type {
     Expense,
     ExpenseCategory,
@@ -8,18 +16,18 @@
     PaymentMethod,
   } from '../../types';
   interface Props {
-    kind: 'expense' | 'income';
-    categories: ExpenseCategory[] | IncomeCategory[];
+    expenseCategories: ExpenseCategory[];
+    incomeCategories: IncomeCategory[];
     paymentMethods: PaymentMethod[];
     saving: boolean;
     initialDate: string;
     initialExpense?: Expense;
     onclose(): void;
-    onsubmit(input: ExpenseInput | IncomeInput): Promise<void>;
+    onsubmit(kind: 'expense' | 'income', input: ExpenseInput | IncomeInput): Promise<void>;
   }
   let {
-    kind,
-    categories,
+    expenseCategories,
+    incomeCategories,
     paymentMethods,
     saving,
     initialDate,
@@ -27,6 +35,8 @@
     onclose,
     onsubmit,
   }: Props = $props();
+  let kind = $state<'expense' | 'income'>('expense');
+  const categories = $derived(kind === 'expense' ? expenseCategories : incomeCategories);
   let date = $derived(initialExpense?.transaction_date ?? initialDate);
   let amount = $derived(initialExpense?.amount ?? '');
   let categoryId = $derived(initialExpense?.category_id ?? categories[0]?.id ?? '');
@@ -35,6 +45,7 @@
   function submit(event: SubmitEvent) {
     event.preventDefault();
     return onsubmit(
+      kind,
       kind === 'expense'
         ? {
             transaction_date: date,
@@ -54,85 +65,68 @@
   }
 </script>
 
-<div
-  class="fixed inset-0 z-50 grid place-items-center bg-[#15241e]/55 p-4"
-  role="presentation"
-  onclick={(event) => {
-    if (event.target === event.currentTarget) onclose();
-  }}
->
-  <div
-    class="w-full max-w-lg rounded-2xl bg-[#fbfaf6] p-6 shadow-2xl"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="transaction-title"
-  >
-    <div class="flex items-center justify-between">
-      <div>
-        <p class="text-xs font-bold tracking-widest text-[#39705d]">NEW ENTRY</p>
-        <h2 class="mt-1 font-serif text-2xl font-semibold" id="transaction-title">
-          {initialExpense ? '支出を編集' : `${kind === 'expense' ? '支出' : '収入'}を登録`}
-        </h2>
-      </div>
-      <button
-        class="grid size-9 place-items-center rounded-full hover:bg-[#eae7df]"
-        aria-label="閉じる"
-        onclick={onclose}>✕</button
-      >
-    </div>
-    <form class="mt-6 grid gap-4" onsubmit={submit}>
-      <label class="grid gap-1.5 text-sm font-semibold"
-        >日付<input
-          class="rounded-xl border border-[#cbc9c0] bg-white px-3 py-2.5"
-          type="date"
-          required
-          bind:value={date}
-        /></label
-      >
-      <label class="grid gap-1.5 text-sm font-semibold"
-        >金額<input
-          class="rounded-xl border border-[#cbc9c0] bg-white px-3 py-2.5 text-lg"
-          type="number"
-          min="1"
-          step="1"
-          required
-          bind:value={amount}
-        /></label
-      >
-      <label class="grid gap-1.5 text-sm font-semibold"
-        >カテゴリ<select
-          class="rounded-xl border border-[#cbc9c0] bg-white px-3 py-2.5"
-          required
-          bind:value={categoryId}
-          >{#each categories as category (category.id)}<option value={category.id}
-              >{category.name}</option
-            >{/each}</select
-        ></label
-      >
-      {#if kind === 'expense'}<label class="grid gap-1.5 text-sm font-semibold"
-          >支払方法<select
-            class="rounded-xl border border-[#cbc9c0] bg-white px-3 py-2.5"
+<Dialog.Root open onOpenChange={(open) => !open && onclose()}>
+  <Dialog.Content>
+    <Dialog.Header>
+      <Dialog.Title>{initialExpense ? '支出を編集' : '収支を登録'}</Dialog.Title>
+      <Dialog.Description>日付や金額、カテゴリを入力してください。</Dialog.Description>
+    </Dialog.Header>
+    {#if !initialExpense}
+      <Tabs.Root bind:value={kind}>
+        <Tabs.List class="grid w-full grid-cols-2">
+          <Tabs.Trigger value="expense">支出</Tabs.Trigger>
+          <Tabs.Trigger value="income">収入</Tabs.Trigger>
+        </Tabs.List>
+      </Tabs.Root>
+    {/if}
+    <form class="flex flex-col gap-6" onsubmit={submit}>
+      <Field.FieldGroup>
+        <Field.Field>
+          <Field.FieldLabel for="transaction-date">日付</Field.FieldLabel>
+          <Input id="transaction-date" type="date" required bind:value={date} />
+        </Field.Field>
+        <Field.Field>
+          <Field.FieldLabel for="transaction-amount">金額</Field.FieldLabel>
+          <Input
+            id="transaction-amount"
+            type="number"
+            min="1"
+            step="1"
             required
-            bind:value={paymentMethodId}
-            >{#each paymentMethods as method (method.id)}<option value={method.id}
-                >{method.name}</option
-              >{/each}</select
-          ></label
-        >{/if}
-      <label class="grid gap-1.5 text-sm font-semibold"
-        ><span>メモ <span class="font-normal text-[#838b86]">（任意）</span></span><textarea
-          class="min-h-20 rounded-xl border border-[#cbc9c0] bg-white px-3 py-2.5"
-          bind:value={description}></textarea></label
-      >
-      <div class="mt-2 flex justify-end gap-3">
-        <button class="rounded-xl px-4 py-2.5 text-sm font-semibold" type="button" onclick={onclose}
-          >キャンセル</button
-        ><button
-          class="rounded-xl bg-[#245c4a] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
-          type="submit"
-          disabled={saving}>{saving ? '保存中…' : initialExpense ? '更新する' : '登録する'}</button
-        >
-      </div>
+            bind:value={amount}
+          />
+        </Field.Field>
+        <Field.Field>
+          <Field.FieldLabel for="transaction-category">カテゴリ</Field.FieldLabel>
+          <NativeSelect.Root id="transaction-category" required bind:value={categoryId}>
+            {#each categories as category (category.id)}
+              <NativeSelect.Option value={category.id}>{category.name}</NativeSelect.Option>
+            {/each}
+          </NativeSelect.Root>
+        </Field.Field>
+        {#if kind === 'expense'}
+          <Field.Field>
+            <Field.FieldLabel for="transaction-payment">支払方法</Field.FieldLabel>
+            <NativeSelect.Root id="transaction-payment" required bind:value={paymentMethodId}>
+              {#each paymentMethods as method (method.id)}
+                <NativeSelect.Option value={method.id}>{method.name}</NativeSelect.Option>
+              {/each}
+            </NativeSelect.Root>
+          </Field.Field>
+        {/if}
+        <Field.Field>
+          <Field.FieldLabel for="transaction-description">メモ（任意）</Field.FieldLabel>
+          <Textarea id="transaction-description" bind:value={description} />
+        </Field.Field>
+      </Field.FieldGroup>
+      <Dialog.Footer>
+        <Button variant="outline" type="button" onclick={onclose}>キャンセル</Button>
+        <Button type="submit" disabled={saving}>
+          {#if saving}<Spinner
+              data-icon="inline-start"
+            />保存中…{:else if initialExpense}更新する{:else}登録する{/if}
+        </Button>
+      </Dialog.Footer>
     </form>
-  </div>
-</div>
+  </Dialog.Content>
+</Dialog.Root>

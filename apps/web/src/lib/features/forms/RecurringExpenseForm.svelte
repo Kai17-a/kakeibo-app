@@ -1,4 +1,12 @@
 <script lang="ts">
+  import { Button } from '$lib/components/ui/button';
+  import { Checkbox } from '$lib/components/ui/checkbox';
+  import * as Dialog from '$lib/components/ui/dialog';
+  import * as Field from '$lib/components/ui/field';
+  import { Input } from '$lib/components/ui/input';
+  import * as NativeSelect from '$lib/components/ui/native-select';
+  import { Spinner } from '$lib/components/ui/spinner';
+  import { Textarea } from '$lib/components/ui/textarea';
   import type { ExpenseCategory, PaymentMethod, RecurringExpenseInput } from '../../types';
   interface Props {
     categories: ExpenseCategory[];
@@ -33,111 +41,94 @@
   }
 </script>
 
-<div
-  class="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-[#15241e]/55 p-4"
-  role="presentation"
-  onclick={(event) => {
-    if (event.target === event.currentTarget) onclose();
-  }}
->
-  <div
-    class="my-auto w-full max-w-2xl rounded-2xl bg-[#fbfaf6] p-6 shadow-2xl"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="recurring-title"
-  >
-    <div class="flex items-center justify-between">
-      <div>
-        <p class="text-xs font-bold tracking-widest text-[#39705d]">FIXED EXPENSE</p>
-        <h2 class="mt-1 font-serif text-2xl font-semibold" id="recurring-title">固定費を登録</h2>
-      </div>
-      <button
-        class="grid size-9 place-items-center rounded-full hover:bg-[#eae7df]"
-        aria-label="閉じる"
-        onclick={onclose}>✕</button
-      >
-    </div>
-    <p class="mt-2 text-sm text-[#717b75]">毎月発生する家賃や通信費などの支出予定を登録します。</p>
-    <form class="mt-6 grid gap-4 sm:grid-cols-2" onsubmit={submit}>
-      <label class="grid gap-1.5 text-sm font-semibold sm:col-span-2"
-        >名称<input
-          class="rounded-xl border border-[#cbc9c0] bg-white px-3 py-2.5"
-          required
-          bind:value={name}
-        /></label
-      >
-      <label class="grid gap-1.5 text-sm font-semibold"
-        >金額<input
-          class="rounded-xl border border-[#cbc9c0] bg-white px-3 py-2.5"
-          type="number"
-          min="1"
-          required
-          bind:value={amount}
-        /></label
-      ><label class="grid gap-1.5 text-sm font-semibold"
-        >毎月の支払日<input
-          class="rounded-xl border border-[#cbc9c0] bg-white px-3 py-2.5"
-          type="number"
-          min="1"
-          max="31"
-          required
-          bind:value={paymentDay}
-        /></label
-      >
-      <label class="grid gap-1.5 text-sm font-semibold"
-        >カテゴリ<select
-          class="rounded-xl border border-[#cbc9c0] bg-white px-3 py-2.5"
-          required
-          bind:value={categoryId}
-          >{#each categories as category (category.id)}<option value={category.id}
-              >{category.name}</option
-            >{/each}</select
-        ></label
-      ><label class="grid gap-1.5 text-sm font-semibold"
-        >支払方法<select
-          class="rounded-xl border border-[#cbc9c0] bg-white px-3 py-2.5"
-          required
-          bind:value={paymentMethodId}
-          >{#each paymentMethods as method (method.id)}<option value={method.id}
-              >{method.name}</option
-            >{/each}</select
-        ></label
-      >
-      <label class="grid gap-1.5 text-sm font-semibold"
-        >開始日<input
-          class="rounded-xl border border-[#cbc9c0] bg-white px-3 py-2.5"
-          type="date"
-          required
-          bind:value={startDate}
-        /></label
-      ><label class="grid gap-1.5 text-sm font-semibold"
-        ><span>終了日 <span class="font-normal text-[#838b86]">（任意）</span></span><input
-          class="rounded-xl border border-[#cbc9c0] bg-white px-3 py-2.5"
-          type="date"
-          min={startDate}
-          bind:value={endDate}
-        /></label
-      >
-      <label class="grid gap-1.5 text-sm font-semibold sm:col-span-2"
-        ><span>備考 <span class="font-normal text-[#838b86]">（任意）</span></span><textarea
-          class="min-h-20 rounded-xl border border-[#cbc9c0] bg-white px-3 py-2.5"
-          bind:value={description}></textarea></label
-      ><label class="flex items-center gap-2 text-sm font-semibold sm:col-span-2"
-        ><input
-          class="size-4 accent-[#245c4a]"
-          type="checkbox"
-          bind:checked={active}
-        />登録後すぐに有効にする</label
-      >
-      <div class="mt-2 flex justify-end gap-3 sm:col-span-2">
-        <button class="rounded-xl px-4 py-2.5 text-sm font-semibold" type="button" onclick={onclose}
-          >キャンセル</button
-        ><button
-          class="rounded-xl bg-[#245c4a] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
-          type="submit"
-          disabled={saving}>{saving ? '登録中…' : '固定費を登録'}</button
+<Dialog.Root open onOpenChange={(open) => !open && onclose()}>
+  <Dialog.Content class="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain sm:max-w-2xl">
+    <Dialog.Header>
+      <Dialog.Title>固定費を登録</Dialog.Title>
+      <Dialog.Description>毎月発生する家賃や通信費などの支出予定を登録します。</Dialog.Description>
+    </Dialog.Header>
+    <form class="flex flex-col gap-6" onsubmit={submit}>
+      <Field.FieldGroup class="grid sm:grid-cols-2">
+        <Field.Field class="sm:col-span-2"
+          ><Field.FieldLabel for="recurring-name">名称</Field.FieldLabel><Input
+            id="recurring-name"
+            required
+            bind:value={name}
+          /></Field.Field
         >
-      </div>
+        <Field.Field
+          ><Field.FieldLabel for="recurring-amount">金額</Field.FieldLabel><Input
+            id="recurring-amount"
+            type="number"
+            min="1"
+            required
+            bind:value={amount}
+          /></Field.Field
+        >
+        <Field.Field
+          ><Field.FieldLabel for="recurring-day">毎月の支払日</Field.FieldLabel><Input
+            id="recurring-day"
+            type="number"
+            min="1"
+            max="31"
+            required
+            bind:value={paymentDay}
+          /></Field.Field
+        >
+        <Field.Field
+          ><Field.FieldLabel for="recurring-category">カテゴリ</Field.FieldLabel><NativeSelect.Root
+            id="recurring-category"
+            required
+            bind:value={categoryId}
+            >{#each categories as category (category.id)}<NativeSelect.Option value={category.id}
+                >{category.name}</NativeSelect.Option
+              >{/each}</NativeSelect.Root
+          ></Field.Field
+        >
+        <Field.Field
+          ><Field.FieldLabel for="recurring-payment">支払方法</Field.FieldLabel><NativeSelect.Root
+            id="recurring-payment"
+            required
+            bind:value={paymentMethodId}
+            >{#each paymentMethods as method (method.id)}<NativeSelect.Option value={method.id}
+                >{method.name}</NativeSelect.Option
+              >{/each}</NativeSelect.Root
+          ></Field.Field
+        >
+        <Field.Field
+          ><Field.FieldLabel for="recurring-start">開始日</Field.FieldLabel><Input
+            id="recurring-start"
+            type="date"
+            required
+            bind:value={startDate}
+          /></Field.Field
+        >
+        <Field.Field
+          ><Field.FieldLabel for="recurring-end">終了日（任意）</Field.FieldLabel><Input
+            id="recurring-end"
+            type="date"
+            min={startDate}
+            bind:value={endDate}
+          /></Field.Field
+        >
+        <Field.Field class="sm:col-span-2"
+          ><Field.FieldLabel for="recurring-description">備考（任意）</Field.FieldLabel><Textarea
+            id="recurring-description"
+            bind:value={description}
+          /></Field.Field
+        >
+        <Field.Field orientation="horizontal" class="sm:col-span-2"
+          ><Checkbox id="recurring-active" bind:checked={active} /><Field.FieldLabel
+            for="recurring-active">登録後すぐに有効にする</Field.FieldLabel
+          ></Field.Field
+        >
+      </Field.FieldGroup>
+      <Dialog.Footer>
+        <Button variant="outline" type="button" onclick={onclose}>キャンセル</Button>
+        <Button type="submit" disabled={saving}
+          >{#if saving}<Spinner data-icon="inline-start" />登録中…{:else}固定費を登録{/if}</Button
+        >
+      </Dialog.Footer>
     </form>
-  </div>
-</div>
+  </Dialog.Content>
+</Dialog.Root>

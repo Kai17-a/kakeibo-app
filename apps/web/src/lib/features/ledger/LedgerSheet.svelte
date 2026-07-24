@@ -1,5 +1,8 @@
 <script lang="ts">
   import { SvelteMap } from 'svelte/reactivity';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
+  import * as Tabs from '$lib/components/ui/tabs';
   import { categoryTotals, sumAmounts } from '../../domain/summaries';
   import { formatDate, formatYen } from '../../format';
   import type {
@@ -71,123 +74,116 @@
   );
 </script>
 
-<div class="overflow-hidden rounded-2xl border bg-white">
-  <div class="flex justify-between border-b bg-[#eef3ed] px-5 py-3">
-    <div><h2 class="font-serif text-xl">{monthLabel} 家計簿</h2></div>
-    <span class="text-xs font-bold">単位：円</span>
-  </div>
-  <nav class="flex gap-1 overflow-x-auto border-b bg-[#faf9f5] px-4 pt-3" aria-label="家計簿シート">
-    <button
-      class={[
-        'rounded-t-lg px-5 py-2.5 text-sm font-bold whitespace-nowrap',
-        tab === 'summary' ? 'border bg-white text-[#245c4a]' : 'text-[#707a74]',
-      ]}
-      onclick={() => (tab = 'summary')}>収支・明細</button
-    >
-    <button
-      class={[
-        'rounded-t-lg px-5 py-2.5 text-sm font-bold whitespace-nowrap',
-        tab === 'details' ? 'border bg-white text-[#245c4a]' : 'text-[#707a74]',
-      ]}
-      onclick={() => (tab = 'details')}>支出明細</button
-    >
-    <button
-      class={[
-        'rounded-t-lg px-5 py-2.5 text-sm font-bold whitespace-nowrap',
-        tab === 'categories' ? 'border bg-white text-[#245c4a]' : 'text-[#707a74]',
-      ]}
-      onclick={() => (tab = 'categories')}>月ごとのカテゴリ別支出</button
-    >
-  </nav>
+<Card.Root class="overflow-hidden">
+  <Card.Header>
+    <Card.Title>{monthLabel} 家計簿</Card.Title>
+    <Card.Description>単位：円</Card.Description>
+  </Card.Header>
+  <Card.Content class="px-0">
+    <Tabs.Root bind:value={tab}>
+      <Tabs.List class="mx-4" aria-label="家計簿シート">
+        <Tabs.Trigger value="summary">収支・明細</Tabs.Trigger>
+        <Tabs.Trigger value="details">支出明細</Tabs.Trigger>
+        <Tabs.Trigger value="categories">月ごとのカテゴリ別支出</Tabs.Trigger>
+      </Tabs.List>
 
-  {#if tab === 'categories'}
-    <DailyCategoryTable {month} {expenses} categories={expenseCategories} />
-  {:else if tab === 'details'}
-    <section class="min-w-0 p-4">
-      <h3 class="bg-[#e8ece7] px-3 py-2 text-sm font-bold">支出明細</h3>
-      <div class="max-h-[38rem] overflow-auto">
-        <table class="w-full min-w-[600px] text-sm">
-          <thead class="sticky top-0 bg-white"
-            ><tr
-              ><th class="p-2 text-left">日付</th><th class="text-left">摘要</th><th
-                class="text-left">支払種別</th
-              ><th class="text-right">金額</th><th class="text-left">備考</th><th class="text-right"
-                >操作</th
-              ></tr
-            ></thead
-          ><tbody
-            >{#each ledger as item (item.id)}<tr class="border-t"
-                ><td class="p-2">{formatDate(item.transaction_date)}</td><td
-                  >{categoryNames.get(item.category_id)}</td
-                ><td>{paymentNames.get(item.payment_method_id)}</td><td class="text-right"
-                  >{Number(item.amount).toLocaleString('ja-JP')}</td
-                ><td class="pl-3">{item.description ?? ''}</td><td class="pl-3"
-                  ><div class="flex justify-end gap-2">
-                    <button
-                      class="rounded-lg px-2 py-1 font-bold text-[#245c4a] hover:bg-[#e5eee9]"
-                      aria-label={`${formatDate(item.transaction_date)} ${categoryNames.get(item.category_id) ?? ''}を編集`}
-                      onclick={() => onedit(item)}>編集</button
-                    ><button
-                      class="rounded-lg px-2 py-1 font-bold text-[#9a3f31] hover:bg-[#f7e8e4]"
-                      aria-label={`${formatDate(item.transaction_date)} ${categoryNames.get(item.category_id) ?? ''}を削除`}
-                      onclick={() => ondelete(item)}>削除</button
-                    >
-                  </div></td
-                ></tr
-              >{/each}</tbody
-          >
-        </table>
-        {#if !ledger.length}<p class="py-12 text-center text-sm text-[#8a918d]">
-            この月の支出明細はありません。
-          </p>{/if}
-      </div>
-    </section>
-  {:else}
-    <div class="grid xl:grid-cols-[18rem_1fr]">
-      <aside class="border-r p-4">
-        <h3 class="bg-[#dce9df] px-3 py-2 text-sm font-bold">収支サマリー</h3>
-        <dl class="grid grid-cols-2 text-sm">
-          <dt class="p-2">収入</dt>
-          <dd class="p-2 text-right">{formatYen(incomeTotal)}</dd>
-          <dt class="p-2">支出</dt>
-          <dd class="p-2 text-right">{formatYen(expenseTotal)}</dd>
-          <dt class="p-2 font-bold">収支</dt>
-          <dd class="p-2 text-right font-bold">
-            {formatYen(incomeTotal - expenseTotal)}
-          </dd>
-        </dl>
-        <h3 class="mt-4 bg-[#e8ece7] px-3 py-2 text-sm font-bold">収入</h3>
-        {#each incomeBreakdown as item (item.id)}<div class="flex justify-between p-2 text-sm">
-            <span>{item.name}</span><span>{item.total.toLocaleString('ja-JP')}</span>
-          </div>{/each}
-        <h3 class="mt-4 bg-[#e8ece7] px-3 py-2 text-sm font-bold">支払種別</h3>
-        {#each paymentBreakdown as item (item.id)}<div class="flex justify-between p-2 text-sm">
-            <span>{item.name}</span><span>{item.total.toLocaleString('ja-JP')}</span>
-          </div>{/each}
-      </aside>
-      <div class="p-4">
-        <div class="flex justify-between bg-[#e6eadf] px-3 py-2">
-          <h3 class="text-sm font-bold">支出（固定費）</h3>
-          <button class="text-xs font-bold text-[#245c4a]" onclick={onRecurring}>＋ 登録</button>
+      {#if tab === 'categories'}
+        <DailyCategoryTable {month} {expenses} categories={expenseCategories} />
+      {:else if tab === 'details'}
+        <section class="min-w-0 p-4">
+          <h3 class="bg-muted px-3 py-2 text-sm font-bold">支出明細</h3>
+          <div class="max-h-[38rem] overflow-auto">
+            <table class="w-full min-w-[800px] text-sm">
+              <thead class="sticky top-0 bg-background text-foreground"
+                ><tr
+                  ><th class="w-32 px-3 py-2 text-left whitespace-nowrap">日付</th><th
+                    class="min-w-28 px-3 py-2 text-left">摘要</th
+                  ><th class="min-w-28 px-3 py-2 text-left">支払種別</th><th
+                    class="w-32 px-3 py-2 text-right whitespace-nowrap">金額</th
+                  ><th class="min-w-40 px-3 py-2 text-left">備考</th><th
+                    class="w-36 px-3 py-2 text-right"><span class="sr-only">操作</span></th
+                  ></tr
+                ></thead
+              ><tbody
+                >{#each ledger as item (item.id)}<tr class="border-t"
+                    ><td class="px-3 py-2 whitespace-nowrap">{formatDate(item.transaction_date)}</td
+                    ><td class="px-3 py-2">{categoryNames.get(item.category_id)}</td><td
+                      class="px-3 py-2">{paymentNames.get(item.payment_method_id)}</td
+                    ><td class="px-3 py-2 text-right whitespace-nowrap"
+                      >{Number(item.amount).toLocaleString('ja-JP')}</td
+                    ><td class="px-3 py-2">{item.description ?? ''}</td><td class="px-3 py-2"
+                      ><div class="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label={`${formatDate(item.transaction_date)} ${categoryNames.get(item.category_id) ?? ''}を編集`}
+                          onclick={() => onedit(item)}>編集</Button
+                        ><Button
+                          variant="destructive"
+                          size="sm"
+                          aria-label={`${formatDate(item.transaction_date)} ${categoryNames.get(item.category_id) ?? ''}を削除`}
+                          onclick={() => ondelete(item)}>削除</Button
+                        >
+                      </div></td
+                    ></tr
+                  >{/each}</tbody
+              >
+            </table>
+            {#if !ledger.length}<p class="py-12 text-center text-sm text-muted-foreground">
+                この月の支出明細はありません。
+              </p>{/if}
+          </div>
+        </section>
+      {:else}
+        <div class="grid xl:grid-cols-[18rem_1fr]">
+          <aside class="border-r p-4">
+            <h3 class="bg-muted px-3 py-2 text-sm font-bold">収支サマリー</h3>
+            <dl class="grid grid-cols-2 text-sm">
+              <dt class="p-2">収入</dt>
+              <dd class="p-2 text-right">{formatYen(incomeTotal)}</dd>
+              <dt class="p-2">支出</dt>
+              <dd class="p-2 text-right">{formatYen(expenseTotal)}</dd>
+              <dt class="p-2 font-bold">収支</dt>
+              <dd class="p-2 text-right font-bold">
+                {formatYen(incomeTotal - expenseTotal)}
+              </dd>
+            </dl>
+            <h3 class="mt-4 bg-muted px-3 py-2 text-sm font-bold">収入</h3>
+            {#each incomeBreakdown as item (item.id)}<div class="flex justify-between p-2 text-sm">
+                <span>{item.name}</span><span>{item.total.toLocaleString('ja-JP')}</span>
+              </div>{/each}
+            <h3 class="mt-4 bg-muted px-3 py-2 text-sm font-bold">支払種別</h3>
+            {#each paymentBreakdown as item (item.id)}<div class="flex justify-between p-2 text-sm">
+                <span>{item.name}</span><span>{item.total.toLocaleString('ja-JP')}</span>
+              </div>{/each}
+          </aside>
+          <div class="p-4">
+            <div class="flex justify-between bg-muted px-3 py-2">
+              <h3 class="text-sm font-bold">支出（固定費）</h3>
+              <Button variant="ghost" size="sm" onclick={onRecurring}>＋ 登録</Button>
+            </div>
+            {#each recurring as item (item.id)}<div
+                class="flex justify-between border-b p-2 text-sm"
+              >
+                <span>{item.name}<small class="block">毎月{item.payment_day}日</small></span><span
+                  >{Number(item.amount).toLocaleString('ja-JP')}</span
+                >
+              </div>{/each}
+            <div class="flex justify-between p-2 font-bold">
+              <span>合計</span><span>{sumAmounts(recurring).toLocaleString('ja-JP')}</span>
+            </div>
+            <h3 class="mt-4 bg-muted px-3 py-2 text-sm font-bold">支出（変動費）</h3>
+            {#each variableTotals as item (item.id)}<div
+                class="flex justify-between border-b p-2 text-sm"
+              >
+                <span>{item.name}</span><span>{item.total.toLocaleString('ja-JP')}</span>
+              </div>{/each}
+            <div class="flex justify-between border-t-2 p-2 font-bold">
+              <span>合計</span><span>{sumAmounts(variable).toLocaleString('ja-JP')}</span>
+            </div>
+          </div>
         </div>
-        {#each recurring as item (item.id)}<div class="flex justify-between border-b p-2 text-sm">
-            <span>{item.name}<small class="block">毎月{item.payment_day}日</small></span><span
-              >{Number(item.amount).toLocaleString('ja-JP')}</span
-            >
-          </div>{/each}
-        <div class="flex justify-between p-2 font-bold">
-          <span>合計</span><span>{sumAmounts(recurring).toLocaleString('ja-JP')}</span>
-        </div>
-        <h3 class="mt-4 bg-[#f0e8dc] px-3 py-2 text-sm font-bold">支出（変動費）</h3>
-        {#each variableTotals as item (item.id)}<div
-            class="flex justify-between border-b p-2 text-sm"
-          >
-            <span>{item.name}</span><span>{item.total.toLocaleString('ja-JP')}</span>
-          </div>{/each}
-        <div class="flex justify-between border-t-2 border-[#d9d2c7] p-2 font-bold">
-          <span>合計</span><span>{sumAmounts(variable).toLocaleString('ja-JP')}</span>
-        </div>
-      </div>
-    </div>
-  {/if}
-</div>
+      {/if}
+    </Tabs.Root>
+  </Card.Content>
+</Card.Root>

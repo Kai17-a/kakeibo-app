@@ -1,15 +1,20 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import Header from './lib/components/Header.svelte';
-  import PeriodSelector, { type SummaryView } from './lib/components/PeriodSelector.svelte';
-  import { inPeriod, type Transaction } from './lib/domain/summaries';
-  import AnnualSummary from './lib/features/annual/AnnualSummary.svelte';
-  import RecurringExpenseForm from './lib/features/forms/RecurringExpenseForm.svelte';
-  import TransactionForm from './lib/features/forms/TransactionForm.svelte';
-  import LedgerSheet from './lib/features/ledger/LedgerSheet.svelte';
-  import MonthlySummary from './lib/features/monthly/MonthlySummary.svelte';
-  import { api } from './lib/api';
-  import { currentMonth } from './lib/format';
+  import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
+  import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
+  import * as Alert from '$lib/components/ui/alert';
+  import { Button } from '$lib/components/ui/button';
+  import { Skeleton } from '$lib/components/ui/skeleton';
+  import Header from '$lib/components/Header.svelte';
+  import PeriodSelector, { type SummaryView } from '$lib/components/PeriodSelector.svelte';
+  import { inPeriod, type Transaction } from '$lib/domain/summaries';
+  import AnnualSummary from '$lib/features/annual/AnnualSummary.svelte';
+  import RecurringExpenseForm from '$lib/features/forms/RecurringExpenseForm.svelte';
+  import TransactionForm from '$lib/features/forms/TransactionForm.svelte';
+  import LedgerSheet from '$lib/features/ledger/LedgerSheet.svelte';
+  import MonthlySummary from '$lib/features/monthly/MonthlySummary.svelte';
+  import { api } from '$lib/api';
+  import { currentMonth } from '$lib/format';
   import type {
     Expense,
     ExpenseCategory,
@@ -20,7 +25,7 @@
     PaymentMethod,
     RecurringExpense,
     RecurringExpenseInput,
-  } from './lib/types';
+  } from '$lib/types';
 
   let expenses = $state.raw<Expense[]>([]);
   let incomes = $state.raw<Income[]>([]);
@@ -31,7 +36,7 @@
   let selectedMonth = $state(currentMonth());
   let selectedYear = $state(currentMonth().slice(0, 4));
   let view = $state<SummaryView>('monthly');
-  let formKind = $state<'expense' | 'income' | null>(null);
+  let transactionFormOpen = $state(false);
   let editingExpense = $state<Expense | null>(null);
   let recurringFormOpen = $state(false);
   let loading = $state(true);
@@ -92,22 +97,22 @@
     }
   }
 
-  async function saveTransaction(input: ExpenseInput | IncomeInput) {
+  async function saveTransaction(kind: 'expense' | 'income', input: ExpenseInput | IncomeInput) {
     saving = true;
     error = '';
     try {
-      if (formKind === 'expense' && editingExpense) {
+      if (kind === 'expense' && editingExpense) {
         const updated = await api.updateExpense(editingExpense.id, input as ExpenseInput);
         expenses = expenses.map((item) => (item.id === updated.id ? updated : item));
         notice = '支出を更新しました。';
-      } else if (formKind === 'expense') {
+      } else if (kind === 'expense') {
         expenses = [await api.createExpense(input as ExpenseInput), ...expenses];
         notice = '支出を登録しました。';
       } else {
         incomes = [await api.createIncome(input as IncomeInput), ...incomes];
         notice = '収入を登録しました。';
       }
-      formKind = null;
+      transactionFormOpen = false;
       editingExpense = null;
     } catch (caught) {
       error = message(caught, '登録できませんでした。');
@@ -116,18 +121,18 @@
     }
   }
 
-  function openTransaction(kind: 'expense' | 'income') {
+  function openTransaction() {
     editingExpense = null;
-    formKind = kind;
+    transactionFormOpen = true;
   }
 
   function editExpense(expense: Expense) {
     editingExpense = expense;
-    formKind = 'expense';
+    transactionFormOpen = true;
   }
 
   function closeTransaction() {
-    formKind = null;
+    transactionFormOpen = false;
     editingExpense = null;
   }
 
@@ -177,19 +182,13 @@
   }
 </script>
 
-<svelte:head
-  ><title>ホーム | Kakeibo</title><meta
-    name="description"
-    content="毎日の収支をシンプルに管理する家計簿"
-  /></svelte:head
->
+<svelte:head>
+  <title>ホーム | Kakeibo</title>
+  <meta name="description" content="毎日の収支をシンプルに管理する家計簿" />
+</svelte:head>
 
-<div class="min-h-screen bg-[#f4f1e9]">
-  <Header
-    onIncome={() => openTransaction('income')}
-    onExpense={() => openTransaction('expense')}
-    onRecurring={() => (recurringFormOpen = true)}
-  />
+<div class="min-h-screen bg-background">
+  <Header onTransaction={openTransaction} onRecurring={() => (recurringFormOpen = true)} />
   <main class="mx-auto max-w-7xl px-5 py-8 lg:px-10 lg:py-12">
     <PeriodSelector
       {view}
@@ -200,20 +199,26 @@
       onmonth={(value) => (selectedMonth = value)}
       onyear={(value) => (selectedYear = value)}
     />
-    {#if error}<div
-        class="mb-6 flex justify-between rounded-xl border border-[#dfaaa1] bg-[#fff2ef] px-4 py-3 text-sm text-[#8c3025]"
-        role="alert"
-      >
-        <span>{error}</span><button class="font-bold" onclick={loadAll}>再試行</button>
-      </div>{/if}
-    {#if notice}<div
-        class="mb-6 rounded-xl border border-[#a8cab9] bg-[#edf8f2] px-4 py-3 text-sm text-[#245c4a]"
-        role="status"
-      >
-        {notice}
-      </div>{/if}
-    {#if loading}<div class="grid min-h-72 place-items-center">
-        <p class="animate-pulse text-[#65736c]">家計データを読み込んでいます…</p>
+    {#if error}
+      <Alert.Root variant="destructive" class="mb-6">
+        <CircleAlertIcon />
+        <Alert.Title>読み込みエラー</Alert.Title>
+        <Alert.Description>{error}</Alert.Description>
+        <Alert.Action
+          ><Button variant="outline" size="sm" onclick={loadAll}>再試行</Button></Alert.Action
+        >
+      </Alert.Root>
+    {/if}
+    {#if notice}
+      <Alert.Root class="mb-6" role="status">
+        <CircleCheckIcon />
+        <Alert.Title>完了</Alert.Title>
+        <Alert.Description>{notice}</Alert.Description>
+      </Alert.Root>
+    {/if}
+    {#if loading}<div class="grid min-h-72 gap-4 py-12">
+        <Skeleton class="h-28 w-full" />
+        <Skeleton class="h-28 w-full" />
       </div>
     {:else if view === 'annual'}<AnnualSummary
         year={selectedYear}
@@ -247,9 +252,9 @@
   </main>
 </div>
 
-{#if formKind}<TransactionForm
-    kind={formKind}
-    categories={formKind === 'expense' ? expenseCategories : incomeCategories}
+{#if transactionFormOpen}<TransactionForm
+    {expenseCategories}
+    {incomeCategories}
     {paymentMethods}
     {saving}
     initialExpense={editingExpense ?? undefined}
