@@ -7,6 +7,7 @@ import type {
   Income,
   IncomeCategory,
   IncomeInput,
+  ImportResult,
   ListResponse,
   PaymentMethod,
   RecurringExpense,
@@ -90,4 +91,16 @@ export const api = {
     }),
   deleteExpense: (id: string) => request<void>(`/api/expenses/${id}`, { method: 'delete' }),
   deleteIncome: (id: string) => request<void>(`/api/incomes/${id}`, { method: 'delete' }),
+  importExpenses: (csv: string) =>
+    request<ImportResult>('/api/import/expenses', {
+      method: 'post',
+      headers: { 'content-type': 'text/csv' },
+      body: csv,
+    }),
+  importIncomes: (csv: string) =>
+    request<ImportResult>('/api/import/incomes', {
+      method: 'post',
+      headers: { 'content-type': 'text/csv' },
+      body: csv,
+    }),
 };

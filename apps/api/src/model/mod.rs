@@ -2,6 +2,7 @@ pub mod expense_categories;
 pub mod expenses;
 pub mod export;
 pub mod health;
+pub mod import;
 pub mod income_categories;
 pub mod incomes;
 pub mod payment_methods;

@@ -5,8 +5,8 @@ use utoipa_redoc::{Redoc, Servable};
 
 use crate::{
     handler::{
-        expense_categories, expenses, export, health, income_categories, incomes, payment_methods,
-        recurring_expenses,
+        expense_categories, expenses, export, health, import, income_categories, incomes,
+        payment_methods, recurring_expenses,
     },
     model::expense_categories::{
         ExpenseCategory, ExpenseCategoryListResponse, ExpenseCategoryPagination,
@@ -14,6 +14,7 @@ use crate::{
     },
     model::expenses::{Expense, ExpenseUpsertRequest},
     model::health::Health,
+    model::import::ImportResult,
     model::income_categories::{
         IncomeCategory, IncomeCategoryListResponse, IncomeCategoryPagination, IncomeCategorySortBy,
         IncomeCategorySortOrder, IncomeCategoryUpsertRequest,
@@ -43,6 +44,8 @@ use crate::{
         expenses::delete,
         export::expenses,
         export::incomes,
+        import::expenses,
+        import::incomes,
         payment_methods::list,
         payment_methods::get,
         payment_methods::create,
@@ -74,6 +77,7 @@ use crate::{
         ExpenseCategorySortOrder,
         Expense,
         ExpenseUpsertRequest,
+        ImportResult,
         PaymentMethod,
         PaymentMethodUpsertRequest,
         PaymentMethodListResponse,
@@ -107,6 +111,7 @@ use crate::{
         (name = "支出", description = "支出の登録・参照・更新・削除"),
         (name = "支出カテゴリ", description = "支出カテゴリの管理"),
         (name = "エクスポート", description = "収支データのCSVエクスポート"),
+        (name = "インポート", description = "収支データのCSVインポート"),
         (name = "支払方法", description = "支払方法の管理"),
         (name = "定期支出", description = "定期支出の管理"),
         (name = "システム", description = "稼働状態の確認")
@@ -142,6 +147,7 @@ fn tag_for_path(path: &str) -> &'static str {
         "/api/expenses" | "/api/expenses/{id}" => "支出",
         "/api/expense-categories" | "/api/expense-categories/{id}" => "支出カテゴリ",
         "/api/export/expenses" | "/api/export/incomes" => "エクスポート",
+        "/api/import/expenses" | "/api/import/incomes" => "インポート",
         "/api/payment-methods" | "/api/payment-methods/{id}" => "支払方法",
         "/api/recurring-expenses" | "/api/recurring-expenses/{id}" => "定期支出",
         _ => "システム",
@@ -154,6 +160,7 @@ fn operation_summary(method: &str, path: &str) -> &'static str {
         ("GET", false) if path.starts_with("/api/export/") => "CSVをエクスポート",
         ("GET", false) => "一覧を取得",
         ("GET", true) => "詳細を取得",
+        ("POST", _) if path.starts_with("/api/import/") => "CSVをインポート",
         ("POST", _) => "新規登録",
         ("PUT", _) => "更新",
         ("DELETE", _) => "削除",

@@ -53,6 +53,23 @@ describe('ky API client', () => {
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
+  it('posts CSV for expense import', async () => {
+    const csv = '日付,金額,カテゴリ,支払方法,メモ\n2026-07-22,1200,食費,現金,';
+    const fetchMock = vi.fn(async (request: Request) => {
+      expect(request.url).toBe('http://localhost/api/import/expenses');
+      expect(request.method).toBe('POST');
+      expect(request.headers.get('content-type')).toContain('text/csv');
+      expect(await request.text()).toBe(csv);
+      return Response.json({ imported: 1, created_categories: [], created_payment_methods: [] });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await api.importExpenses(csv);
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(result.imported).toBe(1);
+  });
+
   it('converts HTTP errors to ApiError', async () => {
     vi.stubGlobal(
       'fetch',

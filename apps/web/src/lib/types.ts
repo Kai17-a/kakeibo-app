@@ -43,6 +43,11 @@ export interface ListResponse<T> {
   items: T[];
   pagination: { page: number; per_page: number };
 }
+export interface ImportResult {
+  imported: number;
+  created_categories: string[];
+  created_payment_methods: string[];
+}
 export interface ExpenseInput {
   transaction_date: string;
   amount: string;

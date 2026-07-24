@@ -5,6 +5,7 @@
   import DownloadIcon from '@lucide/svelte/icons/download';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import TagsIcon from '@lucide/svelte/icons/tags';
+  import UploadIcon from '@lucide/svelte/icons/upload';
   import { toast } from 'svelte-sonner';
   import * as Alert from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
@@ -16,6 +17,7 @@
   import * as Tabs from '$lib/components/ui/tabs';
   import Header from '$lib/components/Header.svelte';
   import CategoryForm from '$lib/features/settings/CategoryForm.svelte';
+  import CsvImport from '$lib/features/settings/CsvImport.svelte';
   import { api } from '$lib/api';
   import type { CategoryInput, ExpenseCategory, IncomeCategory, NamedResource } from '$lib/types';
 
@@ -140,6 +142,22 @@
         <Button variant="outline" href="/api/export/incomes">
           <DownloadIcon data-icon="inline-start" />収入データ（CSV）
         </Button>
+      </Card.Content>
+    </Card.Root>
+
+    <Card.Root>
+      <Card.Header>
+        <Card.Title class="flex items-center gap-2">
+          <UploadIcon />データのインポート
+        </Card.Title>
+        <Card.Description>
+          エクスポートしたCSVをそのまま取り込めます（支出: 日付,金額,カテゴリ,支払方法,メモ / 収入:
+          日付,金額,カテゴリ,メモ）。未登録のカテゴリや支払方法は自動的に追加されます。同じファイルを再度取り込むと重複して登録されるためご注意ください。
+        </Card.Description>
+      </Card.Header>
+      <Card.Content class="flex flex-col gap-4 sm:flex-row sm:gap-8">
+        <CsvImport kind="expense" onimported={loadCategories} />
+        <CsvImport kind="income" onimported={loadCategories} />
       </Card.Content>
     </Card.Root>
   </main>
