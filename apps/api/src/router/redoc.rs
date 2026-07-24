@@ -5,7 +5,7 @@ use utoipa_redoc::{Redoc, Servable};
 
 use crate::{
     handler::{
-        expense_categories, expenses, health, income_categories, incomes, payment_methods,
+        expense_categories, expenses, export, health, income_categories, incomes, payment_methods,
         recurring_expenses,
     },
     model::expense_categories::{
@@ -41,6 +41,8 @@ use crate::{
         expenses::create,
         expenses::update,
         expenses::delete,
+        export::expenses,
+        export::incomes,
         payment_methods::list,
         payment_methods::get,
         payment_methods::create,
@@ -104,6 +106,7 @@ use crate::{
         (name = "収入カテゴリ", description = "収入カテゴリの管理"),
         (name = "支出", description = "支出の登録・参照・更新・削除"),
         (name = "支出カテゴリ", description = "支出カテゴリの管理"),
+        (name = "エクスポート", description = "収支データのCSVエクスポート"),
         (name = "支払方法", description = "支払方法の管理"),
         (name = "定期支出", description = "定期支出の管理"),
         (name = "システム", description = "稼働状態の確認")
@@ -138,6 +141,7 @@ fn tag_for_path(path: &str) -> &'static str {
         "/api/income-categories" | "/api/income-categories/{id}" => "収入カテゴリ",
         "/api/expenses" | "/api/expenses/{id}" => "支出",
         "/api/expense-categories" | "/api/expense-categories/{id}" => "支出カテゴリ",
+        "/api/export/expenses" | "/api/export/incomes" => "エクスポート",
         "/api/payment-methods" | "/api/payment-methods/{id}" => "支払方法",
         "/api/recurring-expenses" | "/api/recurring-expenses/{id}" => "定期支出",
         _ => "システム",
@@ -147,6 +151,7 @@ fn tag_for_path(path: &str) -> &'static str {
 fn operation_summary(method: &str, path: &str) -> &'static str {
     match (method, path.ends_with("{id}")) {
         ("GET", false) if path == "/health" => "稼働状態を確認",
+        ("GET", false) if path.starts_with("/api/export/") => "CSVをエクスポート",
         ("GET", false) => "一覧を取得",
         ("GET", true) => "詳細を取得",
         ("POST", _) => "新規登録",

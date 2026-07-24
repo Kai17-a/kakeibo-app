@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
+  import DownloadIcon from '@lucide/svelte/icons/download';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import TagsIcon from '@lucide/svelte/icons/tags';
   import { toast } from 'svelte-sonner';
@@ -77,8 +78,8 @@
 </script>
 
 <svelte:head>
-  <title>カテゴリ設定 | Kakeibo</title>
-  <meta name="description" content="支出と収入のカテゴリを管理" />
+  <title>設定 | Kakeibo</title>
+  <meta name="description" content="収支のカテゴリ管理とデータのエクスポート" />
 </svelte:head>
 
 <div class="min-h-screen bg-background">
@@ -92,8 +93,10 @@
 
     <div class="flex flex-col gap-2">
       <p class="text-xs font-semibold tracking-widest text-muted-foreground uppercase">Settings</p>
-      <h1 class="font-serif text-3xl font-bold tracking-tight sm:text-4xl">カテゴリ設定</h1>
-      <p class="text-muted-foreground">収支の登録や集計に使用するカテゴリを追加できます。</p>
+      <h1 class="font-serif text-3xl font-bold tracking-tight sm:text-4xl">設定</h1>
+      <p class="text-muted-foreground">
+        収支の登録や集計に使用するカテゴリの管理と、データのエクスポートができます。
+      </p>
     </div>
 
     {#if error}
@@ -120,6 +123,25 @@
         {@render categoryPanel('収入カテゴリ', incomeCategories)}
       </Tabs.Content>
     </Tabs.Root>
+
+    <Card.Root>
+      <Card.Header>
+        <Card.Title class="flex items-center gap-2">
+          <DownloadIcon />データのエクスポート
+        </Card.Title>
+        <Card.Description>
+          登録済みの収支データをCSVファイル（UTF-8・BOM付き）としてダウンロードできます。
+        </Card.Description>
+      </Card.Header>
+      <Card.Content class="flex flex-col gap-3 sm:flex-row">
+        <Button variant="outline" href="/api/export/expenses">
+          <DownloadIcon data-icon="inline-start" />支出データ（CSV）
+        </Button>
+        <Button variant="outline" href="/api/export/incomes">
+          <DownloadIcon data-icon="inline-start" />収入データ（CSV）
+        </Button>
+      </Card.Content>
+    </Card.Root>
   </main>
 </div>
 
