@@ -9,6 +9,10 @@ export interface NamedResource extends BaseResource {
 }
 export type ExpenseCategory = NamedResource;
 export type IncomeCategory = NamedResource;
+export interface CategoryInput {
+  name: string;
+  description: string | null;
+}
 export type PaymentMethod = NamedResource;
 export interface Expense extends BaseResource {
   transaction_date: string;

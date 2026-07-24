@@ -2,13 +2,14 @@
   import CircleDollarSignIcon from '@lucide/svelte/icons/circle-dollar-sign';
   import MoonIcon from '@lucide/svelte/icons/moon';
   import ReceiptTextIcon from '@lucide/svelte/icons/receipt-text';
+  import SettingsIcon from '@lucide/svelte/icons/settings';
   import SunIcon from '@lucide/svelte/icons/sun';
   import { Button } from '$lib/components/ui/button';
   import { toggleMode } from 'mode-watcher';
 
   interface Props {
-    onTransaction(): void;
-    onRecurring(): void;
+    onTransaction?: () => void;
+    onRecurring?: () => void;
   }
   let { onTransaction, onRecurring }: Props = $props();
 </script>
@@ -26,12 +27,19 @@
         <SunIcon class="dark:hidden" />
         <MoonIcon class="hidden dark:block" />
       </Button>
-      <Button variant="outline" onclick={onRecurring}>
-        <ReceiptTextIcon data-icon="inline-start" />固定費
+      <Button variant="outline" size="icon" href="/settings" aria-label="設定">
+        <SettingsIcon />
       </Button>
-      <Button onclick={onTransaction}>
-        <CircleDollarSignIcon data-icon="inline-start" />収支を登録
-      </Button>
+      {#if onRecurring && onTransaction}
+        <Button variant="outline" onclick={onRecurring}>
+          <ReceiptTextIcon data-icon="inline-start" /><span class="hidden sm:inline">固定費</span>
+        </Button>
+        <Button onclick={onTransaction}>
+          <CircleDollarSignIcon data-icon="inline-start" /><span class="hidden sm:inline"
+            >収支を登録</span
+          >
+        </Button>
+      {/if}
     </div>
   </div>
 </header>

@@ -25,6 +25,34 @@ describe('ky API client', () => {
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
+  it('creates an expense category', async () => {
+    const fetchMock = vi.fn(async (request: Request) => {
+      expect(request.url).toBe('http://localhost/api/expense-categories');
+      expect(request.method).toBe('POST');
+      expect(await request.json()).toEqual({ name: '食費', description: '日々の食事' });
+      return Response.json({ id: 'food', name: '食費', description: '日々の食事' });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await api.createExpenseCategory({ name: '食費', description: '日々の食事' });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('creates an income category', async () => {
+    const fetchMock = vi.fn(async (request: Request) => {
+      expect(request.url).toBe('http://localhost/api/income-categories');
+      expect(request.method).toBe('POST');
+      expect(await request.json()).toEqual({ name: '給与', description: null });
+      return Response.json({ id: 'salary', name: '給与', description: null });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await api.createIncomeCategory({ name: '給与', description: null });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
   it('converts HTTP errors to ApiError', async () => {
     vi.stubGlobal(
       'fetch',

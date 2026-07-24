@@ -1,5 +1,6 @@
 import ky, { isHTTPError, type Options } from 'ky';
 import type {
+  CategoryInput,
   Expense,
   ExpenseCategory,
   ExpenseInput,
@@ -67,6 +68,10 @@ export const api = {
     request<ListResponse<IncomeCategory>>(
       '/api/income-categories?sort_by=name&sort_order=asc&per_page=100',
     ),
+  createExpenseCategory: (input: CategoryInput) =>
+    request<ExpenseCategory>('/api/expense-categories', { method: 'post', json: input }),
+  createIncomeCategory: (input: CategoryInput) =>
+    request<IncomeCategory>('/api/income-categories', { method: 'post', json: input }),
   paymentMethods: () =>
     request<ListResponse<PaymentMethod>>(
       '/api/payment-methods?sort_by=name&sort_order=asc&per_page=100',

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
-  import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
+  import { toast } from 'svelte-sonner';
   import * as Alert from '$lib/components/ui/alert';
   import { Button } from '$lib/components/ui/button';
   import { Skeleton } from '$lib/components/ui/skeleton';
@@ -42,7 +42,6 @@
   let loading = $state(true);
   let saving = $state(false);
   let error = $state('');
-  let notice = $state('');
 
   const monthExpenses = $derived(inPeriod(expenses, selectedMonth));
   const monthIncomes = $derived(inPeriod(incomes, selectedMonth));
@@ -104,13 +103,13 @@
       if (kind === 'expense' && editingExpense) {
         const updated = await api.updateExpense(editingExpense.id, input as ExpenseInput);
         expenses = expenses.map((item) => (item.id === updated.id ? updated : item));
-        notice = '支出を更新しました。';
+        toast.success('支出を更新しました。');
       } else if (kind === 'expense') {
         expenses = [await api.createExpense(input as ExpenseInput), ...expenses];
-        notice = '支出を登録しました。';
+        toast.success('支出を登録しました。');
       } else {
         incomes = [await api.createIncome(input as IncomeInput), ...incomes];
-        notice = '収入を登録しました。';
+        toast.success('収入を登録しました。');
       }
       transactionFormOpen = false;
       editingExpense = null;
@@ -142,7 +141,7 @@
     try {
       recurringExpenses = [await api.createRecurringExpense(input), ...recurringExpenses];
       recurringFormOpen = false;
-      notice = '固定費を登録しました。';
+      toast.success('固定費を登録しました。');
     } catch (caught) {
       error = message(caught, '固定費を登録できませんでした。');
     } finally {
@@ -160,7 +159,7 @@
         await api.deleteIncome(item.id);
         incomes = incomes.filter((row) => row.id !== item.id);
       }
-      notice = '明細を削除しました。';
+      toast.success('明細を削除しました。');
     } catch (caught) {
       error = message(caught, '削除できませんでした。');
     }
@@ -171,7 +170,7 @@
     try {
       await api.deleteExpense(item.id);
       expenses = expenses.filter((row) => row.id !== item.id);
-      notice = '明細を削除しました。';
+      toast.success('明細を削除しました。');
     } catch (caught) {
       error = message(caught, '削除できませんでした。');
     }
@@ -209,13 +208,6 @@
         >
       </Alert.Root>
     {/if}
-    {#if notice}
-      <Alert.Root class="mb-6" role="status">
-        <CircleCheckIcon />
-        <Alert.Title>完了</Alert.Title>
-        <Alert.Description>{notice}</Alert.Description>
-      </Alert.Root>
-    {/if}
     {#if loading}<div class="grid min-h-72 gap-4 py-12">
         <Skeleton class="h-28 w-full" />
         <Skeleton class="h-28 w-full" />
@@ -235,7 +227,6 @@
         {incomeCategories}
         {paymentMethods}
         {recurringExpenses}
-        onRecurring={() => (recurringFormOpen = true)}
         onedit={editExpense}
         ondelete={removeExpense}
       />

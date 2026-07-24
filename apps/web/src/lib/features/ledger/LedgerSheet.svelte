@@ -23,7 +23,6 @@
     incomeCategories: IncomeCategory[];
     paymentMethods: PaymentMethod[];
     recurringExpenses: RecurringExpense[];
-    onRecurring(): void;
     onedit(item: Expense): void;
     ondelete(item: Expense): void;
   }
@@ -36,7 +35,6 @@
     incomeCategories,
     paymentMethods,
     recurringExpenses,
-    onRecurring,
     onedit,
     ondelete,
   }: Props = $props();
@@ -68,6 +66,8 @@
     ),
   );
   const variable = $derived(expenses.filter((item) => !item.recurring_expense_id));
+  const recurringTotal = $derived(sumAmounts(recurring));
+  const variableTotal = $derived(sumAmounts(variable));
   const variableTotals = $derived(categoryTotals(variable, expenseCategories));
   const ledger = $derived(
     [...expenses].sort((a, b) => a.transaction_date.localeCompare(b.transaction_date)),
@@ -158,9 +158,9 @@
               </div>{/each}
           </aside>
           <div class="p-4">
-            <div class="flex justify-between bg-muted px-3 py-2">
+            <div class="flex items-center justify-between gap-4 bg-muted px-3 py-2">
               <h3 class="text-sm font-bold">支出（固定費）</h3>
-              <Button variant="ghost" size="sm" onclick={onRecurring}>＋ 登録</Button>
+              <span class="text-sm font-bold whitespace-nowrap">{formatYen(recurringTotal)}</span>
             </div>
             {#each recurring as item (item.id)}<div
                 class="flex justify-between border-b p-2 text-sm"
@@ -169,18 +169,15 @@
                   >{Number(item.amount).toLocaleString('ja-JP')}</span
                 >
               </div>{/each}
-            <div class="flex justify-between p-2 font-bold">
-              <span>合計</span><span>{sumAmounts(recurring).toLocaleString('ja-JP')}</span>
+            <div class="mt-4 flex items-center justify-between gap-4 bg-muted px-3 py-2">
+              <h3 class="text-sm font-bold">支出（変動費）</h3>
+              <span class="text-sm font-bold whitespace-nowrap">{formatYen(variableTotal)}</span>
             </div>
-            <h3 class="mt-4 bg-muted px-3 py-2 text-sm font-bold">支出（変動費）</h3>
             {#each variableTotals as item (item.id)}<div
                 class="flex justify-between border-b p-2 text-sm"
               >
                 <span>{item.name}</span><span>{item.total.toLocaleString('ja-JP')}</span>
               </div>{/each}
-            <div class="flex justify-between border-t-2 p-2 font-bold">
-              <span>合計</span><span>{sumAmounts(variable).toLocaleString('ja-JP')}</span>
-            </div>
           </div>
         </div>
       {/if}
