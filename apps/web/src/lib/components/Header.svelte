@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths';
   import CircleDollarSignIcon from '@lucide/svelte/icons/circle-dollar-sign';
   import MoonIcon from '@lucide/svelte/icons/moon';
   import ReceiptTextIcon from '@lucide/svelte/icons/receipt-text';
@@ -16,7 +17,7 @@
 
 <header class="border-b bg-background/95">
   <div class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-10">
-    <a class="flex items-center gap-3" href="/" aria-label="Kakeibo ホーム"
+    <a class="flex items-center gap-3" href={resolve('/')} aria-label="Kakeibo ホーム"
       ><span
         class="grid size-10 place-items-center rounded-lg bg-primary text-lg font-black text-primary-foreground"
         >K</span
@@ -31,10 +32,10 @@
         <SettingsIcon />
       </Button>
       {#if onRecurring && onTransaction}
-        <Button variant="outline" onclick={onRecurring}>
+        <Button variant="outline" onclick={onRecurring} aria-label="固定費">
           <ReceiptTextIcon data-icon="inline-start" /><span class="hidden sm:inline">固定費</span>
         </Button>
-        <Button onclick={onTransaction}>
+        <Button onclick={onTransaction} aria-label="収支を登録">
           <CircleDollarSignIcon data-icon="inline-start" /><span class="hidden sm:inline"
             >収支を登録</span
           >
