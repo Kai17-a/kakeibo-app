@@ -96,7 +96,11 @@
     }
   }
 
-  async function saveTransaction(kind: 'expense' | 'income', input: ExpenseInput | IncomeInput) {
+  async function saveTransaction(
+    kind: 'expense' | 'income',
+    input: ExpenseInput | IncomeInput,
+    keepOpen = false,
+  ) {
     saving = true;
     error = '';
     try {
@@ -111,10 +115,14 @@
         incomes = [await api.createIncome(input as IncomeInput), ...incomes];
         toast.success('収入を登録しました。');
       }
-      transactionFormOpen = false;
-      editingExpense = null;
+      if (!keepOpen) {
+        transactionFormOpen = false;
+        editingExpense = null;
+      }
+      return true;
     } catch (caught) {
       error = message(caught, '登録できませんでした。');
+      return false;
     } finally {
       saving = false;
     }

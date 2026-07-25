@@ -23,7 +23,11 @@
     initialDate: string;
     initialExpense?: Expense;
     onclose(): void;
-    onsubmit(kind: 'expense' | 'income', input: ExpenseInput | IncomeInput): Promise<void>;
+    onsubmit(
+      kind: 'expense' | 'income',
+      input: ExpenseInput | IncomeInput,
+      keepOpen: boolean,
+    ): Promise<boolean>;
   }
   let {
     expenseCategories,
@@ -42,9 +46,10 @@
   let categoryId = $derived(initialExpense?.category_id ?? categories[0]?.id ?? '');
   let paymentMethodId = $derived(initialExpense?.payment_method_id ?? paymentMethods[0]?.id ?? '');
   let description = $derived(initialExpense?.description ?? '');
-  function submit(event: SubmitEvent) {
+  async function submit(event: SubmitEvent) {
     event.preventDefault();
-    return onsubmit(
+    const keepOpen = (event.submitter as HTMLButtonElement | null)?.value === 'continue';
+    const saved = await onsubmit(
       kind,
       kind === 'expense'
         ? {
@@ -61,7 +66,13 @@
             category_id: categoryId,
             description: description || null,
           },
+      keepOpen,
     );
+    if (saved && keepOpen) {
+      amount = '';
+      description = '';
+      document.getElementById('transaction-amount')?.focus();
+    }
   }
 </script>
 
@@ -121,6 +132,11 @@
       </Field.FieldGroup>
       <Dialog.Footer>
         <Button variant="outline" type="button" onclick={onclose}>キャンセル</Button>
+        {#if !initialExpense}
+          <Button variant="outline" type="submit" name="intent" value="continue" disabled={saving}>
+            {#if saving}<Spinner data-icon="inline-start" />保存中…{:else}登録して続ける{/if}
+          </Button>
+        {/if}
         <Button type="submit" disabled={saving}>
           {#if saving}<Spinner
               data-icon="inline-start"
