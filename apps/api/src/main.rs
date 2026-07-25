@@ -2,8 +2,11 @@ use clap::Parser;
 use kakeibo_app::{cli::Cli, database::migration::connect, router, utils};
 use std::process::ExitCode;
 use tokio::net::TcpListener;
-use tower_http::services::{ServeDir, ServeFile};
-use tracing::{error, info};
+use tower_http::{
+    services::{ServeDir, ServeFile},
+    trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
+};
+use tracing::{Level, error, info};
 
 #[tokio::main]
 async fn main() -> ExitCode {
@@ -41,6 +44,11 @@ async fn main() -> ExitCode {
         .merge(router::redoc::create())
         .fallback_service(
             ServeDir::new("/app/public").fallback(ServeFile::new("/app/public/index.html")),
+        )
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
+                .on_response(DefaultOnResponse::new().level(Level::INFO)),
         );
     if let Err(error) = axum::serve(listener, app).await {
         error!(%error, "HTTP server stopped unexpectedly");
