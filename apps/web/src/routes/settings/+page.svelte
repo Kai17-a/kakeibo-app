@@ -1,11 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { resolve } from '$app/paths';
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
+  import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
   import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
-  import DownloadIcon from '@lucide/svelte/icons/download';
+  import DatabaseIcon from '@lucide/svelte/icons/database';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import TagsIcon from '@lucide/svelte/icons/tags';
-  import UploadIcon from '@lucide/svelte/icons/upload';
   import { toast } from 'svelte-sonner';
   import * as Alert from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
@@ -17,7 +18,6 @@
   import * as Tabs from '$lib/components/ui/tabs';
   import Header from '$lib/components/Header.svelte';
   import CategoryForm from '$lib/features/settings/CategoryForm.svelte';
-  import CsvImport from '$lib/features/settings/CsvImport.svelte';
   import { api } from '$lib/api';
   import type { CategoryInput, ExpenseCategory, IncomeCategory, NamedResource } from '$lib/types';
 
@@ -80,8 +80,8 @@
 </script>
 
 <svelte:head>
-  <title>設定 | Kakeibo</title>
-  <meta name="description" content="収支のカテゴリ管理とデータのエクスポート" />
+  <title>カテゴリ設定 | Kakeibo</title>
+  <meta name="description" content="支出と収入のカテゴリを管理" />
 </svelte:head>
 
 <div class="min-h-screen bg-background">
@@ -95,10 +95,8 @@
 
     <div class="flex flex-col gap-2">
       <p class="text-xs font-semibold tracking-widest text-muted-foreground uppercase">Settings</p>
-      <h1 class="font-serif text-3xl font-bold tracking-tight sm:text-4xl">設定</h1>
-      <p class="text-muted-foreground">
-        収支の登録や集計に使用するカテゴリの管理と、データのエクスポートができます。
-      </p>
+      <h1 class="font-serif text-3xl font-bold tracking-tight sm:text-4xl">カテゴリ設定</h1>
+      <p class="text-muted-foreground">収支の登録や集計に使用するカテゴリを追加できます。</p>
     </div>
 
     {#if error}
@@ -126,40 +124,19 @@
       </Tabs.Content>
     </Tabs.Root>
 
-    <Card.Root>
-      <Card.Header>
-        <Card.Title class="flex items-center gap-2">
-          <DownloadIcon />データのエクスポート
-        </Card.Title>
-        <Card.Description>
-          登録済みの収支データをCSVファイル（UTF-8・BOM付き）としてダウンロードできます。
-        </Card.Description>
-      </Card.Header>
-      <Card.Content class="flex flex-col gap-3 sm:flex-row">
-        <Button variant="outline" href="/api/export/expenses">
-          <DownloadIcon data-icon="inline-start" />支出データ（CSV）
-        </Button>
-        <Button variant="outline" href="/api/export/incomes">
-          <DownloadIcon data-icon="inline-start" />収入データ（CSV）
-        </Button>
-      </Card.Content>
-    </Card.Root>
-
-    <Card.Root>
-      <Card.Header>
-        <Card.Title class="flex items-center gap-2">
-          <UploadIcon />データのインポート
-        </Card.Title>
-        <Card.Description>
-          エクスポートしたCSVをそのまま取り込めます（支出: 日付,金額,カテゴリ,支払方法,メモ / 収入:
-          日付,金額,カテゴリ,メモ）。未登録のカテゴリや支払方法は自動的に追加されます。同じファイルを再度取り込むと重複して登録されるためご注意ください。
-        </Card.Description>
-      </Card.Header>
-      <Card.Content class="flex flex-col gap-4 sm:flex-row sm:gap-8">
-        <CsvImport kind="expense" onimported={loadCategories} />
-        <CsvImport kind="income" onimported={loadCategories} />
-      </Card.Content>
-    </Card.Root>
+    <a
+      href={resolve('/settings/data')}
+      class="flex items-center gap-4 bg-card p-6 text-card-foreground shadow-sm ring-1 ring-foreground/5 transition-colors hover:bg-muted/50"
+    >
+      <DatabaseIcon class="size-5 shrink-0 text-muted-foreground" />
+      <span class="min-w-0 flex-1">
+        <span class="block font-semibold">データ管理</span>
+        <span class="block text-muted-foreground">
+          収支データのインポート・エクスポートはこちら
+        </span>
+      </span>
+      <ChevronRightIcon class="size-5 shrink-0 text-muted-foreground" />
+    </a>
   </main>
 </div>
 
