@@ -90,10 +90,10 @@ test('支払方法を更新する', async ({ page }) => {
 
 test('支払方法を削除する', async ({ page }) => {
   await mockPaymentMethodApi(page);
-  page.on('dialog', (dialog) => dialog.accept());
   await openPaymentMethodTab(page);
 
   await page.getByRole('button', { name: 'VISAを削除' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: '削除' }).click();
 
   await expect(page.getByText('支払方法を削除しました。')).toBeVisible();
   await expect(page.getByRole('cell', { name: 'VISA' })).not.toBeVisible();

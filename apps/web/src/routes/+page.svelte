@@ -6,6 +6,7 @@
   import { Button } from '$lib/components/ui/button';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import Header from '$lib/components/Header.svelte';
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import PeriodSelector, { type SummaryView } from '$lib/components/PeriodSelector.svelte';
   import { inPeriod, type Transaction } from '$lib/domain/summaries';
   import AnnualSummary from '$lib/features/annual/AnnualSummary.svelte';
@@ -209,7 +210,6 @@
   }
 
   async function removeTransaction(item: Transaction) {
-    if (!confirm('この明細を削除しますか？')) return;
     try {
       if (item.kind === 'expense') {
         await api.deleteExpense(item.id);
@@ -225,7 +225,6 @@
   }
 
   async function removeExpense(item: Expense) {
-    if (!confirm('この明細を削除しますか？')) return;
     try {
       await api.deleteExpense(item.id);
       expenses = expenses.filter((row) => row.id !== item.id);
@@ -236,7 +235,6 @@
   }
 
   async function removeRecurringExpense(item: RecurringExpense) {
-    if (!confirm(`定期支出「${item.name}」を削除しますか？`)) return;
     try {
       await api.deleteRecurringExpense(item.id);
       recurringExpenses = recurringExpenses.filter((row) => row.id !== item.id);
@@ -244,6 +242,50 @@
     } catch {
       error =
         '定期支出を削除できませんでした。登録済みの明細で使用されている場合は削除できません。';
+    }
+  }
+
+  type DeleteTarget =
+    | { type: 'transaction'; item: Transaction }
+    | { type: 'expense'; item: Expense }
+    | { type: 'recurring'; item: RecurringExpense };
+
+  let deleteTarget = $state<DeleteTarget | null>(null);
+
+  const deleteDescription = $derived.by(() => {
+    const target = deleteTarget;
+    if (!target) return '';
+    return target.type === 'recurring'
+      ? `定期支出「${target.item.name}」を削除しますか？`
+      : 'この明細を削除しますか？';
+  });
+
+  function askDeleteTransaction(item: Transaction) {
+    deleteTarget = { type: 'transaction', item };
+  }
+
+  function askDeleteExpense(item: Expense) {
+    deleteTarget = { type: 'expense', item };
+  }
+
+  function askDeleteRecurring(item: RecurringExpense) {
+    deleteTarget = { type: 'recurring', item };
+  }
+
+  function cancelDelete() {
+    deleteTarget = null;
+  }
+
+  async function confirmDelete() {
+    const target = deleteTarget;
+    deleteTarget = null;
+    if (!target) return;
+    if (target.type === 'transaction') {
+      await removeTransaction(target.item);
+    } else if (target.type === 'expense') {
+      await removeExpense(target.item);
+    } else {
+      await removeRecurringExpense(target.item);
     }
   }
 
@@ -299,9 +341,9 @@
         {paymentMethods}
         {recurringExpenses}
         onedit={editExpense}
-        ondelete={removeExpense}
+        ondelete={askDeleteExpense}
         onrecurringedit={editRecurringExpense}
-        onrecurringdelete={removeRecurringExpense}
+        onrecurringdelete={askDeleteRecurring}
       />
     {:else}<MonthlySummary
         {monthLabel}
@@ -312,9 +354,9 @@
         {paymentMethods}
         {recurringExpenses}
         onedit={editTransaction}
-        ondelete={removeTransaction}
+        ondelete={askDeleteTransaction}
         onrecurringedit={editRecurringExpense}
-        onrecurringdelete={removeRecurringExpense}
+        onrecurringdelete={askDeleteRecurring}
       />{/if}
   </main>
 </div>
@@ -338,3 +380,10 @@
     onclose={closeRecurringForm}
     onsubmit={saveRecurring}
   />{/if}
+<ConfirmDialog
+  open={deleteTarget !== null}
+  title="削除の確認"
+  description={deleteDescription}
+  onconfirm={confirmDelete}
+  oncancel={cancelDelete}
+/>

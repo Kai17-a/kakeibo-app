@@ -114,10 +114,10 @@ test('支出明細から支出を更新する', async ({ page }) => {
 
 test('支出明細から支出を削除する', async ({ page }) => {
   await mockLedgerApi(page);
-  page.on('dialog', (dialog) => dialog.accept());
   await openExpenseDetails(page);
 
   await page.getByRole('button', { name: /交通費を削除/ }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: '削除' }).click();
 
   await expect(page.getByText('明細を削除しました。')).toBeVisible();
   await expect(page.getByText('この月の支出明細はありません。')).toBeVisible();

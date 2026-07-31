@@ -74,10 +74,10 @@ test('支出カテゴリを更新する', async ({ page }) => {
 
 test('支出カテゴリを削除する', async ({ page }) => {
   await mockCategoryApi(page);
-  page.on('dialog', (dialog) => dialog.accept());
   await page.goto('/settings');
 
   await page.getByRole('button', { name: '食費を削除' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: '削除' }).click();
 
   await expect(page.getByText('カテゴリを削除しました。')).toBeVisible();
   await expect(page.getByRole('cell', { name: '食費' })).not.toBeVisible();
@@ -85,11 +85,11 @@ test('支出カテゴリを削除する', async ({ page }) => {
 
 test('収入カテゴリを削除する', async ({ page }) => {
   await mockCategoryApi(page);
-  page.on('dialog', (dialog) => dialog.accept());
   await page.goto('/settings');
 
   await page.getByRole('tab', { name: '収入カテゴリ' }).click();
   await page.getByRole('button', { name: '給与を削除' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: '削除' }).click();
 
   await expect(page.getByText('カテゴリを削除しました。')).toBeVisible();
   await expect(page.getByRole('cell', { name: '給与' })).not.toBeVisible();

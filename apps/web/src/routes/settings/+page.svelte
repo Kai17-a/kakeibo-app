@@ -18,6 +18,7 @@
   import * as Table from '$lib/components/ui/table';
   import * as Tabs from '$lib/components/ui/tabs';
   import Header from '$lib/components/Header.svelte';
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import CategoryForm from '$lib/features/settings/CategoryForm.svelte';
   import PaymentMethodForm from '$lib/features/settings/PaymentMethodForm.svelte';
   import { api } from '$lib/api';
@@ -119,7 +120,6 @@
   }
 
   async function removeCategory(category: NamedResource) {
-    if (!confirm(`カテゴリ「${category.name}」を削除しますか？`)) return;
     try {
       if (activeKind === 'income') {
         await api.deleteIncomeCategory(category.id);
@@ -179,7 +179,6 @@
   }
 
   async function removePaymentMethod(item: PaymentMethod) {
-    if (!confirm(`支払方法「${item.name}」を削除しますか？`)) return;
     try {
       await api.deletePaymentMethod(item.id);
       paymentMethods = paymentMethods.filter((row) => row.id !== item.id);
@@ -187,6 +186,42 @@
     } catch {
       error =
         '支払方法を削除できませんでした。登録済みの明細で使用されている場合は削除できません。';
+    }
+  }
+
+  type DeleteTarget =
+    { type: 'category'; item: NamedResource } | { type: 'payment'; item: PaymentMethod };
+
+  let deleteTarget = $state<DeleteTarget | null>(null);
+
+  const deleteDescription = $derived.by(() => {
+    const target = deleteTarget;
+    if (!target) return '';
+    return target.type === 'category'
+      ? `カテゴリ「${target.item.name}」を削除しますか？`
+      : `支払方法「${target.item.name}」を削除しますか？`;
+  });
+
+  function askDeleteCategory(category: NamedResource) {
+    deleteTarget = { type: 'category', item: category };
+  }
+
+  function askDeletePaymentMethod(item: PaymentMethod) {
+    deleteTarget = { type: 'payment', item };
+  }
+
+  function cancelDelete() {
+    deleteTarget = null;
+  }
+
+  async function confirmDelete() {
+    const target = deleteTarget;
+    deleteTarget = null;
+    if (!target) return;
+    if (target.type === 'category') {
+      await removeCategory(target.item);
+    } else {
+      await removePaymentMethod(target.item);
     }
   }
 
@@ -329,7 +364,7 @@
                       variant="destructive"
                       size="sm"
                       aria-label={`${category.name}を削除`}
-                      onclick={() => removeCategory(category)}>削除</Button
+                      onclick={() => askDeleteCategory(category)}>削除</Button
                     >
                   </div>
                 </Table.Cell>
@@ -405,7 +440,7 @@
                       variant="destructive"
                       size="sm"
                       aria-label={`${method.name}を削除`}
-                      onclick={() => removePaymentMethod(method)}>削除</Button
+                      onclick={() => askDeletePaymentMethod(method)}>削除</Button
                     >
                   </div>
                 </Table.Cell>
@@ -435,3 +470,10 @@
     onsubmit={savePaymentMethod}
   />
 {/if}
+<ConfirmDialog
+  open={deleteTarget !== null}
+  title="削除の確認"
+  description={deleteDescription}
+  onconfirm={confirmDelete}
+  oncancel={cancelDelete}
+/>
