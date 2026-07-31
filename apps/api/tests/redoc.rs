@@ -30,9 +30,11 @@ async fn serves_api_documentation() {
     assert!(html.contains("収入カテゴリ"));
     assert!(html.contains("支出カテゴリ"));
     assert!(html.contains(r##""primary":{"main":"#0f766e"}"##));
-    assert!(html.contains(r#""hideDownloadButton":true"#));
+    assert!(html.contains(r#""hideDownloadButton":false"#));
     assert!(html.contains(r#""name":"page""#));
     assert!(html.contains(r#""default":1"#));
     assert!(html.contains(r#""name":"per_page""#));
     assert!(html.contains(r#""default":50"#));
+    // ダウンロードボタンはHTMLへインライン埋め込みされたOpenAPI定義から生成される
+    assert!(html.contains(r#""openapi":"3.1.0""#));
 }

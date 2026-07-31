@@ -173,7 +173,7 @@ pub fn create() -> Router {
         json!({
             "disableSearch": false,
             "expandResponses": "200,201",
-            "hideDownloadButton": true,
+            "hideDownloadButton": false,
             "hideHostname": true,
             "nativeScrollbars": true,
             "pathInMiddlePanel": true,
