@@ -31,7 +31,7 @@ async fn call(
 const SCHEMA: &str = concat!(
     "CREATE TABLE expense_categories(id TEXT PRIMARY KEY);",
     "CREATE TABLE payment_methods(id TEXT PRIMARY KEY);",
-    "CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-'||'4'||substr(hex(randomblob(2)),2)||'-'||substr('AB89',1+(abs(random())%4),1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,amount TEXT NOT NULL,payment_day INTEGER NOT NULL,start_date TEXT NOT NULL,end_date TEXT,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),is_active INTEGER NOT NULL,description TEXT);",
+    "CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-'||'4'||substr(hex(randomblob(2)),2)||'-'||substr('AB89',1+(abs(random())%4),1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,amount TEXT NOT NULL,payment_day INTEGER NOT NULL,start_date TEXT NOT NULL,end_date TEXT,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),is_active INTEGER NOT NULL,is_variable INTEGER NOT NULL DEFAULT 0,description TEXT);",
     "CREATE TABLE expenses(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-'||'4'||substr(hex(randomblob(2)),2)||'-'||substr('AB89',1+(abs(random())%4),1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,transaction_date TEXT NOT NULL,amount TEXT NOT NULL,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),recurring_expense_id TEXT REFERENCES recurring_expenses(id),description TEXT);",
     "INSERT INTO expense_categories VALUES('ec');",
     "INSERT INTO payment_methods VALUES('pm')"
@@ -115,4 +115,13 @@ async fn insert_recurring_for_month_respects_active_period() {
     assert_eq!(repo.insert_recurring_for_month("2026-02").await.unwrap(), 0);
     // 開始月には計上される
     assert_eq!(repo.insert_recurring_for_month("2026-03").await.unwrap(), 1);
+}
+#[tokio::test]
+async fn insert_recurring_for_month_skips_variable_expenses() {
+    let p = setup_pool().await;
+    // 準固定費（is_variable=1）は金額が月ごとに変動するため自動計上の対象外
+    sqlx::query("INSERT INTO recurring_expenses(name,amount,payment_day,start_date,end_date,category_id,payment_method_id,is_active,is_variable,description) VALUES('電気代','8000',15,'2026-01-01',NULL,'ec','pm',1,1,NULL)").execute(&p).await.unwrap();
+    let repo = ExpenseRepository::new(p.clone());
+
+    assert_eq!(repo.insert_recurring_for_month("2026-02").await.unwrap(), 0);
 }

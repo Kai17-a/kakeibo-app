@@ -14,6 +14,7 @@ pub struct RecurringExpense {
     pub category_id: String,
     pub payment_method_id: String,
     pub is_active: bool,
+    pub is_variable: bool,
     pub description: Option<String>,
 }
 impl From<RecurringExpenseRow> for RecurringExpense {
@@ -30,6 +31,7 @@ impl From<RecurringExpenseRow> for RecurringExpense {
             category_id: v.category_id,
             payment_method_id: v.payment_method_id,
             is_active: v.is_active,
+            is_variable: v.is_variable,
             description: v.description,
         }
     }
@@ -44,5 +46,6 @@ pub struct RecurringExpenseUpsertRequest {
     pub category_id: String,
     pub payment_method_id: String,
     pub is_active: bool,
+    pub is_variable: bool,
     pub description: Option<String>,
 }

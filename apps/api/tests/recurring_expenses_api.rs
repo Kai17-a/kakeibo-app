@@ -35,14 +35,16 @@ async fn recurring_expense_crud() {
         .connect("sqlite::memory:")
         .await
         .unwrap();
-    sqlx::query("CREATE TABLE expense_categories(id TEXT PRIMARY KEY);CREATE TABLE payment_methods(id TEXT PRIMARY KEY);CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY DEFAULT 're-1',created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,amount TEXT NOT NULL,payment_day INTEGER NOT NULL,start_date TEXT NOT NULL,end_date TEXT,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),is_active INTEGER NOT NULL,description TEXT);INSERT INTO expense_categories VALUES('ec');INSERT INTO payment_methods VALUES('pm')").execute(&p).await.unwrap();
+    sqlx::query("CREATE TABLE expense_categories(id TEXT PRIMARY KEY);CREATE TABLE payment_methods(id TEXT PRIMARY KEY);CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY DEFAULT 're-1',created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,amount TEXT NOT NULL,payment_day INTEGER NOT NULL,start_date TEXT NOT NULL,end_date TEXT,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),is_active INTEGER NOT NULL,is_variable INTEGER NOT NULL DEFAULT 0,description TEXT);INSERT INTO expense_categories VALUES('ec');INSERT INTO payment_methods VALUES('pm')").execute(&p).await.unwrap();
     let app = recurring_expenses::create(p);
-    let v = json!({"name":"Rent","amount":"80000","payment_day":27,"start_date":"2026-01-01","end_date":null,"category_id":"ec","payment_method_id":"pm","is_active":true,"description":null});
+    let v = json!({"name":"Rent","amount":"80000","payment_day":27,"start_date":"2026-01-01","end_date":null,"category_id":"ec","payment_method_id":"pm","is_active":true,"is_variable":true,"description":null});
     let (s, b) = call(&app, "POST", "/api/recurring-expenses", Some(v)).await;
     assert_eq!(s, StatusCode::CREATED, "{b:?}");
     let (s, b) = call(&app, "GET", "/api/recurring-expenses", None).await;
     assert_eq!(s, StatusCode::OK);
-    assert_eq!(b.unwrap()[0]["name"], "Rent");
+    let b = b.unwrap();
+    assert_eq!(b[0]["name"], "Rent");
+    assert_eq!(b[0]["is_variable"], true);
     let (s, _) = call(&app, "DELETE", "/api/recurring-expenses/re-1", None).await;
     assert_eq!(s, StatusCode::NO_CONTENT)
 }

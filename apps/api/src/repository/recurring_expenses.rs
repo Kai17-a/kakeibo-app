@@ -77,5 +77,6 @@ fn bind<'q>(
         .bind(&v.category_id)
         .bind(&v.payment_method_id)
         .bind(v.is_active)
+        .bind(v.is_variable)
         .bind(&v.description)
 }

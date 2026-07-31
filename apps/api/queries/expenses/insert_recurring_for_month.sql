@@ -30,6 +30,7 @@ FROM
   recurring_expenses r
 WHERE
   r.is_active = 1
+  AND r.is_variable = 0
   AND r.start_date <= date(?1 || '-01', '+1 month', '-1 day')
   AND (r.end_date IS NULL OR r.end_date >= ?1 || '-01')
   AND NOT EXISTS (

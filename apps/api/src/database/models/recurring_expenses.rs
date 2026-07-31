@@ -12,5 +12,6 @@ pub struct RecurringExpenseRow {
     pub category_id: String,
     pub payment_method_id: String,
     pub is_active: bool,
+    pub is_variable: bool,
     pub description: Option<String>,
 }

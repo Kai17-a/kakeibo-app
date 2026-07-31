@@ -10,6 +10,7 @@ SELECT
   , category_id
   , payment_method_id
   , is_active
+  , is_variable
   , description
 FROM
   recurring_expenses
