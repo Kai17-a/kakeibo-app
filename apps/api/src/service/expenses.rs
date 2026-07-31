@@ -12,6 +12,10 @@ impl ExpenseService {
         Self { repository }
     }
     pub async fn list(&self) -> AppResult<Vec<Expense>> {
+        // バッチ基盤がないため、一覧取得のタイミングで当月分の定期支出を明細へ計上する。
+        // insert_recurring_for_month は同月分が既にある場合は何もしない（冪等）。
+        let month = self.repository.current_month().await?;
+        self.repository.insert_recurring_for_month(&month).await?;
         Ok(self
             .repository
             .find_all()

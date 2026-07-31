@@ -17,6 +17,22 @@ impl ExpenseRepository {
             .await
             .map_err(Into::into)
     }
+    pub async fn current_month(&self) -> AppResult<String> {
+        let (month,): (String,) =
+            sqlx::query_as(include_str!("../../queries/expenses/current_month.sql"))
+                .fetch_one(&self.pool)
+                .await?;
+        Ok(month)
+    }
+    pub async fn insert_recurring_for_month(&self, month: &str) -> AppResult<u64> {
+        Ok(sqlx::query(include_str!(
+            "../../queries/expenses/insert_recurring_for_month.sql"
+        ))
+        .bind(month)
+        .execute(&self.pool)
+        .await?
+        .rows_affected())
+    }
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<ExpenseRow>> {
         sqlx::query_as(include_str!("../../queries/expenses/find_by_id.sql"))
             .bind(id)
