@@ -40,6 +40,7 @@
   let transactionFormOpen = $state(false);
   let editingExpense = $state<Expense | null>(null);
   let editingIncome = $state<Income | null>(null);
+  let transactionPreset = $state<RecurringExpense | null>(null);
   let recurringFormOpen = $state(false);
   let editingRecurring = $state<RecurringExpense | null>(null);
   let loading = $state(true);
@@ -126,6 +127,7 @@
         transactionFormOpen = false;
         editingExpense = null;
         editingIncome = null;
+        transactionPreset = null;
       }
       return true;
     } catch (caught) {
@@ -139,6 +141,14 @@
   function openTransaction() {
     editingExpense = null;
     editingIncome = null;
+    transactionPreset = null;
+    transactionFormOpen = true;
+  }
+
+  function registerVariableRecurring(item: RecurringExpense) {
+    editingExpense = null;
+    editingIncome = null;
+    transactionPreset = item;
     transactionFormOpen = true;
   }
 
@@ -166,6 +176,7 @@
     transactionFormOpen = false;
     editingExpense = null;
     editingIncome = null;
+    transactionPreset = null;
   }
 
   async function saveRecurring(input: RecurringExpenseInput) {
@@ -355,6 +366,7 @@
         ondelete={askDeleteTransaction}
         onrecurringedit={editRecurringExpense}
         onrecurringdelete={askDeleteRecurring}
+        onregistervariable={registerVariableRecurring}
       />{/if}
   </main>
 </div>
@@ -366,6 +378,7 @@
     {saving}
     initialExpense={editingExpense ?? undefined}
     initialIncome={editingIncome ?? undefined}
+    initialRecurring={transactionPreset ?? undefined}
     initialDate={`${selectedMonth}-${String(Math.min(new Date().getDate(), 28)).padStart(2, '0')}`}
     onclose={closeTransaction}
     onsubmit={saveTransaction}

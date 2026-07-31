@@ -34,6 +34,7 @@
   let paymentMethodId = $derived(initial?.payment_method_id ?? paymentMethods[0]?.id ?? '');
   let description = $state(untrack(() => initial?.description ?? ''));
   let active = $state(untrack(() => initial?.is_active ?? true));
+  let variable = $state(untrack(() => initial?.is_variable ?? false));
   const editing = $derived(Boolean(initial));
   function submit(event: SubmitEvent) {
     event.preventDefault();
@@ -46,6 +47,7 @@
       category_id: categoryId,
       payment_method_id: paymentMethodId,
       is_active: active,
+      is_variable: variable,
       description: description || null,
     });
   }
@@ -69,7 +71,9 @@
           /></Field.Field
         >
         <Field.Field
-          ><Field.FieldLabel for="recurring-amount">金額</Field.FieldLabel><Input
+          ><Field.FieldLabel for="recurring-amount"
+            >{variable ? '金額（目安）' : '金額'}</Field.FieldLabel
+          ><Input
             id="recurring-amount"
             type="number"
             min="1"
@@ -128,6 +132,11 @@
             id="recurring-description"
             bind:value={description}
           /></Field.Field
+        >
+        <Field.Field orientation="horizontal" class="sm:col-span-2"
+          ><Checkbox id="recurring-variable" bind:checked={variable} /><Field.FieldLabel
+            for="recurring-variable">金額が月ごとに変動する（準固定費）</Field.FieldLabel
+          ></Field.Field
         >
         <Field.Field orientation="horizontal" class="sm:col-span-2"
           ><Checkbox id="recurring-active" bind:checked={active} /><Field.FieldLabel

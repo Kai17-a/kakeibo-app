@@ -39,6 +39,7 @@ const recurringExpense = {
   category_id: 'expense-category-1',
   payment_method_id: 'payment-method-1',
   is_active: true,
+  is_variable: false,
   description: null,
 };
 

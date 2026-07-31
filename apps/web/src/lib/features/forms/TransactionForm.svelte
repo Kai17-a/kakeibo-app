@@ -15,6 +15,7 @@
     IncomeCategory,
     IncomeInput,
     PaymentMethod,
+    RecurringExpense,
   } from '../../types';
   interface Props {
     expenseCategories: ExpenseCategory[];
@@ -24,6 +25,7 @@
     initialDate: string;
     initialExpense?: Expense;
     initialIncome?: Income;
+    initialRecurring?: RecurringExpense;
     onclose(): void;
     onsubmit(
       kind: 'expense' | 'income',
@@ -39,21 +41,50 @@
     initialDate,
     initialExpense,
     initialIncome,
+    initialRecurring,
     onclose,
     onsubmit,
   }: Props = $props();
   let kind = $derived<'expense' | 'income'>(initialIncome ? 'income' : 'expense');
   const categories = $derived(kind === 'expense' ? expenseCategories : incomeCategories);
   const editing = $derived(Boolean(initialExpense ?? initialIncome));
+  const preset = $derived(Boolean(initialRecurring));
+  const recurringDate = $derived.by(() => {
+    if (!initialRecurring) return undefined;
+    const now = new Date();
+    const year = now.getFullYear();
+    const monthIndex = now.getMonth();
+    const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+    const day = Math.min(initialRecurring.payment_day, lastDay);
+    return `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  });
   let date = $derived(
-    initialExpense?.transaction_date ?? initialIncome?.transaction_date ?? initialDate,
+    initialExpense?.transaction_date ??
+      initialIncome?.transaction_date ??
+      recurringDate ??
+      initialDate,
   );
-  let amount = $derived(initialExpense?.amount ?? initialIncome?.amount ?? '');
+  let amount = $derived(
+    initialExpense?.amount ?? initialIncome?.amount ?? initialRecurring?.amount ?? '',
+  );
   let categoryId = $derived(
-    initialExpense?.category_id ?? initialIncome?.category_id ?? categories[0]?.id ?? '',
+    initialExpense?.category_id ??
+      initialIncome?.category_id ??
+      initialRecurring?.category_id ??
+      categories[0]?.id ??
+      '',
   );
-  let paymentMethodId = $derived(initialExpense?.payment_method_id ?? paymentMethods[0]?.id ?? '');
-  let description = $derived(initialExpense?.description ?? initialIncome?.description ?? '');
+  let paymentMethodId = $derived(
+    initialExpense?.payment_method_id ??
+      initialRecurring?.payment_method_id ??
+      paymentMethods[0]?.id ??
+      '',
+  );
+  let description = $derived(
+    initialExpense?.description ??
+      initialIncome?.description ??
+      (initialRecurring ? initialRecurring.name : ''),
+  );
   async function submit(event: SubmitEvent) {
     event.preventDefault();
     const keepOpen = (event.submitter as HTMLButtonElement | null)?.value === 'continue';
@@ -65,7 +96,8 @@
             amount: String(amount),
             category_id: categoryId,
             payment_method_id: paymentMethodId,
-            recurring_expense_id: initialExpense?.recurring_expense_id ?? null,
+            recurring_expense_id:
+              initialExpense?.recurring_expense_id ?? initialRecurring?.id ?? null,
             description: description || null,
           }
         : {
@@ -88,11 +120,17 @@
   <Dialog.Content>
     <Dialog.Header>
       <Dialog.Title>
-        {initialExpense ? '支出を編集' : initialIncome ? '収入を編集' : '収支を登録'}
+        {initialExpense
+          ? '支出を編集'
+          : initialIncome
+            ? '収入を編集'
+            : preset
+              ? '準固定費を登録'
+              : '収支を登録'}
       </Dialog.Title>
       <Dialog.Description>日付や金額、カテゴリを入力してください。</Dialog.Description>
     </Dialog.Header>
-    {#if !editing}
+    {#if !editing && !preset}
       <Tabs.Root bind:value={kind}>
         <Tabs.List class="grid w-full grid-cols-2">
           <Tabs.Trigger value="expense">支出</Tabs.Trigger>
@@ -142,7 +180,7 @@
       </Field.FieldGroup>
       <Dialog.Footer>
         <Button variant="outline" type="button" onclick={onclose}>キャンセル</Button>
-        {#if !editing}
+        {#if !editing && !preset}
           <Button variant="outline" type="submit" name="intent" value="continue" disabled={saving}>
             {#if saving}<Spinner data-icon="inline-start" />保存中…{:else}登録して続ける{/if}
           </Button>

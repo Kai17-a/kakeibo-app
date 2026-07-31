@@ -163,6 +163,7 @@ describe('ky API client', () => {
       category_id: 'housing',
       payment_method_id: 'bank',
       is_active: true,
+      is_variable: false,
       description: null,
     });
 

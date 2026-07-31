@@ -37,6 +37,7 @@ export interface RecurringExpense extends BaseResource {
   category_id: string;
   payment_method_id: string;
   is_active: boolean;
+  is_variable: boolean;
   description: string | null;
 }
 export interface ListResponse<T> {
@@ -71,5 +72,6 @@ export interface RecurringExpenseInput {
   category_id: string;
   payment_method_id: string;
   is_active: boolean;
+  is_variable: boolean;
   description: string | null;
 }
