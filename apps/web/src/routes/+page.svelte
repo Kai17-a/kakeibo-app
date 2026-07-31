@@ -342,8 +342,6 @@
         {recurringExpenses}
         onedit={editExpense}
         ondelete={askDeleteExpense}
-        onrecurringedit={editRecurringExpense}
-        onrecurringdelete={askDeleteRecurring}
       />
     {:else}<MonthlySummary
         {monthLabel}

@@ -123,10 +123,9 @@ test('支出明細から支出を削除する', async ({ page }) => {
   await expect(page.getByText('この月の支出明細はありません。')).toBeVisible();
 });
 
-test('収支・明細から定期支出を更新する', async ({ page }) => {
+test('定期支出を更新する', async ({ page }) => {
   await mockLedgerApi(page);
   await page.goto('/');
-  await page.getByRole('radio', { name: '日別集計' }).click();
 
   await page.getByRole('button', { name: '定期支出 家賃を編集' }).click();
   await expect(page.getByRole('heading', { name: '固定費を編集' })).toBeVisible();
