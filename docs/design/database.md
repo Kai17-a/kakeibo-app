@@ -39,6 +39,7 @@ erDiagram
       UUID category_id FK "支出カテゴリID"
       UUID payment_method_id FK "支払方法ID"
       boolean is_active "有効フラグ"
+      boolean is_variable "金額変動フラグ（準固定費）"
       text description "備考"
   }
 

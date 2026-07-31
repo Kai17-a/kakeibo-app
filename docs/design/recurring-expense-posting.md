@@ -53,7 +53,9 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-  A[定期支出設定] --> B{is_active = 1}
+  A[定期支出設定] --> V{is_variable = 0<br/>（固定費）}
+  V -- No --> Z[計上しない]
+  V -- Yes --> B{is_active = 1}
   B -- No --> Z[計上しない]
   B -- Yes --> C{start_date ≦ 当月末日}
   C -- No --> Z
@@ -85,14 +87,53 @@ flowchart TD
 
 当月はアプリケーションの時計ではなく、SQLite が返すローカル時刻（`strftime('%Y-%m', 'now', 'localtime')`）を基準とする。生成対象の月は SQL のバインドパラメータ（`?1` = `YYYY-MM`）として渡すため、テストから任意の月を指定して計上ロジックを検証できる。
 
+## 準固定費（金額が変動する定期支出）
+
+電気代や水道代のように「毎月必ず支払が発生するが金額は月ごとに変動する」支出は、定期支出設定の `is_variable = 1` として登録する「準固定費」として扱う。
+
+### 固定費との違い
+
+| 項目 | 固定費（`is_variable = 0`） | 準固定費（`is_variable = 1`） |
+| --- | --- | --- |
+| 金額の意味 | 確定した毎月の支払額 | 目安の金額 |
+| 支出明細への自動計上 | する（本ドキュメントの仕組み） | しない |
+| 明細の登録方法 | 自動（一覧取得時の遅延生成） | 月次ビューの「今月分を登録」ボタンから金額を確定して登録 |
+
+### 準固定費を自動計上しない理由
+
+変動する金額を目安の金額で自動計上すると、編集し忘れた月が目安の金額のまま集計に混入し、不正確な家計簿になる。これを防ぐため、準固定費はユーザーが金額を確定してから明細を登録する運用とする。
+
+### 「今月分を登録」の流れ
+
+```mermaid
+sequenceDiagram
+  participant User as ユーザー
+  participant Web as Webアプリ
+  participant API as API
+
+  User->>Web: 月次ビューの準固定費から「今月分を登録」
+  Web->>Web: 明細フォームを開く（日付=当月のmin(payment_day, 月末日)日<br/>金額=目安、カテゴリ・支払方法・名称をプリセット）
+  User->>Web: 実際の金額に修正して登録
+  Web->>API: POST /api/expenses（recurring_expense_id 付き）
+  API-->>Web: 201 Created
+  Web-->>User: 「支出を登録しました。」
+```
+
+- フォームのタイトルは「準固定費を登録」となり、支出種別の切り替えは表示しない
+- 登録された明細は `recurring_expense_id` で定期支出設定に紐付くため、変動費の集計には混入しない
+- 同じ月に複数回登録することもできる（自動計上と異なり冪等性の制御は行わない）
+
 ## 実装箇所
 
 | レイヤ | ファイル | 内容 |
 | --- | --- | --- |
 | SQL | `queries/expenses/current_month.sql` | 当月（`YYYY-MM`）の取得 |
-| SQL | `queries/expenses/insert_recurring_for_month.sql` | 条件付き `INSERT ... SELECT` による計上 |
+| SQL | `queries/expenses/insert_recurring_for_month.sql` | 条件付き `INSERT ... SELECT` による計上（`is_variable = 0` のみ） |
 | Repository | `src/repository/expenses.rs` | `current_month()` / `insert_recurring_for_month()` |
 | Service | `src/service/expenses.rs` | `list()` の冒頭で当月分の計上を実行 |
+| Web | `src/lib/features/forms/TransactionForm.svelte` | 準固定費プリセット（`initialRecurring`）による明細登録 |
+| Web | `src/lib/features/monthly/MonthlySummary.svelte` | 固定費／準固定費の区分表示と「今月分を登録」ボタン |
+| Web | `src/routes/+page.svelte` | 準固定費からの明細登録フォーム起動 |
 
 ## 制約・注意事項
 
@@ -111,3 +152,4 @@ flowchart TD
 - `payment_day` が月末日を超える場合に月末日へ丸められること
 - 開始前・終了済みの定期支出が計上されないこと
 - 翌月に再度計上されること
+- 準固定費（`is_variable = 1`）が計上されないこと
