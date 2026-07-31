@@ -27,8 +27,6 @@
     recurringExpenses: RecurringExpense[];
     onedit(item: ReturnType<typeof mergeTransactions>[number]): void;
     ondelete(item: ReturnType<typeof mergeTransactions>[number]): void;
-    onrecurringedit(item: RecurringExpense): void;
-    onrecurringdelete(item: RecurringExpense): void;
     onregistervariable(item: RecurringExpense): void;
   }
   let {
@@ -41,8 +39,6 @@
     recurringExpenses,
     onedit,
     ondelete,
-    onrecurringedit,
-    onrecurringdelete,
     onregistervariable,
   }: Props = $props();
   const expenseTotal = $derived(sumAmounts(expenses));
@@ -177,24 +173,10 @@
       <Card.Content>
         <ul class="mt-3 divide-y">
           {#each fixedRecurring as item (item.id)}<li
-              class="group flex items-center justify-between py-3 text-sm"
+              class="flex items-center justify-between py-3 text-sm"
             >
               <span><b class="block">{item.name}</b><small>毎月 {item.payment_day} 日</small></span
-              ><span class="flex items-center gap-2"
-                ><b>{formatYen(item.amount)}</b><Button
-                  variant="ghost"
-                  size="sm"
-                  class="opacity-0 group-hover:opacity-100"
-                  aria-label={`定期支出 ${item.name}を編集`}
-                  onclick={() => onrecurringedit(item)}>編集</Button
-                ><Button
-                  variant="ghost"
-                  size="sm"
-                  class="opacity-0 group-hover:opacity-100"
-                  aria-label={`定期支出 ${item.name}を削除`}
-                  onclick={() => onrecurringdelete(item)}>削除</Button
-                ></span
-              >
+              ><b>{formatYen(item.amount)}</b>
             </li>{/each}
         </ul>
         {#if variableRecurring.length}
@@ -203,32 +185,18 @@
           </h4>
           <ul class="mt-2 divide-y">
             {#each variableRecurring as item (item.id)}<li
-                class="group flex items-center justify-between py-3 text-sm"
+                class="flex items-center justify-between py-3 text-sm"
               >
                 <span
                   ><b class="block">{item.name}</b><small
                     >毎月 {item.payment_day} 日 · 目安 {formatYen(item.amount)}</small
                   ></span
                 >
-                <span class="flex items-center gap-2"
-                  ><Button
-                    variant="outline"
-                    size="sm"
-                    aria-label={`${item.name}の今月分を登録`}
-                    onclick={() => onregistervariable(item)}>今月分を登録</Button
-                  ><Button
-                    variant="ghost"
-                    size="sm"
-                    class="opacity-0 group-hover:opacity-100"
-                    aria-label={`定期支出 ${item.name}を編集`}
-                    onclick={() => onrecurringedit(item)}>編集</Button
-                  ><Button
-                    variant="ghost"
-                    size="sm"
-                    class="opacity-0 group-hover:opacity-100"
-                    aria-label={`定期支出 ${item.name}を削除`}
-                    onclick={() => onrecurringdelete(item)}>削除</Button
-                  ></span
+                <Button
+                  variant="outline"
+                  size="sm"
+                  aria-label={`${item.name}の今月分を登録`}
+                  onclick={() => onregistervariable(item)}>今月分を登録</Button
                 >
               </li>{/each}
           </ul>

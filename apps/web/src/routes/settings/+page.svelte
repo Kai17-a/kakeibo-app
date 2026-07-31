@@ -7,8 +7,10 @@
   import CreditCardIcon from '@lucide/svelte/icons/credit-card';
   import DatabaseIcon from '@lucide/svelte/icons/database';
   import PlusIcon from '@lucide/svelte/icons/plus';
+  import RepeatIcon from '@lucide/svelte/icons/repeat';
   import TagsIcon from '@lucide/svelte/icons/tags';
   import { toast } from 'svelte-sonner';
+  import { SvelteMap } from 'svelte/reactivity';
   import * as Alert from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
@@ -21,26 +23,33 @@
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import CategoryForm from '$lib/features/settings/CategoryForm.svelte';
   import PaymentMethodForm from '$lib/features/settings/PaymentMethodForm.svelte';
+  import RecurringExpenseForm from '$lib/features/forms/RecurringExpenseForm.svelte';
   import { api } from '$lib/api';
+  import { formatYen } from '$lib/format';
   import type {
     CategoryInput,
     ExpenseCategory,
     IncomeCategory,
     NamedResource,
     PaymentMethod,
+    RecurringExpense,
+    RecurringExpenseInput,
   } from '$lib/types';
 
   type CategoryKind = 'expense' | 'income';
-  type SettingsTab = CategoryKind | 'payment';
+  type SettingsTab = CategoryKind | 'payment' | 'recurring';
 
   let expenseCategories = $state.raw<ExpenseCategory[]>([]);
   let incomeCategories = $state.raw<IncomeCategory[]>([]);
   let paymentMethods = $state.raw<PaymentMethod[]>([]);
+  let recurringExpenses = $state.raw<RecurringExpense[]>([]);
   let activeKind = $state<SettingsTab>('expense');
   let formOpen = $state(false);
   let editingCategory = $state<NamedResource | null>(null);
   let paymentFormOpen = $state(false);
   let editingPaymentMethod = $state<PaymentMethod | null>(null);
+  let recurringFormOpen = $state(false);
+  let editingRecurring = $state<RecurringExpense | null>(null);
   let loading = $state(true);
   let saving = $state(false);
   let error = $state('');
@@ -51,14 +60,16 @@
     loading = true;
     error = '';
     try {
-      const [expenseData, incomeData, paymentData] = await Promise.all([
+      const [expenseData, incomeData, paymentData, recurringData] = await Promise.all([
         api.expenseCategories(),
         api.incomeCategories(),
         api.paymentMethods(),
+        api.recurringExpenses(),
       ]);
       expenseCategories = expenseData.items;
       incomeCategories = incomeData.items;
       paymentMethods = paymentData.items;
+      recurringExpenses = recurringData;
     } catch (caught) {
       error = message(caught, 'データを読み込めませんでした。');
     } finally {
@@ -189,17 +200,78 @@
     }
   }
 
+  const expenseCategoryNames = $derived(
+    new SvelteMap(expenseCategories.map((item) => [item.id, item.name])),
+  );
+  const paymentMethodNames = $derived(
+    new SvelteMap(paymentMethods.map((item) => [item.id, item.name])),
+  );
+
+  async function saveRecurring(input: RecurringExpenseInput) {
+    saving = true;
+    error = '';
+    const editing = editingRecurring;
+    try {
+      if (editing) {
+        const updated = await api.updateRecurringExpense(editing.id, input);
+        recurringExpenses = recurringExpenses.map((item) =>
+          item.id === updated.id ? updated : item,
+        );
+        toast.success('定期支出を更新しました。');
+      } else {
+        recurringExpenses = [await api.createRecurringExpense(input), ...recurringExpenses];
+        toast.success('定期支出を登録しました。');
+      }
+      closeRecurringForm();
+    } catch (caught) {
+      error = message(
+        caught,
+        editing ? '定期支出を更新できませんでした。' : '定期支出を登録できませんでした。',
+      );
+    } finally {
+      saving = false;
+    }
+  }
+
+  function openRecurringForm() {
+    editingRecurring = null;
+    recurringFormOpen = true;
+  }
+
+  function editRecurring(item: RecurringExpense) {
+    editingRecurring = item;
+    recurringFormOpen = true;
+  }
+
+  function closeRecurringForm() {
+    recurringFormOpen = false;
+    editingRecurring = null;
+  }
+
+  async function removeRecurringExpense(item: RecurringExpense) {
+    try {
+      await api.deleteRecurringExpense(item.id);
+      recurringExpenses = recurringExpenses.filter((row) => row.id !== item.id);
+      toast.success('定期支出を削除しました。');
+    } catch {
+      error =
+        '定期支出を削除できませんでした。登録済みの明細で使用されている場合は削除できません。';
+    }
+  }
+
   type DeleteTarget =
-    { type: 'category'; item: NamedResource } | { type: 'payment'; item: PaymentMethod };
+    | { type: 'category'; item: NamedResource }
+    | { type: 'payment'; item: PaymentMethod }
+    | { type: 'recurring'; item: RecurringExpense };
 
   let deleteTarget = $state<DeleteTarget | null>(null);
 
   const deleteDescription = $derived.by(() => {
     const target = deleteTarget;
     if (!target) return '';
-    return target.type === 'category'
-      ? `カテゴリ「${target.item.name}」を削除しますか？`
-      : `支払方法「${target.item.name}」を削除しますか？`;
+    if (target.type === 'category') return `カテゴリ「${target.item.name}」を削除しますか？`;
+    if (target.type === 'payment') return `支払方法「${target.item.name}」を削除しますか？`;
+    return `定期支出「${target.item.name}」を削除しますか？`;
   });
 
   function askDeleteCategory(category: NamedResource) {
@@ -208,6 +280,10 @@
 
   function askDeletePaymentMethod(item: PaymentMethod) {
     deleteTarget = { type: 'payment', item };
+  }
+
+  function askDeleteRecurring(item: RecurringExpense) {
+    deleteTarget = { type: 'recurring', item };
   }
 
   function cancelDelete() {
@@ -220,8 +296,10 @@
     if (!target) return;
     if (target.type === 'category') {
       await removeCategory(target.item);
-    } else {
+    } else if (target.type === 'payment') {
       await removePaymentMethod(target.item);
+    } else {
+      await removeRecurringExpense(target.item);
     }
   }
 
@@ -252,7 +330,7 @@
       <p class="text-xs font-semibold tracking-widest text-muted-foreground uppercase">Settings</p>
       <h1 class="font-serif text-3xl font-bold tracking-tight sm:text-4xl">カテゴリ設定</h1>
       <p class="text-muted-foreground">
-        収支の登録や集計に使用するカテゴリと支払方法を管理できます。
+        収支の登録や集計に使用するカテゴリ・支払方法・定期支出を管理できます。
       </p>
     </div>
 
@@ -273,6 +351,7 @@
         <Tabs.Trigger value="expense">支出カテゴリ</Tabs.Trigger>
         <Tabs.Trigger value="income">収入カテゴリ</Tabs.Trigger>
         <Tabs.Trigger value="payment">支払方法</Tabs.Trigger>
+        <Tabs.Trigger value="recurring">定期支出</Tabs.Trigger>
       </Tabs.List>
       <Tabs.Content value="expense">
         {@render categoryPanel('支出カテゴリ', expenseCategories)}
@@ -282,6 +361,9 @@
       </Tabs.Content>
       <Tabs.Content value="payment">
         {@render paymentMethodPanel()}
+      </Tabs.Content>
+      <Tabs.Content value="recurring">
+        {@render recurringPanel()}
       </Tabs.Content>
     </Tabs.Root>
 
@@ -452,6 +534,100 @@
     </Card.Content>
   </Card.Root>
 {/snippet}
+{#snippet recurringPanel()}
+  <Card.Root>
+    <Card.Header>
+      <Card.Title class="flex items-center gap-2">
+        定期支出
+        <Badge variant="secondary">{recurringExpenses.length}件</Badge>
+      </Card.Title>
+      <Card.Description>
+        毎月発生する固定費・準固定費（金額変動）の支出予定を管理します。
+      </Card.Description>
+      <Card.Action>
+        <Button onclick={openRecurringForm}>
+          <PlusIcon data-icon="inline-start" />追加
+        </Button>
+      </Card.Action>
+    </Card.Header>
+    <Card.Content>
+      {#if loading}
+        <div class="flex flex-col gap-3">
+          <Skeleton class="h-16 w-full" />
+          <Skeleton class="h-16 w-full" />
+          <Skeleton class="h-16 w-full" />
+        </div>
+      {:else if recurringExpenses.length === 0}
+        <Empty.Root class="min-h-64 border">
+          <Empty.Media variant="icon"><RepeatIcon /></Empty.Media>
+          <Empty.Header>
+            <Empty.Title>定期支出がありません</Empty.Title>
+            <Empty.Description>最初の定期支出を追加してください。</Empty.Description>
+          </Empty.Header>
+          <Empty.Content>
+            <Button onclick={openRecurringForm}>
+              <PlusIcon data-icon="inline-start" />定期支出を追加
+            </Button>
+          </Empty.Content>
+        </Empty.Root>
+      {:else}
+        <Table.Root>
+          <Table.Caption>登録済みの定期支出一覧</Table.Caption>
+          <Table.Header>
+            <Table.Row>
+              <Table.Head class="w-1/4">名称</Table.Head>
+              <Table.Head>カテゴリ / 支払方法</Table.Head>
+              <Table.Head>支払日</Table.Head>
+              <Table.Head class="text-right">金額</Table.Head>
+              <Table.Head>状態</Table.Head>
+              <Table.Head class="w-36 text-right">操作</Table.Head>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {#each recurringExpenses as item (item.id)}
+              <Table.Row>
+                <Table.Cell class="font-medium">
+                  <span class="flex items-center gap-2"
+                    >{item.name}{#if item.is_variable}<Badge variant="secondary">準固定費</Badge
+                      >{/if}</span
+                  >
+                </Table.Cell>
+                <Table.Cell class="text-muted-foreground">
+                  {expenseCategoryNames.get(item.category_id) ?? ''} / {paymentMethodNames.get(
+                    item.payment_method_id,
+                  ) ?? ''}
+                </Table.Cell>
+                <Table.Cell>毎月 {item.payment_day} 日</Table.Cell>
+                <Table.Cell class="text-right">{formatYen(item.amount)}</Table.Cell>
+                <Table.Cell>
+                  {#if item.is_active}<Badge variant="outline">有効</Badge>{:else}<Badge
+                      variant="secondary">無効</Badge
+                    >{/if}
+                </Table.Cell>
+                <Table.Cell class="text-right">
+                  <div class="flex justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={`定期支出 ${item.name}を編集`}
+                      onclick={() => editRecurring(item)}>編集</Button
+                    >
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      aria-label={`定期支出 ${item.name}を削除`}
+                      onclick={() => askDeleteRecurring(item)}>削除</Button
+                    >
+                  </div>
+                </Table.Cell>
+              </Table.Row>
+            {/each}
+          </Table.Body>
+        </Table.Root>
+      {/if}
+    </Card.Content>
+  </Card.Root>
+{/snippet}
 
 {#if formOpen}
   <CategoryForm
@@ -468,6 +644,16 @@
     initial={editingPaymentMethod ?? undefined}
     onclose={closePaymentForm}
     onsubmit={savePaymentMethod}
+  />
+{/if}
+{#if recurringFormOpen}
+  <RecurringExpenseForm
+    categories={expenseCategories}
+    {paymentMethods}
+    {saving}
+    initial={editingRecurring ?? undefined}
+    onclose={closeRecurringForm}
+    onsubmit={saveRecurring}
   />
 {/if}
 <ConfirmDialog

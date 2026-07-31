@@ -42,7 +42,6 @@
   let editingIncome = $state<Income | null>(null);
   let transactionPreset = $state<RecurringExpense | null>(null);
   let recurringFormOpen = $state(false);
-  let editingRecurring = $state<RecurringExpense | null>(null);
   let loading = $state(true);
   let saving = $state(false);
   let error = $state('');
@@ -182,42 +181,23 @@
   async function saveRecurring(input: RecurringExpenseInput) {
     saving = true;
     error = '';
-    const editing = editingRecurring;
     try {
-      if (editing) {
-        const updated = await api.updateRecurringExpense(editing.id, input);
-        recurringExpenses = recurringExpenses.map((item) =>
-          item.id === updated.id ? updated : item,
-        );
-        toast.success('固定費を更新しました。');
-      } else {
-        recurringExpenses = [await api.createRecurringExpense(input), ...recurringExpenses];
-        toast.success('固定費を登録しました。');
-      }
-      closeRecurringForm();
+      recurringExpenses = [await api.createRecurringExpense(input), ...recurringExpenses];
+      recurringFormOpen = false;
+      toast.success('固定費を登録しました。');
     } catch (caught) {
-      error = message(
-        caught,
-        editing ? '固定費を更新できませんでした。' : '固定費を登録できませんでした。',
-      );
+      error = message(caught, '固定費を登録できませんでした。');
     } finally {
       saving = false;
     }
   }
 
   function openRecurringForm() {
-    editingRecurring = null;
-    recurringFormOpen = true;
-  }
-
-  function editRecurringExpense(item: RecurringExpense) {
-    editingRecurring = item;
     recurringFormOpen = true;
   }
 
   function closeRecurringForm() {
     recurringFormOpen = false;
-    editingRecurring = null;
   }
 
   async function removeTransaction(item: Transaction) {
@@ -245,31 +225,10 @@
     }
   }
 
-  async function removeRecurringExpense(item: RecurringExpense) {
-    try {
-      await api.deleteRecurringExpense(item.id);
-      recurringExpenses = recurringExpenses.filter((row) => row.id !== item.id);
-      toast.success('定期支出を削除しました。');
-    } catch {
-      error =
-        '定期支出を削除できませんでした。登録済みの明細で使用されている場合は削除できません。';
-    }
-  }
-
   type DeleteTarget =
-    | { type: 'transaction'; item: Transaction }
-    | { type: 'expense'; item: Expense }
-    | { type: 'recurring'; item: RecurringExpense };
+    { type: 'transaction'; item: Transaction } | { type: 'expense'; item: Expense };
 
   let deleteTarget = $state<DeleteTarget | null>(null);
-
-  const deleteDescription = $derived.by(() => {
-    const target = deleteTarget;
-    if (!target) return '';
-    return target.type === 'recurring'
-      ? `定期支出「${target.item.name}」を削除しますか？`
-      : 'この明細を削除しますか？';
-  });
 
   function askDeleteTransaction(item: Transaction) {
     deleteTarget = { type: 'transaction', item };
@@ -277,10 +236,6 @@
 
   function askDeleteExpense(item: Expense) {
     deleteTarget = { type: 'expense', item };
-  }
-
-  function askDeleteRecurring(item: RecurringExpense) {
-    deleteTarget = { type: 'recurring', item };
   }
 
   function cancelDelete() {
@@ -293,10 +248,8 @@
     if (!target) return;
     if (target.type === 'transaction') {
       await removeTransaction(target.item);
-    } else if (target.type === 'expense') {
-      await removeExpense(target.item);
     } else {
-      await removeRecurringExpense(target.item);
+      await removeExpense(target.item);
     }
   }
 
@@ -364,8 +317,6 @@
         {recurringExpenses}
         onedit={editTransaction}
         ondelete={askDeleteTransaction}
-        onrecurringedit={editRecurringExpense}
-        onrecurringdelete={askDeleteRecurring}
         onregistervariable={registerVariableRecurring}
       />{/if}
   </main>
@@ -387,14 +338,13 @@
     categories={expenseCategories}
     {paymentMethods}
     {saving}
-    initial={editingRecurring ?? undefined}
     onclose={closeRecurringForm}
     onsubmit={saveRecurring}
   />{/if}
 <ConfirmDialog
   open={deleteTarget !== null}
   title="削除の確認"
-  description={deleteDescription}
+  description="この明細を削除しますか？"
   onconfirm={confirmDelete}
   oncancel={cancelDelete}
 />
