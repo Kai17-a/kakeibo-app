@@ -53,6 +53,46 @@ describe('ky API client', () => {
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
+  it('creates a payment method', async () => {
+    const fetchMock = vi.fn(async (request: Request) => {
+      expect(request.url).toBe('http://localhost/api/payment-methods');
+      expect(request.method).toBe('POST');
+      expect(await request.json()).toEqual({ name: 'VISA', description: null });
+      return Response.json({ id: 'visa', name: 'VISA', description: null });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await api.createPaymentMethod({ name: 'VISA', description: null });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('updates a payment method', async () => {
+    const fetchMock = vi.fn(async (request: Request) => {
+      expect(request.url).toBe('http://localhost/api/payment-methods/visa');
+      expect(request.method).toBe('PUT');
+      expect(await request.json()).toEqual({ name: 'VISAカード', description: null });
+      return Response.json({ id: 'visa', name: 'VISAカード', description: null });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await api.updatePaymentMethod('visa', { name: 'VISAカード', description: null });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('deletes a payment method', async () => {
+    const fetchMock = vi.fn(async (request: Request) => {
+      expect(request.url).toBe('http://localhost/api/payment-methods/visa');
+      expect(request.method).toBe('DELETE');
+      return new Response(null, { status: 204 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(api.deletePaymentMethod('visa')).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
   it('posts CSV for expense import', async () => {
     const csv = '日付,金額,カテゴリ,支払方法,メモ\n2026-07-22,1200,食費,現金,';
     const fetchMock = vi.fn(async (request: Request) => {

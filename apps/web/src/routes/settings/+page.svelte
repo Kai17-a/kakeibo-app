@@ -4,6 +4,7 @@
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
   import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
+  import CreditCardIcon from '@lucide/svelte/icons/credit-card';
   import DatabaseIcon from '@lucide/svelte/icons/database';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import TagsIcon from '@lucide/svelte/icons/tags';
@@ -18,33 +19,46 @@
   import * as Tabs from '$lib/components/ui/tabs';
   import Header from '$lib/components/Header.svelte';
   import CategoryForm from '$lib/features/settings/CategoryForm.svelte';
+  import PaymentMethodForm from '$lib/features/settings/PaymentMethodForm.svelte';
   import { api } from '$lib/api';
-  import type { CategoryInput, ExpenseCategory, IncomeCategory, NamedResource } from '$lib/types';
+  import type {
+    CategoryInput,
+    ExpenseCategory,
+    IncomeCategory,
+    NamedResource,
+    PaymentMethod,
+  } from '$lib/types';
 
   type CategoryKind = 'expense' | 'income';
+  type SettingsTab = CategoryKind | 'payment';
 
   let expenseCategories = $state.raw<ExpenseCategory[]>([]);
   let incomeCategories = $state.raw<IncomeCategory[]>([]);
-  let activeKind = $state<CategoryKind>('expense');
+  let paymentMethods = $state.raw<PaymentMethod[]>([]);
+  let activeKind = $state<SettingsTab>('expense');
   let formOpen = $state(false);
+  let paymentFormOpen = $state(false);
+  let editingPaymentMethod = $state<PaymentMethod | null>(null);
   let loading = $state(true);
   let saving = $state(false);
   let error = $state('');
 
-  onMount(loadCategories);
+  onMount(loadAll);
 
-  async function loadCategories() {
+  async function loadAll() {
     loading = true;
     error = '';
     try {
-      const [expenseData, incomeData] = await Promise.all([
+      const [expenseData, incomeData, paymentData] = await Promise.all([
         api.expenseCategories(),
         api.incomeCategories(),
+        api.paymentMethods(),
       ]);
       expenseCategories = expenseData.items;
       incomeCategories = incomeData.items;
+      paymentMethods = paymentData.items;
     } catch (caught) {
-      error = message(caught, 'カテゴリを読み込めませんでした。');
+      error = message(caught, 'データを読み込めませんでした。');
     } finally {
       loading = false;
     }
@@ -54,19 +68,91 @@
     saving = true;
     error = '';
     try {
-      if (activeKind === 'expense') {
-        const category = await api.createExpenseCategory(input);
-        expenseCategories = [...expenseCategories, category].sort(compareByName);
-      } else {
+      if (activeKind === 'income') {
         const category = await api.createIncomeCategory(input);
         incomeCategories = [...incomeCategories, category].sort(compareByName);
+      } else {
+        const category = await api.createExpenseCategory(input);
+        expenseCategories = [...expenseCategories, category].sort(compareByName);
       }
       formOpen = false;
-      toast.success(`${activeKind === 'expense' ? '支出' : '収入'}カテゴリを追加しました。`);
+      toast.success(`${activeKind === 'income' ? '収入' : '支出'}カテゴリを追加しました。`);
     } catch (caught) {
       error = message(caught, 'カテゴリを追加できませんでした。');
     } finally {
       saving = false;
+    }
+  }
+
+  async function removeCategory(category: NamedResource) {
+    if (!confirm(`カテゴリ「${category.name}」を削除しますか？`)) return;
+    try {
+      if (activeKind === 'income') {
+        await api.deleteIncomeCategory(category.id);
+        incomeCategories = incomeCategories.filter((item) => item.id !== category.id);
+      } else {
+        await api.deleteExpenseCategory(category.id);
+        expenseCategories = expenseCategories.filter((item) => item.id !== category.id);
+      }
+      toast.success('カテゴリを削除しました。');
+    } catch {
+      error =
+        'カテゴリを削除できませんでした。登録済みの明細で使用されている場合は削除できません。';
+    }
+  }
+
+  function openPaymentForm() {
+    editingPaymentMethod = null;
+    paymentFormOpen = true;
+  }
+
+  function editPaymentMethod(item: PaymentMethod) {
+    editingPaymentMethod = item;
+    paymentFormOpen = true;
+  }
+
+  function closePaymentForm() {
+    paymentFormOpen = false;
+    editingPaymentMethod = null;
+  }
+
+  async function savePaymentMethod(input: CategoryInput) {
+    saving = true;
+    error = '';
+    const editing = editingPaymentMethod;
+    try {
+      if (editing) {
+        const updated = await api.updatePaymentMethod(editing.id, input);
+        paymentMethods = paymentMethods
+          .map((item) => (item.id === updated.id ? updated : item))
+          .sort(compareByName);
+        toast.success('支払方法を更新しました。');
+      } else {
+        paymentMethods = [...paymentMethods, await api.createPaymentMethod(input)].sort(
+          compareByName,
+        );
+        toast.success('支払方法を追加しました。');
+      }
+      closePaymentForm();
+    } catch (caught) {
+      error = message(
+        caught,
+        editing ? '支払方法を更新できませんでした。' : '支払方法を追加できませんでした。',
+      );
+    } finally {
+      saving = false;
+    }
+  }
+
+  async function removePaymentMethod(item: PaymentMethod) {
+    if (!confirm(`支払方法「${item.name}」を削除しますか？`)) return;
+    try {
+      await api.deletePaymentMethod(item.id);
+      paymentMethods = paymentMethods.filter((row) => row.id !== item.id);
+      toast.success('支払方法を削除しました。');
+    } catch {
+      error =
+        '支払方法を削除できませんでした。登録済みの明細で使用されている場合は削除できません。';
     }
   }
 
@@ -96,7 +182,9 @@
     <div class="flex flex-col gap-2">
       <p class="text-xs font-semibold tracking-widest text-muted-foreground uppercase">Settings</p>
       <h1 class="font-serif text-3xl font-bold tracking-tight sm:text-4xl">カテゴリ設定</h1>
-      <p class="text-muted-foreground">収支の登録や集計に使用するカテゴリを追加できます。</p>
+      <p class="text-muted-foreground">
+        収支の登録や集計に使用するカテゴリと支払方法を管理できます。
+      </p>
     </div>
 
     {#if error}
@@ -106,7 +194,7 @@
         <Alert.Description>{error}</Alert.Description>
         {#if loading}
           <Alert.Action>
-            <Button variant="outline" size="sm" onclick={loadCategories}>再試行</Button>
+            <Button variant="outline" size="sm" onclick={loadAll}>再試行</Button>
           </Alert.Action>
         {/if}
       </Alert.Root>
@@ -115,12 +203,16 @@
       <Tabs.List variant="line" class="w-full justify-start sm:w-fit">
         <Tabs.Trigger value="expense">支出カテゴリ</Tabs.Trigger>
         <Tabs.Trigger value="income">収入カテゴリ</Tabs.Trigger>
+        <Tabs.Trigger value="payment">支払方法</Tabs.Trigger>
       </Tabs.List>
       <Tabs.Content value="expense">
         {@render categoryPanel('支出カテゴリ', expenseCategories)}
       </Tabs.Content>
       <Tabs.Content value="income">
         {@render categoryPanel('収入カテゴリ', incomeCategories)}
+      </Tabs.Content>
+      <Tabs.Content value="payment">
+        {@render paymentMethodPanel()}
       </Tabs.Content>
     </Tabs.Root>
 
@@ -181,6 +273,7 @@
             <Table.Row>
               <Table.Head class="w-1/3">カテゴリ名</Table.Head>
               <Table.Head>説明</Table.Head>
+              <Table.Head class="w-24 text-right">操作</Table.Head>
             </Table.Row>
           </Table.Header>
           <Table.Body>
@@ -189,6 +282,90 @@
                 <Table.Cell class="font-medium">{category.name}</Table.Cell>
                 <Table.Cell class="text-muted-foreground">
                   {category.description || '説明はありません'}
+                </Table.Cell>
+                <Table.Cell class="text-right">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    aria-label={`${category.name}を削除`}
+                    onclick={() => removeCategory(category)}>削除</Button
+                  >
+                </Table.Cell>
+              </Table.Row>
+            {/each}
+          </Table.Body>
+        </Table.Root>
+      {/if}
+    </Card.Content>
+  </Card.Root>
+{/snippet}
+
+{#snippet paymentMethodPanel()}
+  <Card.Root>
+    <Card.Header>
+      <Card.Title class="flex items-center gap-2">
+        支払方法
+        <Badge variant="secondary">{paymentMethods.length}件</Badge>
+      </Card.Title>
+      <Card.Description>支出の登録時に選択できる支払方法を管理します。</Card.Description>
+      <Card.Action>
+        <Button onclick={openPaymentForm}>
+          <PlusIcon data-icon="inline-start" />追加
+        </Button>
+      </Card.Action>
+    </Card.Header>
+    <Card.Content>
+      {#if loading}
+        <div class="flex flex-col gap-3">
+          <Skeleton class="h-16 w-full" />
+          <Skeleton class="h-16 w-full" />
+          <Skeleton class="h-16 w-full" />
+        </div>
+      {:else if paymentMethods.length === 0}
+        <Empty.Root class="min-h-64 border">
+          <Empty.Media variant="icon"><CreditCardIcon /></Empty.Media>
+          <Empty.Header>
+            <Empty.Title>支払方法がありません</Empty.Title>
+            <Empty.Description>最初の支払方法を追加してください。</Empty.Description>
+          </Empty.Header>
+          <Empty.Content>
+            <Button onclick={openPaymentForm}>
+              <PlusIcon data-icon="inline-start" />支払方法を追加
+            </Button>
+          </Empty.Content>
+        </Empty.Root>
+      {:else}
+        <Table.Root>
+          <Table.Caption>登録済みの支払方法一覧</Table.Caption>
+          <Table.Header>
+            <Table.Row>
+              <Table.Head class="w-1/3">支払方法名</Table.Head>
+              <Table.Head>説明</Table.Head>
+              <Table.Head class="w-36 text-right">操作</Table.Head>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {#each paymentMethods as method (method.id)}
+              <Table.Row>
+                <Table.Cell class="font-medium">{method.name}</Table.Cell>
+                <Table.Cell class="text-muted-foreground">
+                  {method.description || '説明はありません'}
+                </Table.Cell>
+                <Table.Cell class="text-right">
+                  <div class="flex justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={`${method.name}を編集`}
+                      onclick={() => editPaymentMethod(method)}>編集</Button
+                    >
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      aria-label={`${method.name}を削除`}
+                      onclick={() => removePaymentMethod(method)}>削除</Button
+                    >
+                  </div>
                 </Table.Cell>
               </Table.Row>
             {/each}
@@ -201,9 +378,17 @@
 
 {#if formOpen}
   <CategoryForm
-    kind={activeKind}
+    kind={activeKind === 'income' ? 'income' : 'expense'}
     {saving}
     onclose={() => (formOpen = false)}
     onsubmit={saveCategory}
+  />
+{/if}
+{#if paymentFormOpen}
+  <PaymentMethodForm
+    {saving}
+    initial={editingPaymentMethod ?? undefined}
+    onclose={closePaymentForm}
+    onsubmit={savePaymentMethod}
   />
 {/if}

@@ -73,10 +73,20 @@ export const api = {
     request<ExpenseCategory>('/api/expense-categories', { method: 'post', json: input }),
   createIncomeCategory: (input: CategoryInput) =>
     request<IncomeCategory>('/api/income-categories', { method: 'post', json: input }),
+  deleteExpenseCategory: (id: string) =>
+    request<void>(`/api/expense-categories/${id}`, { method: 'delete' }),
+  deleteIncomeCategory: (id: string) =>
+    request<void>(`/api/income-categories/${id}`, { method: 'delete' }),
   paymentMethods: () =>
     request<ListResponse<PaymentMethod>>(
       '/api/payment-methods?sort_by=name&sort_order=asc&per_page=100',
     ),
+  createPaymentMethod: (input: CategoryInput) =>
+    request<PaymentMethod>('/api/payment-methods', { method: 'post', json: input }),
+  updatePaymentMethod: (id: string, input: CategoryInput) =>
+    request<PaymentMethod>(`/api/payment-methods/${id}`, { method: 'put', json: input }),
+  deletePaymentMethod: (id: string) =>
+    request<void>(`/api/payment-methods/${id}`, { method: 'delete' }),
   recurringExpenses: () => request<RecurringExpense[]>('/api/recurring-expenses'),
   createExpense: (input: ExpenseInput) =>
     request<Expense>('/api/expenses', { method: 'post', json: input }),
