@@ -38,7 +38,9 @@
   let view = $state<SummaryView>('monthly');
   let transactionFormOpen = $state(false);
   let editingExpense = $state<Expense | null>(null);
+  let editingIncome = $state<Income | null>(null);
   let recurringFormOpen = $state(false);
+  let editingRecurring = $state<RecurringExpense | null>(null);
   let loading = $state(true);
   let saving = $state(false);
   let error = $state('');
@@ -108,6 +110,10 @@
         const updated = await api.updateExpense(editingExpense.id, input as ExpenseInput);
         expenses = expenses.map((item) => (item.id === updated.id ? updated : item));
         toast.success('支出を更新しました。');
+      } else if (kind === 'income' && editingIncome) {
+        const updated = await api.updateIncome(editingIncome.id, input as IncomeInput);
+        incomes = incomes.map((item) => (item.id === updated.id ? updated : item));
+        toast.success('収入を更新しました。');
       } else if (kind === 'expense') {
         expenses = [await api.createExpense(input as ExpenseInput), ...expenses];
         toast.success('支出を登録しました。');
@@ -118,6 +124,7 @@
       if (!keepOpen) {
         transactionFormOpen = false;
         editingExpense = null;
+        editingIncome = null;
       }
       return true;
     } catch (caught) {
@@ -130,31 +137,75 @@
 
   function openTransaction() {
     editingExpense = null;
+    editingIncome = null;
     transactionFormOpen = true;
   }
 
   function editExpense(expense: Expense) {
     editingExpense = expense;
+    editingIncome = null;
     transactionFormOpen = true;
+  }
+
+  function editIncome(income: Income) {
+    editingIncome = income;
+    editingExpense = null;
+    transactionFormOpen = true;
+  }
+
+  function editTransaction(item: Transaction) {
+    if (item.kind === 'expense') {
+      editExpense(item);
+    } else {
+      editIncome(item);
+    }
   }
 
   function closeTransaction() {
     transactionFormOpen = false;
     editingExpense = null;
+    editingIncome = null;
   }
 
   async function saveRecurring(input: RecurringExpenseInput) {
     saving = true;
     error = '';
+    const editing = editingRecurring;
     try {
-      recurringExpenses = [await api.createRecurringExpense(input), ...recurringExpenses];
-      recurringFormOpen = false;
-      toast.success('固定費を登録しました。');
+      if (editing) {
+        const updated = await api.updateRecurringExpense(editing.id, input);
+        recurringExpenses = recurringExpenses.map((item) =>
+          item.id === updated.id ? updated : item,
+        );
+        toast.success('固定費を更新しました。');
+      } else {
+        recurringExpenses = [await api.createRecurringExpense(input), ...recurringExpenses];
+        toast.success('固定費を登録しました。');
+      }
+      closeRecurringForm();
     } catch (caught) {
-      error = message(caught, '固定費を登録できませんでした。');
+      error = message(
+        caught,
+        editing ? '固定費を更新できませんでした。' : '固定費を登録できませんでした。',
+      );
     } finally {
       saving = false;
     }
+  }
+
+  function openRecurringForm() {
+    editingRecurring = null;
+    recurringFormOpen = true;
+  }
+
+  function editRecurringExpense(item: RecurringExpense) {
+    editingRecurring = item;
+    recurringFormOpen = true;
+  }
+
+  function closeRecurringForm() {
+    recurringFormOpen = false;
+    editingRecurring = null;
   }
 
   async function removeTransaction(item: Transaction) {
@@ -207,7 +258,7 @@
 </svelte:head>
 
 <div class="min-h-screen bg-background">
-  <Header onTransaction={openTransaction} onRecurring={() => (recurringFormOpen = true)} />
+  <Header onTransaction={openTransaction} onRecurring={openRecurringForm} />
   <main class="mx-auto max-w-7xl px-5 py-8 lg:px-10 lg:py-12">
     <PeriodSelector
       {view}
@@ -249,6 +300,7 @@
         {recurringExpenses}
         onedit={editExpense}
         ondelete={removeExpense}
+        onrecurringedit={editRecurringExpense}
         onrecurringdelete={removeRecurringExpense}
       />
     {:else}<MonthlySummary
@@ -259,7 +311,9 @@
         {incomeCategories}
         {paymentMethods}
         {recurringExpenses}
+        onedit={editTransaction}
         ondelete={removeTransaction}
+        onrecurringedit={editRecurringExpense}
         onrecurringdelete={removeRecurringExpense}
       />{/if}
   </main>
@@ -271,6 +325,7 @@
     {paymentMethods}
     {saving}
     initialExpense={editingExpense ?? undefined}
+    initialIncome={editingIncome ?? undefined}
     initialDate={`${selectedMonth}-${String(Math.min(new Date().getDate(), 28)).padStart(2, '0')}`}
     onclose={closeTransaction}
     onsubmit={saveTransaction}
@@ -279,6 +334,7 @@
     categories={expenseCategories}
     {paymentMethods}
     {saving}
-    onclose={() => (recurringFormOpen = false)}
+    initial={editingRecurring ?? undefined}
+    onclose={closeRecurringForm}
     onsubmit={saveRecurring}
   />{/if}

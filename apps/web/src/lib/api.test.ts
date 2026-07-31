@@ -93,6 +93,82 @@ describe('ky API client', () => {
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
+  it('updates an income', async () => {
+    const fetchMock = vi.fn(async (request: Request) => {
+      expect(request.url).toBe('http://localhost/api/incomes/income-1');
+      expect(request.method).toBe('PUT');
+      expect(await request.json()).toEqual({
+        transaction_date: '2026-07-01',
+        amount: '300000',
+        category_id: 'salary',
+        description: null,
+      });
+      return Response.json({ id: 'income-1', amount: '300000' });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await api.updateIncome('income-1', {
+      transaction_date: '2026-07-01',
+      amount: '300000',
+      category_id: 'salary',
+      description: null,
+    });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('updates an expense category', async () => {
+    const fetchMock = vi.fn(async (request: Request) => {
+      expect(request.url).toBe('http://localhost/api/expense-categories/food');
+      expect(request.method).toBe('PUT');
+      expect(await request.json()).toEqual({ name: '食費', description: '外食含む' });
+      return Response.json({ id: 'food', name: '食費', description: '外食含む' });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await api.updateExpenseCategory('food', { name: '食費', description: '外食含む' });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('updates an income category', async () => {
+    const fetchMock = vi.fn(async (request: Request) => {
+      expect(request.url).toBe('http://localhost/api/income-categories/salary');
+      expect(request.method).toBe('PUT');
+      expect(await request.json()).toEqual({ name: '給与', description: null });
+      return Response.json({ id: 'salary', name: '給与', description: null });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await api.updateIncomeCategory('salary', { name: '給与', description: null });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('updates a recurring expense', async () => {
+    const fetchMock = vi.fn(async (request: Request) => {
+      expect(request.url).toBe('http://localhost/api/recurring-expenses/rec-1');
+      expect(request.method).toBe('PUT');
+      expect(await request.json()).toMatchObject({ name: '家賃', amount: '100000' });
+      return Response.json({ id: 'rec-1', name: '家賃', amount: '100000' });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await api.updateRecurringExpense('rec-1', {
+      name: '家賃',
+      amount: '100000',
+      payment_day: 27,
+      start_date: '2026-01-01',
+      end_date: null,
+      category_id: 'housing',
+      payment_method_id: 'bank',
+      is_active: true,
+      description: null,
+    });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
   it('posts CSV for expense import', async () => {
     const csv = '日付,金額,カテゴリ,支払方法,メモ\n2026-07-22,1200,食費,現金,';
     const fetchMock = vi.fn(async (request: Request) => {

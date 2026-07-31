@@ -1,23 +1,26 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { Button } from '$lib/components/ui/button';
   import * as Dialog from '$lib/components/ui/dialog';
   import * as Field from '$lib/components/ui/field';
   import { Input } from '$lib/components/ui/input';
   import { Spinner } from '$lib/components/ui/spinner';
   import { Textarea } from '$lib/components/ui/textarea';
-  import type { CategoryInput } from '$lib/types';
+  import type { CategoryInput, NamedResource } from '$lib/types';
 
   interface Props {
     kind: 'expense' | 'income';
     saving: boolean;
+    initial?: NamedResource;
     onclose(): void;
     onsubmit(input: CategoryInput): Promise<void>;
   }
 
-  let { kind, saving, onclose, onsubmit }: Props = $props();
-  let name = $state('');
-  let description = $state('');
+  let { kind, saving, initial, onclose, onsubmit }: Props = $props();
+  let name = $state(untrack(() => initial?.name ?? ''));
+  let description = $state(untrack(() => initial?.description ?? ''));
   const label = $derived(kind === 'expense' ? '支出カテゴリ' : '収入カテゴリ');
+  const editing = $derived(Boolean(initial));
 
   function submit(event: SubmitEvent) {
     event.preventDefault();
@@ -31,8 +34,10 @@
 <Dialog.Root open onOpenChange={(open) => !open && onclose()}>
   <Dialog.Content class="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
     <Dialog.Header>
-      <Dialog.Title>{label}を追加</Dialog.Title>
-      <Dialog.Description>収支の登録時に選択するカテゴリを作成します。</Dialog.Description>
+      <Dialog.Title>{label}を{editing ? '編集' : '追加'}</Dialog.Title>
+      <Dialog.Description>
+        収支の登録時に選択するカテゴリを{editing ? '更新' : '作成'}します。
+      </Dialog.Description>
     </Dialog.Header>
     <form class="flex flex-col gap-6" onsubmit={submit}>
       <Field.FieldGroup>
@@ -59,7 +64,9 @@
       <Dialog.Footer>
         <Button variant="outline" type="button" onclick={onclose}>キャンセル</Button>
         <Button type="submit" disabled={saving || !name.trim()}>
-          {#if saving}<Spinner data-icon="inline-start" />登録中…{:else}{label}を追加{/if}
+          {#if saving}<Spinner data-icon="inline-start" />{editing
+              ? '更新'
+              : '登録'}中…{:else}{label}を{editing ? '更新' : '追加'}{/if}
         </Button>
       </Dialog.Footer>
     </form>

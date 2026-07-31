@@ -25,6 +25,16 @@ async function mockCategoryApi(page: Page) {
     const request = route.request();
     const path = new URL(request.url()).pathname;
 
+    if (path === '/api/expense-categories/expense-category-1' && request.method() === 'PUT') {
+      const input = request.postDataJSON();
+      expenseCategories = [{ ...expenseCategory, ...input, updated_at: now }];
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(expenseCategories[0]),
+      });
+      return;
+    }
     if (path === '/api/expense-categories/expense-category-1' && request.method() === 'DELETE') {
       expenseCategories = [];
       await route.fulfill({ status: 204 });
@@ -47,6 +57,20 @@ async function mockCategoryApi(page: Page) {
     });
   });
 }
+
+test('支出カテゴリを更新する', async ({ page }) => {
+  await mockCategoryApi(page);
+  await page.goto('/settings');
+
+  await page.getByRole('button', { name: '食費を編集' }).click();
+  await expect(page.getByRole('heading', { name: '支出カテゴリを編集' })).toBeVisible();
+  await expect(page.getByLabel('カテゴリ名')).toHaveValue('食費');
+  await page.getByLabel('カテゴリ名').fill('食費（外食含む）');
+  await page.getByRole('button', { name: '支出カテゴリを更新' }).click();
+
+  await expect(page.getByText('支出カテゴリを更新しました。')).toBeVisible();
+  await expect(page.getByRole('cell', { name: '食費（外食含む）' })).toBeVisible();
+});
 
 test('支出カテゴリを削除する', async ({ page }) => {
   await mockCategoryApi(page);

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { Button } from '$lib/components/ui/button';
   import { Checkbox } from '$lib/components/ui/checkbox';
   import * as Dialog from '$lib/components/ui/dialog';
@@ -7,24 +8,33 @@
   import * as NativeSelect from '$lib/components/ui/native-select';
   import { Spinner } from '$lib/components/ui/spinner';
   import { Textarea } from '$lib/components/ui/textarea';
-  import type { ExpenseCategory, PaymentMethod, RecurringExpenseInput } from '../../types';
+  import type {
+    ExpenseCategory,
+    PaymentMethod,
+    RecurringExpense,
+    RecurringExpenseInput,
+  } from '../../types';
   interface Props {
     categories: ExpenseCategory[];
     paymentMethods: PaymentMethod[];
     saving: boolean;
+    initial?: RecurringExpense;
     onclose(): void;
     onsubmit(input: RecurringExpenseInput): Promise<void>;
   }
-  let { categories, paymentMethods, saving, onclose, onsubmit }: Props = $props();
-  let name = $state('');
-  let amount = $state('');
-  let paymentDay = $state(1);
-  let startDate = $state(new Date().toISOString().slice(0, 10));
-  let endDate = $state('');
-  let categoryId = $derived(categories[0]?.id ?? '');
-  let paymentMethodId = $derived(paymentMethods[0]?.id ?? '');
-  let description = $state('');
-  let active = $state(true);
+  let { categories, paymentMethods, saving, initial, onclose, onsubmit }: Props = $props();
+  let name = $state(untrack(() => initial?.name ?? ''));
+  let amount = $state(untrack(() => initial?.amount ?? ''));
+  let paymentDay = $state(untrack(() => initial?.payment_day ?? 1));
+  let startDate = $state(
+    untrack(() => initial?.start_date ?? new Date().toISOString().slice(0, 10)),
+  );
+  let endDate = $state(untrack(() => initial?.end_date ?? ''));
+  let categoryId = $derived(initial?.category_id ?? categories[0]?.id ?? '');
+  let paymentMethodId = $derived(initial?.payment_method_id ?? paymentMethods[0]?.id ?? '');
+  let description = $state(untrack(() => initial?.description ?? ''));
+  let active = $state(untrack(() => initial?.is_active ?? true));
+  const editing = $derived(Boolean(initial));
   function submit(event: SubmitEvent) {
     event.preventDefault();
     return onsubmit({
@@ -44,8 +54,10 @@
 <Dialog.Root open onOpenChange={(open) => !open && onclose()}>
   <Dialog.Content class="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain sm:max-w-2xl">
     <Dialog.Header>
-      <Dialog.Title>固定費を登録</Dialog.Title>
-      <Dialog.Description>毎月発生する家賃や通信費などの支出予定を登録します。</Dialog.Description>
+      <Dialog.Title>固定費を{editing ? '編集' : '登録'}</Dialog.Title>
+      <Dialog.Description>
+        毎月発生する家賃や通信費などの支出予定を{editing ? '更新' : '登録'}します。
+      </Dialog.Description>
     </Dialog.Header>
     <form class="flex flex-col gap-6" onsubmit={submit}>
       <Field.FieldGroup class="grid sm:grid-cols-2">
@@ -119,14 +131,17 @@
         >
         <Field.Field orientation="horizontal" class="sm:col-span-2"
           ><Checkbox id="recurring-active" bind:checked={active} /><Field.FieldLabel
-            for="recurring-active">登録後すぐに有効にする</Field.FieldLabel
+            for="recurring-active"
+            >{editing ? '有効にする' : '登録後すぐに有効にする'}</Field.FieldLabel
           ></Field.Field
         >
       </Field.FieldGroup>
       <Dialog.Footer>
         <Button variant="outline" type="button" onclick={onclose}>キャンセル</Button>
         <Button type="submit" disabled={saving}
-          >{#if saving}<Spinner data-icon="inline-start" />登録中…{:else}固定費を登録{/if}</Button
+          >{#if saving}<Spinner data-icon="inline-start" />{editing
+              ? '更新'
+              : '登録'}中…{:else}固定費を{editing ? '更新' : '登録'}{/if}</Button
         >
       </Dialog.Footer>
     </form>

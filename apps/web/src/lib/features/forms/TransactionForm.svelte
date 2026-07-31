@@ -11,6 +11,7 @@
     Expense,
     ExpenseCategory,
     ExpenseInput,
+    Income,
     IncomeCategory,
     IncomeInput,
     PaymentMethod,
@@ -22,6 +23,7 @@
     saving: boolean;
     initialDate: string;
     initialExpense?: Expense;
+    initialIncome?: Income;
     onclose(): void;
     onsubmit(
       kind: 'expense' | 'income',
@@ -36,16 +38,22 @@
     saving,
     initialDate,
     initialExpense,
+    initialIncome,
     onclose,
     onsubmit,
   }: Props = $props();
-  let kind = $state<'expense' | 'income'>('expense');
+  let kind = $derived<'expense' | 'income'>(initialIncome ? 'income' : 'expense');
   const categories = $derived(kind === 'expense' ? expenseCategories : incomeCategories);
-  let date = $derived(initialExpense?.transaction_date ?? initialDate);
-  let amount = $derived(initialExpense?.amount ?? '');
-  let categoryId = $derived(initialExpense?.category_id ?? categories[0]?.id ?? '');
+  const editing = $derived(Boolean(initialExpense ?? initialIncome));
+  let date = $derived(
+    initialExpense?.transaction_date ?? initialIncome?.transaction_date ?? initialDate,
+  );
+  let amount = $derived(initialExpense?.amount ?? initialIncome?.amount ?? '');
+  let categoryId = $derived(
+    initialExpense?.category_id ?? initialIncome?.category_id ?? categories[0]?.id ?? '',
+  );
   let paymentMethodId = $derived(initialExpense?.payment_method_id ?? paymentMethods[0]?.id ?? '');
-  let description = $derived(initialExpense?.description ?? '');
+  let description = $derived(initialExpense?.description ?? initialIncome?.description ?? '');
   async function submit(event: SubmitEvent) {
     event.preventDefault();
     const keepOpen = (event.submitter as HTMLButtonElement | null)?.value === 'continue';
@@ -79,10 +87,12 @@
 <Dialog.Root open onOpenChange={(open) => !open && onclose()}>
   <Dialog.Content>
     <Dialog.Header>
-      <Dialog.Title>{initialExpense ? '支出を編集' : '収支を登録'}</Dialog.Title>
+      <Dialog.Title>
+        {initialExpense ? '支出を編集' : initialIncome ? '収入を編集' : '収支を登録'}
+      </Dialog.Title>
       <Dialog.Description>日付や金額、カテゴリを入力してください。</Dialog.Description>
     </Dialog.Header>
-    {#if !initialExpense}
+    {#if !editing}
       <Tabs.Root bind:value={kind}>
         <Tabs.List class="grid w-full grid-cols-2">
           <Tabs.Trigger value="expense">支出</Tabs.Trigger>
@@ -132,7 +142,7 @@
       </Field.FieldGroup>
       <Dialog.Footer>
         <Button variant="outline" type="button" onclick={onclose}>キャンセル</Button>
-        {#if !initialExpense}
+        {#if !editing}
           <Button variant="outline" type="submit" name="intent" value="continue" disabled={saving}>
             {#if saving}<Spinner data-icon="inline-start" />保存中…{:else}登録して続ける{/if}
           </Button>
@@ -140,7 +150,7 @@
         <Button type="submit" disabled={saving}>
           {#if saving}<Spinner
               data-icon="inline-start"
-            />保存中…{:else if initialExpense}更新する{:else}登録する{/if}
+            />保存中…{:else if editing}更新する{:else}登録する{/if}
         </Button>
       </Dialog.Footer>
     </form>

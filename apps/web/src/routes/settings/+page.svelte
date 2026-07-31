@@ -37,6 +37,7 @@
   let paymentMethods = $state.raw<PaymentMethod[]>([]);
   let activeKind = $state<SettingsTab>('expense');
   let formOpen = $state(false);
+  let editingCategory = $state<NamedResource | null>(null);
   let paymentFormOpen = $state(false);
   let editingPaymentMethod = $state<PaymentMethod | null>(null);
   let loading = $state(true);
@@ -67,21 +68,54 @@
   async function saveCategory(input: CategoryInput) {
     saving = true;
     error = '';
+    const editing = editingCategory;
     try {
-      if (activeKind === 'income') {
+      if (editing) {
+        if (activeKind === 'income') {
+          const category = await api.updateIncomeCategory(editing.id, input);
+          incomeCategories = incomeCategories
+            .map((item) => (item.id === category.id ? category : item))
+            .sort(compareByName);
+        } else {
+          const category = await api.updateExpenseCategory(editing.id, input);
+          expenseCategories = expenseCategories
+            .map((item) => (item.id === category.id ? category : item))
+            .sort(compareByName);
+        }
+        toast.success(`${activeKind === 'income' ? '収入' : '支出'}カテゴリを更新しました。`);
+      } else if (activeKind === 'income') {
         const category = await api.createIncomeCategory(input);
         incomeCategories = [...incomeCategories, category].sort(compareByName);
+        toast.success('収入カテゴリを追加しました。');
       } else {
         const category = await api.createExpenseCategory(input);
         expenseCategories = [...expenseCategories, category].sort(compareByName);
+        toast.success('支出カテゴリを追加しました。');
       }
-      formOpen = false;
-      toast.success(`${activeKind === 'income' ? '収入' : '支出'}カテゴリを追加しました。`);
+      closeCategoryForm();
     } catch (caught) {
-      error = message(caught, 'カテゴリを追加できませんでした。');
+      error = message(
+        caught,
+        editing ? 'カテゴリを更新できませんでした。' : 'カテゴリを追加できませんでした。',
+      );
     } finally {
       saving = false;
     }
+  }
+
+  function openCategoryForm() {
+    editingCategory = null;
+    formOpen = true;
+  }
+
+  function editCategory(category: NamedResource) {
+    editingCategory = category;
+    formOpen = true;
+  }
+
+  function closeCategoryForm() {
+    formOpen = false;
+    editingCategory = null;
   }
 
   async function removeCategory(category: NamedResource) {
@@ -241,7 +275,7 @@
       </Card.Title>
       <Card.Description>収支の登録時に選択できる{title}を管理します。</Card.Description>
       <Card.Action>
-        <Button onclick={() => (formOpen = true)}>
+        <Button onclick={openCategoryForm}>
           <PlusIcon data-icon="inline-start" />追加
         </Button>
       </Card.Action>
@@ -261,7 +295,7 @@
             <Empty.Description>最初のカテゴリを追加してください。</Empty.Description>
           </Empty.Header>
           <Empty.Content>
-            <Button onclick={() => (formOpen = true)}>
+            <Button onclick={openCategoryForm}>
               <PlusIcon data-icon="inline-start" />カテゴリを追加
             </Button>
           </Empty.Content>
@@ -273,7 +307,7 @@
             <Table.Row>
               <Table.Head class="w-1/3">カテゴリ名</Table.Head>
               <Table.Head>説明</Table.Head>
-              <Table.Head class="w-24 text-right">操作</Table.Head>
+              <Table.Head class="w-36 text-right">操作</Table.Head>
             </Table.Row>
           </Table.Header>
           <Table.Body>
@@ -284,12 +318,20 @@
                   {category.description || '説明はありません'}
                 </Table.Cell>
                 <Table.Cell class="text-right">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    aria-label={`${category.name}を削除`}
-                    onclick={() => removeCategory(category)}>削除</Button
-                  >
+                  <div class="flex justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={`${category.name}を編集`}
+                      onclick={() => editCategory(category)}>編集</Button
+                    >
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      aria-label={`${category.name}を削除`}
+                      onclick={() => removeCategory(category)}>削除</Button
+                    >
+                  </div>
                 </Table.Cell>
               </Table.Row>
             {/each}
@@ -380,7 +422,8 @@
   <CategoryForm
     kind={activeKind === 'income' ? 'income' : 'expense'}
     {saving}
-    onclose={() => (formOpen = false)}
+    initial={editingCategory ?? undefined}
+    onclose={closeCategoryForm}
     onsubmit={saveCategory}
   />
 {/if}

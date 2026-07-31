@@ -25,6 +25,7 @@
     recurringExpenses: RecurringExpense[];
     onedit(item: Expense): void;
     ondelete(item: Expense): void;
+    onrecurringedit(item: RecurringExpense): void;
     onrecurringdelete(item: RecurringExpense): void;
   }
   let {
@@ -38,6 +39,7 @@
     recurringExpenses,
     onedit,
     ondelete,
+    onrecurringedit,
     onrecurringdelete,
   }: Props = $props();
   let tab = $state<'summary' | 'details' | 'categories'>('summary');
@@ -170,6 +172,11 @@
                 <span>{item.name}<small class="block">毎月{item.payment_day}日</small></span><span
                   class="flex items-center gap-2"
                   >{Number(item.amount).toLocaleString('ja-JP')}<Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`定期支出 ${item.name}を編集`}
+                    onclick={() => onrecurringedit(item)}>編集</Button
+                  ><Button
                     variant="ghost"
                     size="sm"
                     aria-label={`定期支出 ${item.name}を削除`}

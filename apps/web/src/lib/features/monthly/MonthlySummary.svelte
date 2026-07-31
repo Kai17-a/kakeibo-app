@@ -25,7 +25,9 @@
     incomeCategories: IncomeCategory[];
     paymentMethods: PaymentMethod[];
     recurringExpenses: RecurringExpense[];
+    onedit(item: ReturnType<typeof mergeTransactions>[number]): void;
     ondelete(item: ReturnType<typeof mergeTransactions>[number]): void;
+    onrecurringedit(item: RecurringExpense): void;
     onrecurringdelete(item: RecurringExpense): void;
   }
   let {
@@ -36,7 +38,9 @@
     incomeCategories,
     paymentMethods,
     recurringExpenses,
+    onedit,
     ondelete,
+    onrecurringedit,
     onrecurringdelete,
   }: Props = $props();
   const expenseTotal = $derived(sumAmounts(expenses));
@@ -126,6 +130,13 @@
                 variant="ghost"
                 size="sm"
                 class="opacity-0 group-hover:opacity-100"
+                aria-label={`${label(item)}を編集`}
+                onclick={() => onedit(item)}>編集</Button
+              >
+              <Button
+                variant="ghost"
+                size="sm"
+                class="opacity-0 group-hover:opacity-100"
                 onclick={() => ondelete(item)}>削除</Button
               >
             </li>{/each}
@@ -163,6 +174,12 @@
               <span><b class="block">{item.name}</b><small>毎月 {item.payment_day} 日</small></span
               ><span class="flex items-center gap-2"
                 ><b>{formatYen(item.amount)}</b><Button
+                  variant="ghost"
+                  size="sm"
+                  class="opacity-0 group-hover:opacity-100"
+                  aria-label={`定期支出 ${item.name}を編集`}
+                  onclick={() => onrecurringedit(item)}>編集</Button
+                ><Button
                   variant="ghost"
                   size="sm"
                   class="opacity-0 group-hover:opacity-100"

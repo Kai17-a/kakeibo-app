@@ -73,6 +73,10 @@ export const api = {
     request<ExpenseCategory>('/api/expense-categories', { method: 'post', json: input }),
   createIncomeCategory: (input: CategoryInput) =>
     request<IncomeCategory>('/api/income-categories', { method: 'post', json: input }),
+  updateExpenseCategory: (id: string, input: CategoryInput) =>
+    request<ExpenseCategory>(`/api/expense-categories/${id}`, { method: 'put', json: input }),
+  updateIncomeCategory: (id: string, input: CategoryInput) =>
+    request<IncomeCategory>(`/api/income-categories/${id}`, { method: 'put', json: input }),
   deleteExpenseCategory: (id: string) =>
     request<void>(`/api/expense-categories/${id}`, { method: 'delete' }),
   deleteIncomeCategory: (id: string) =>
@@ -94,11 +98,15 @@ export const api = {
     request<Expense>(`/api/expenses/${id}`, { method: 'put', json: input }),
   createIncome: (input: IncomeInput) =>
     request<Income>('/api/incomes', { method: 'post', json: input }),
+  updateIncome: (id: string, input: IncomeInput) =>
+    request<Income>(`/api/incomes/${id}`, { method: 'put', json: input }),
   createRecurringExpense: (input: RecurringExpenseInput) =>
     request<RecurringExpense>('/api/recurring-expenses', {
       method: 'post',
       json: input,
     }),
+  updateRecurringExpense: (id: string, input: RecurringExpenseInput) =>
+    request<RecurringExpense>(`/api/recurring-expenses/${id}`, { method: 'put', json: input }),
   deleteExpense: (id: string) => request<void>(`/api/expenses/${id}`, { method: 'delete' }),
   deleteIncome: (id: string) => request<void>(`/api/incomes/${id}`, { method: 'delete' }),
   deleteRecurringExpense: (id: string) =>
