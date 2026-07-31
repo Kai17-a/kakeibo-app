@@ -25,8 +25,6 @@
     incomeCategories: IncomeCategory[];
     paymentMethods: PaymentMethod[];
     recurringExpenses: RecurringExpense[];
-    onedit(item: ReturnType<typeof mergeTransactions>[number]): void;
-    ondelete(item: ReturnType<typeof mergeTransactions>[number]): void;
     onregistervariable(item: RecurringExpense): void;
   }
   let {
@@ -37,8 +35,6 @@
     incomeCategories,
     paymentMethods,
     recurringExpenses,
-    onedit,
-    ondelete,
     onregistervariable,
   }: Props = $props();
   const expenseTotal = $derived(sumAmounts(expenses));
@@ -130,19 +126,6 @@
               <p class="font-serif font-semibold">
                 {item.kind === 'income' ? '+' : '−'}{formatYen(item.amount)}
               </p>
-              <Button
-                variant="ghost"
-                size="sm"
-                class="opacity-0 group-hover:opacity-100"
-                aria-label={`${label(item)}を編集`}
-                onclick={() => onedit(item)}>編集</Button
-              >
-              <Button
-                variant="ghost"
-                size="sm"
-                class="opacity-0 group-hover:opacity-100"
-                onclick={() => ondelete(item)}>削除</Button
-              >
             </li>{/each}
         </ul>{:else}<Empty.Root
           ><Empty.Header

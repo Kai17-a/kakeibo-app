@@ -8,7 +8,7 @@
   import Header from '$lib/components/Header.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import PeriodSelector, { type SummaryView } from '$lib/components/PeriodSelector.svelte';
-  import { inPeriod, type Transaction } from '$lib/domain/summaries';
+  import { inPeriod } from '$lib/domain/summaries';
   import AnnualSummary from '$lib/features/annual/AnnualSummary.svelte';
   import RecurringExpenseForm from '$lib/features/forms/RecurringExpenseForm.svelte';
   import TransactionForm from '$lib/features/forms/TransactionForm.svelte';
@@ -39,7 +39,6 @@
   let view = $state<SummaryView>('monthly');
   let transactionFormOpen = $state(false);
   let editingExpense = $state<Expense | null>(null);
-  let editingIncome = $state<Income | null>(null);
   let transactionPreset = $state<RecurringExpense | null>(null);
   let recurringFormOpen = $state(false);
   let loading = $state(true);
@@ -111,10 +110,6 @@
         const updated = await api.updateExpense(editingExpense.id, input as ExpenseInput);
         expenses = expenses.map((item) => (item.id === updated.id ? updated : item));
         toast.success('支出を更新しました。');
-      } else if (kind === 'income' && editingIncome) {
-        const updated = await api.updateIncome(editingIncome.id, input as IncomeInput);
-        incomes = incomes.map((item) => (item.id === updated.id ? updated : item));
-        toast.success('収入を更新しました。');
       } else if (kind === 'expense') {
         expenses = [await api.createExpense(input as ExpenseInput), ...expenses];
         toast.success('支出を登録しました。');
@@ -125,7 +120,6 @@
       if (!keepOpen) {
         transactionFormOpen = false;
         editingExpense = null;
-        editingIncome = null;
         transactionPreset = null;
       }
       return true;
@@ -139,42 +133,24 @@
 
   function openTransaction() {
     editingExpense = null;
-    editingIncome = null;
     transactionPreset = null;
     transactionFormOpen = true;
   }
 
   function registerVariableRecurring(item: RecurringExpense) {
     editingExpense = null;
-    editingIncome = null;
     transactionPreset = item;
     transactionFormOpen = true;
   }
 
   function editExpense(expense: Expense) {
     editingExpense = expense;
-    editingIncome = null;
     transactionFormOpen = true;
-  }
-
-  function editIncome(income: Income) {
-    editingIncome = income;
-    editingExpense = null;
-    transactionFormOpen = true;
-  }
-
-  function editTransaction(item: Transaction) {
-    if (item.kind === 'expense') {
-      editExpense(item);
-    } else {
-      editIncome(item);
-    }
   }
 
   function closeTransaction() {
     transactionFormOpen = false;
     editingExpense = null;
-    editingIncome = null;
     transactionPreset = null;
   }
 
@@ -200,21 +176,6 @@
     recurringFormOpen = false;
   }
 
-  async function removeTransaction(item: Transaction) {
-    try {
-      if (item.kind === 'expense') {
-        await api.deleteExpense(item.id);
-        expenses = expenses.filter((row) => row.id !== item.id);
-      } else {
-        await api.deleteIncome(item.id);
-        incomes = incomes.filter((row) => row.id !== item.id);
-      }
-      toast.success('明細を削除しました。');
-    } catch (caught) {
-      error = message(caught, '削除できませんでした。');
-    }
-  }
-
   async function removeExpense(item: Expense) {
     try {
       await api.deleteExpense(item.id);
@@ -225,17 +186,10 @@
     }
   }
 
-  type DeleteTarget =
-    { type: 'transaction'; item: Transaction } | { type: 'expense'; item: Expense };
-
-  let deleteTarget = $state<DeleteTarget | null>(null);
-
-  function askDeleteTransaction(item: Transaction) {
-    deleteTarget = { type: 'transaction', item };
-  }
+  let deleteTarget = $state<Expense | null>(null);
 
   function askDeleteExpense(item: Expense) {
-    deleteTarget = { type: 'expense', item };
+    deleteTarget = item;
   }
 
   function cancelDelete() {
@@ -245,12 +199,7 @@
   async function confirmDelete() {
     const target = deleteTarget;
     deleteTarget = null;
-    if (!target) return;
-    if (target.type === 'transaction') {
-      await removeTransaction(target.item);
-    } else {
-      await removeExpense(target.item);
-    }
+    if (target) await removeExpense(target);
   }
 
   function message(caught: unknown, fallback: string) {
@@ -315,8 +264,6 @@
         {incomeCategories}
         {paymentMethods}
         {recurringExpenses}
-        onedit={editTransaction}
-        ondelete={askDeleteTransaction}
         onregistervariable={registerVariableRecurring}
       />{/if}
   </main>
@@ -328,7 +275,6 @@
     {paymentMethods}
     {saving}
     initialExpense={editingExpense ?? undefined}
-    initialIncome={editingIncome ?? undefined}
     initialRecurring={transactionPreset ?? undefined}
     initialDate={`${selectedMonth}-${String(Math.min(new Date().getDate(), 28)).padStart(2, '0')}`}
     onclose={closeTransaction}
