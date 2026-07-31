@@ -184,6 +184,18 @@
     }
   }
 
+  async function removeRecurringExpense(item: RecurringExpense) {
+    if (!confirm(`定期支出「${item.name}」を削除しますか？`)) return;
+    try {
+      await api.deleteRecurringExpense(item.id);
+      recurringExpenses = recurringExpenses.filter((row) => row.id !== item.id);
+      toast.success('定期支出を削除しました。');
+    } catch {
+      error =
+        '定期支出を削除できませんでした。登録済みの明細で使用されている場合は削除できません。';
+    }
+  }
+
   function message(caught: unknown, fallback: string) {
     return caught instanceof Error ? caught.message : fallback;
   }
@@ -237,6 +249,7 @@
         {recurringExpenses}
         onedit={editExpense}
         ondelete={removeExpense}
+        onrecurringdelete={removeRecurringExpense}
       />
     {:else}<MonthlySummary
         {monthLabel}
@@ -247,6 +260,7 @@
         {paymentMethods}
         {recurringExpenses}
         ondelete={removeTransaction}
+        onrecurringdelete={removeRecurringExpense}
       />{/if}
   </main>
 </div>

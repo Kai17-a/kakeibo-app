@@ -91,6 +91,8 @@ export const api = {
     }),
   deleteExpense: (id: string) => request<void>(`/api/expenses/${id}`, { method: 'delete' }),
   deleteIncome: (id: string) => request<void>(`/api/incomes/${id}`, { method: 'delete' }),
+  deleteRecurringExpense: (id: string) =>
+    request<void>(`/api/recurring-expenses/${id}`, { method: 'delete' }),
   importExpenses: (csv: string) =>
     request<ImportResult>('/api/import/expenses', {
       method: 'post',

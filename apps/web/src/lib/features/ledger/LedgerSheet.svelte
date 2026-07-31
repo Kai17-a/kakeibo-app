@@ -25,6 +25,7 @@
     recurringExpenses: RecurringExpense[];
     onedit(item: Expense): void;
     ondelete(item: Expense): void;
+    onrecurringdelete(item: RecurringExpense): void;
   }
   let {
     month,
@@ -37,6 +38,7 @@
     recurringExpenses,
     onedit,
     ondelete,
+    onrecurringdelete,
   }: Props = $props();
   let tab = $state<'summary' | 'details' | 'categories'>('summary');
   const incomeTotal = $derived(sumAmounts(incomes));
@@ -163,10 +165,16 @@
               <span class="text-sm font-bold whitespace-nowrap">{formatYen(recurringTotal)}</span>
             </div>
             {#each recurring as item (item.id)}<div
-                class="flex justify-between border-b p-2 text-sm"
+                class="flex items-center justify-between border-b p-2 text-sm"
               >
                 <span>{item.name}<small class="block">毎月{item.payment_day}日</small></span><span
-                  >{Number(item.amount).toLocaleString('ja-JP')}</span
+                  class="flex items-center gap-2"
+                  >{Number(item.amount).toLocaleString('ja-JP')}<Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`定期支出 ${item.name}を削除`}
+                    onclick={() => onrecurringdelete(item)}>削除</Button
+                  ></span
                 >
               </div>{/each}
             <div class="mt-4 flex items-center justify-between gap-4 bg-muted px-3 py-2">
