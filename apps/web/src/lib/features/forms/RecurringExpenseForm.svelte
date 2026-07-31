@@ -8,6 +8,7 @@
   import * as NativeSelect from '$lib/components/ui/native-select';
   import { Spinner } from '$lib/components/ui/spinner';
   import { Textarea } from '$lib/components/ui/textarea';
+  import { currentDate } from '../../format';
   import type {
     ExpenseCategory,
     PaymentMethod,
@@ -26,9 +27,7 @@
   let name = $state(untrack(() => initial?.name ?? ''));
   let amount = $state(untrack(() => initial?.amount ?? ''));
   let paymentDay = $state(untrack(() => initial?.payment_day ?? 1));
-  let startDate = $state(
-    untrack(() => initial?.start_date ?? new Date().toISOString().slice(0, 10)),
-  );
+  let startDate = $state(untrack(() => initial?.start_date ?? currentDate()));
   let endDate = $state(untrack(() => initial?.end_date ?? ''));
   let categoryId = $derived(initial?.category_id ?? categories[0]?.id ?? '');
   let paymentMethodId = $derived(initial?.payment_method_id ?? paymentMethods[0]?.id ?? '');

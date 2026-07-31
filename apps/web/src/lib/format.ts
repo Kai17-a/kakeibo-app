@@ -12,4 +12,11 @@ export const formatDate = (value: string) =>
     weekday: 'short',
   }).format(new Date(`${value}T00:00:00`));
 
-export const currentMonth = () => new Date().toISOString().slice(0, 7);
+export const currentDate = () => {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${now.getFullYear()}-${month}-${day}`;
+};
+
+export const currentMonth = () => currentDate().slice(0, 7);

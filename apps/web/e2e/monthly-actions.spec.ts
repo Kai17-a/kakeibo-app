@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const month = new Date().toISOString().slice(0, 7);
+const nowDate = new Date();
+const month = `${nowDate.getFullYear()}-${String(nowDate.getMonth() + 1).padStart(2, '0')}`;
 const pagination = { page: 1, per_page: 100, total: 1, total_pages: 1 };
 const expenseCategory = {
   id: 'expense-category-1',
