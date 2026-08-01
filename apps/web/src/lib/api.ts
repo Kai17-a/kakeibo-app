@@ -12,6 +12,8 @@ import type {
   PaymentMethod,
   RecurringExpense,
   RecurringExpenseInput,
+  WebhookUrl,
+  WebhookUrlInput,
 } from './types';
 
 export class ApiError extends Error {
@@ -111,6 +113,12 @@ export const api = {
   deleteIncome: (id: string) => request<void>(`/api/incomes/${id}`, { method: 'delete' }),
   deleteRecurringExpense: (id: string) =>
     request<void>(`/api/recurring-expenses/${id}`, { method: 'delete' }),
+  webhookUrls: () => request<WebhookUrl[]>('/api/webhook-urls'),
+  createWebhookUrl: (input: WebhookUrlInput) =>
+    request<WebhookUrl>('/api/webhook-urls', { method: 'post', json: input }),
+  updateWebhookUrl: (id: string, input: WebhookUrlInput) =>
+    request<WebhookUrl>(`/api/webhook-urls/${id}`, { method: 'put', json: input }),
+  deleteWebhookUrl: (id: string) => request<void>(`/api/webhook-urls/${id}`, { method: 'delete' }),
   importExpenses: (csv: string) =>
     request<ImportResult>('/api/import/expenses', {
       method: 'post',

@@ -9,6 +9,7 @@
   import PlusIcon from '@lucide/svelte/icons/plus';
   import RepeatIcon from '@lucide/svelte/icons/repeat';
   import TagsIcon from '@lucide/svelte/icons/tags';
+  import WebhookIcon from '@lucide/svelte/icons/webhook';
   import { toast } from 'svelte-sonner';
   import { SvelteMap } from 'svelte/reactivity';
   import * as Alert from '$lib/components/ui/alert';
@@ -24,6 +25,7 @@
   import CategoryForm from '$lib/features/settings/CategoryForm.svelte';
   import PaymentMethodForm from '$lib/features/settings/PaymentMethodForm.svelte';
   import RecurringExpenseForm from '$lib/features/forms/RecurringExpenseForm.svelte';
+  import WebhookUrlForm from '$lib/features/settings/WebhookUrlForm.svelte';
   import { api } from '$lib/api';
   import { formatYen } from '$lib/format';
   import type {
@@ -34,15 +36,18 @@
     PaymentMethod,
     RecurringExpense,
     RecurringExpenseInput,
+    WebhookUrl,
+    WebhookUrlInput,
   } from '$lib/types';
 
   type CategoryKind = 'expense' | 'income';
-  type SettingsTab = CategoryKind | 'payment' | 'recurring';
+  type SettingsTab = CategoryKind | 'payment' | 'recurring' | 'webhook';
 
   let expenseCategories = $state.raw<ExpenseCategory[]>([]);
   let incomeCategories = $state.raw<IncomeCategory[]>([]);
   let paymentMethods = $state.raw<PaymentMethod[]>([]);
   let recurringExpenses = $state.raw<RecurringExpense[]>([]);
+  let webhookUrls = $state.raw<WebhookUrl[]>([]);
   let activeKind = $state<SettingsTab>('expense');
   let formOpen = $state(false);
   let editingCategory = $state<NamedResource | null>(null);
@@ -50,6 +55,8 @@
   let editingPaymentMethod = $state<PaymentMethod | null>(null);
   let recurringFormOpen = $state(false);
   let editingRecurring = $state<RecurringExpense | null>(null);
+  let webhookFormOpen = $state(false);
+  let editingWebhookUrl = $state<WebhookUrl | null>(null);
   let loading = $state(true);
   let saving = $state(false);
   let error = $state('');
@@ -60,16 +67,18 @@
     loading = true;
     error = '';
     try {
-      const [expenseData, incomeData, paymentData, recurringData] = await Promise.all([
+      const [expenseData, incomeData, paymentData, recurringData, webhookData] = await Promise.all([
         api.expenseCategories(),
         api.incomeCategories(),
         api.paymentMethods(),
         api.recurringExpenses(),
+        api.webhookUrls(),
       ]);
       expenseCategories = expenseData.items;
       incomeCategories = incomeData.items;
       paymentMethods = paymentData.items;
       recurringExpenses = recurringData;
+      webhookUrls = webhookData;
     } catch (caught) {
       error = message(caught, 'データを読み込めませんでした。');
     } finally {
@@ -259,10 +268,60 @@
     }
   }
 
+  async function saveWebhookUrl(input: WebhookUrlInput) {
+    saving = true;
+    error = '';
+    const editing = editingWebhookUrl;
+    try {
+      if (editing) {
+        const updated = await api.updateWebhookUrl(editing.id, input);
+        webhookUrls = webhookUrls.map((item) => (item.id === updated.id ? updated : item));
+        toast.success('Webhook URLを更新しました。');
+      } else {
+        webhookUrls = [await api.createWebhookUrl(input), ...webhookUrls];
+        toast.success('Webhook URLを登録しました。');
+      }
+      closeWebhookForm();
+    } catch (caught) {
+      error = message(
+        caught,
+        editing ? 'Webhook URLを更新できませんでした。' : 'Webhook URLを登録できませんでした。',
+      );
+    } finally {
+      saving = false;
+    }
+  }
+
+  function openWebhookForm() {
+    editingWebhookUrl = null;
+    webhookFormOpen = true;
+  }
+
+  function editWebhookUrl(item: WebhookUrl) {
+    editingWebhookUrl = item;
+    webhookFormOpen = true;
+  }
+
+  function closeWebhookForm() {
+    webhookFormOpen = false;
+    editingWebhookUrl = null;
+  }
+
+  async function removeWebhookUrl(item: WebhookUrl) {
+    try {
+      await api.deleteWebhookUrl(item.id);
+      webhookUrls = webhookUrls.filter((row) => row.id !== item.id);
+      toast.success('Webhook URLを削除しました。');
+    } catch {
+      error = 'Webhook URLを削除できませんでした。';
+    }
+  }
+
   type DeleteTarget =
     | { type: 'category'; item: NamedResource }
     | { type: 'payment'; item: PaymentMethod }
-    | { type: 'recurring'; item: RecurringExpense };
+    | { type: 'recurring'; item: RecurringExpense }
+    | { type: 'webhook'; item: WebhookUrl };
 
   let deleteTarget = $state<DeleteTarget | null>(null);
 
@@ -271,7 +330,8 @@
     if (!target) return '';
     if (target.type === 'category') return `カテゴリ「${target.item.name}」を削除しますか？`;
     if (target.type === 'payment') return `支払方法「${target.item.name}」を削除しますか？`;
-    return `定期支出「${target.item.name}」を削除しますか？`;
+    if (target.type === 'recurring') return `定期支出「${target.item.name}」を削除しますか？`;
+    return `Webhook URL「${target.item.url}」を削除しますか？`;
   });
 
   function askDeleteCategory(category: NamedResource) {
@@ -286,6 +346,10 @@
     deleteTarget = { type: 'recurring', item };
   }
 
+  function askDeleteWebhookUrl(item: WebhookUrl) {
+    deleteTarget = { type: 'webhook', item };
+  }
+
   function cancelDelete() {
     deleteTarget = null;
   }
@@ -298,8 +362,10 @@
       await removeCategory(target.item);
     } else if (target.type === 'payment') {
       await removePaymentMethod(target.item);
-    } else {
+    } else if (target.type === 'recurring') {
       await removeRecurringExpense(target.item);
+    } else {
+      await removeWebhookUrl(target.item);
     }
   }
 
@@ -330,7 +396,7 @@
       <p class="text-xs font-semibold tracking-widest text-muted-foreground uppercase">Settings</p>
       <h1 class="font-serif text-3xl font-bold tracking-tight sm:text-4xl">カテゴリ設定</h1>
       <p class="text-muted-foreground">
-        収支の登録や集計に使用するカテゴリ・支払方法・定期支出を管理できます。
+        収支の登録や集計に使用するカテゴリ・支払方法・定期支出・Webhook通知先を管理できます。
       </p>
     </div>
 
@@ -352,6 +418,7 @@
         <Tabs.Trigger value="income">収入カテゴリ</Tabs.Trigger>
         <Tabs.Trigger value="payment">支払方法</Tabs.Trigger>
         <Tabs.Trigger value="recurring">定期支出</Tabs.Trigger>
+        <Tabs.Trigger value="webhook">Webhook</Tabs.Trigger>
       </Tabs.List>
       <Tabs.Content value="expense">
         {@render categoryPanel('支出カテゴリ', expenseCategories)}
@@ -364,6 +431,9 @@
       </Tabs.Content>
       <Tabs.Content value="recurring">
         {@render recurringPanel()}
+      </Tabs.Content>
+      <Tabs.Content value="webhook">
+        {@render webhookPanel()}
       </Tabs.Content>
     </Tabs.Root>
 
@@ -628,6 +698,89 @@
     </Card.Content>
   </Card.Root>
 {/snippet}
+{#snippet webhookPanel()}
+  <Card.Root>
+    <Card.Header>
+      <Card.Title class="flex items-center gap-2">
+        Webhook
+        <Badge variant="secondary">{webhookUrls.length}件</Badge>
+      </Card.Title>
+      <Card.Description>
+        支出・収入の登録時に通知を送信するWebhook URLを管理します。
+      </Card.Description>
+      <Card.Action>
+        <Button onclick={openWebhookForm}>
+          <PlusIcon data-icon="inline-start" />追加
+        </Button>
+      </Card.Action>
+    </Card.Header>
+    <Card.Content>
+      {#if loading}
+        <div class="flex flex-col gap-3">
+          <Skeleton class="h-16 w-full" />
+          <Skeleton class="h-16 w-full" />
+          <Skeleton class="h-16 w-full" />
+        </div>
+      {:else if webhookUrls.length === 0}
+        <Empty.Root class="min-h-64 border">
+          <Empty.Media variant="icon"><WebhookIcon /></Empty.Media>
+          <Empty.Header>
+            <Empty.Title>Webhook URLがありません</Empty.Title>
+            <Empty.Description>通知を送信するURLを追加してください。</Empty.Description>
+          </Empty.Header>
+          <Empty.Content>
+            <Button onclick={openWebhookForm}>
+              <PlusIcon data-icon="inline-start" />Webhook URLを追加
+            </Button>
+          </Empty.Content>
+        </Empty.Root>
+      {:else}
+        <Table.Root>
+          <Table.Caption>登録済みのWebhook URL一覧</Table.Caption>
+          <Table.Header>
+            <Table.Row>
+              <Table.Head class="w-1/3">URL</Table.Head>
+              <Table.Head>説明</Table.Head>
+              <Table.Head>状態</Table.Head>
+              <Table.Head class="w-36 text-right">操作</Table.Head>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {#each webhookUrls as item (item.id)}
+              <Table.Row>
+                <Table.Cell class="max-w-0 truncate font-medium">{item.url}</Table.Cell>
+                <Table.Cell class="text-muted-foreground">
+                  {item.description || '説明はありません'}
+                </Table.Cell>
+                <Table.Cell>
+                  {#if item.is_active}<Badge variant="outline">有効</Badge>{:else}<Badge
+                      variant="secondary">無効</Badge
+                    >{/if}
+                </Table.Cell>
+                <Table.Cell class="text-right">
+                  <div class="flex justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={`${item.url}を編集`}
+                      onclick={() => editWebhookUrl(item)}>編集</Button
+                    >
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      aria-label={`${item.url}を削除`}
+                      onclick={() => askDeleteWebhookUrl(item)}>削除</Button
+                    >
+                  </div>
+                </Table.Cell>
+              </Table.Row>
+            {/each}
+          </Table.Body>
+        </Table.Root>
+      {/if}
+    </Card.Content>
+  </Card.Root>
+{/snippet}
 
 {#if formOpen}
   <CategoryForm
@@ -654,6 +807,14 @@
     initial={editingRecurring ?? undefined}
     onclose={closeRecurringForm}
     onsubmit={saveRecurring}
+  />
+{/if}
+{#if webhookFormOpen}
+  <WebhookUrlForm
+    {saving}
+    initial={editingWebhookUrl ?? undefined}
+    onclose={closeWebhookForm}
+    onsubmit={saveWebhookUrl}
   />
 {/if}
 <ConfirmDialog

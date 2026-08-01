@@ -170,6 +170,58 @@ describe('ky API client', () => {
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
+  it('creates a webhook url', async () => {
+    const fetchMock = vi.fn(async (request: Request) => {
+      expect(request.url).toBe('http://localhost/api/webhook-urls');
+      expect(request.method).toBe('POST');
+      expect(await request.json()).toEqual({
+        url: 'https://example.com/hook',
+        description: null,
+        is_active: true,
+      });
+      return Response.json({ id: 'wu-1', url: 'https://example.com/hook' });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await api.createWebhookUrl({
+      url: 'https://example.com/hook',
+      description: null,
+      is_active: true,
+    });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('updates a webhook url', async () => {
+    const fetchMock = vi.fn(async (request: Request) => {
+      expect(request.url).toBe('http://localhost/api/webhook-urls/wu-1');
+      expect(request.method).toBe('PUT');
+      expect(await request.json()).toMatchObject({ is_active: false });
+      return Response.json({ id: 'wu-1', is_active: false });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await api.updateWebhookUrl('wu-1', {
+      url: 'https://example.com/hook',
+      description: null,
+      is_active: false,
+    });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('deletes a webhook url', async () => {
+    const fetchMock = vi.fn(async (request: Request) => {
+      expect(request.url).toBe('http://localhost/api/webhook-urls/wu-1');
+      expect(request.method).toBe('DELETE');
+      return new Response(null, { status: 204 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(api.deleteWebhookUrl('wu-1')).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
   it('posts CSV for expense import', async () => {
     const csv = '日付,金額,カテゴリ,支払方法,メモ\n2026-07-22,1200,食費,現金,';
     const fetchMock = vi.fn(async (request: Request) => {

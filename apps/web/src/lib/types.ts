@@ -49,6 +49,16 @@ export interface ImportResult {
   created_categories: string[];
   created_payment_methods: string[];
 }
+export interface WebhookUrl extends BaseResource {
+  url: string;
+  description: string | null;
+  is_active: boolean;
+}
+export interface WebhookUrlInput {
+  url: string;
+  description: string | null;
+  is_active: boolean;
+}
 export interface ExpenseInput {
   transaction_date: string;
   amount: string;
