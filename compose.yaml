@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - kakeibo-data:/data
+    environment:
+      RUST_LOG: info
+    restart: unless-stopped
+
+volumes:
+  kakeibo-data:

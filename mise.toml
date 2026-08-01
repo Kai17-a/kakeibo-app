@@ -106,6 +106,22 @@ run = "./scripts/test-data.sh add"
 description = "Clear test data from the database"
 run = "./scripts/test-data.sh clear"
 
+[tasks.docker-build]
+description = "Build the Docker image"
+run = "docker compose build"
+
+[tasks.docker-up]
+description = "Build and start the Docker containers"
+run = "docker compose up --detach --build"
+
+[tasks.docker-down]
+description = "Stop the Docker containers"
+run = "docker compose down"
+
+[tasks.docker-logs]
+description = "Follow Docker container logs"
+run = "docker compose logs --follow app"
+
 [tasks.web-install]
 description = "Install frontend dependencies"
 dir = "apps/web"
