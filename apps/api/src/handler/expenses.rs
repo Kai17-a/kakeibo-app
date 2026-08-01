@@ -1,6 +1,6 @@
 use crate::{
     model::expenses::{Expense, ExpenseUpsertRequest},
-    service::expenses::ExpenseService,
+    service::{expenses::ExpenseService, webhook_urls::WebhookUrlService},
     utils::error::AppResult,
 };
 use axum::{
@@ -11,6 +11,7 @@ use axum::{
 #[derive(Clone)]
 pub struct AppState {
     pub expenses: ExpenseService,
+    pub webhook_urls: WebhookUrlService,
 }
 #[utoipa::path(get,path="/api/expenses",responses((status=200,body=Vec<Expense>)))]
 pub async fn list(State(s): State<AppState>) -> AppResult<Json<Vec<Expense>>> {
@@ -25,7 +26,14 @@ pub async fn create(
     State(s): State<AppState>,
     Json(v): Json<ExpenseUpsertRequest>,
 ) -> AppResult<(StatusCode, Json<Expense>)> {
-    Ok((StatusCode::CREATED, Json(s.expenses.create(&v).await?)))
+    let expense = s.expenses.create(&v).await?;
+    s.webhook_urls
+        .notify(
+            "expense.created",
+            serde_json::to_value(&expense).unwrap_or_default(),
+        )
+        .await;
+    Ok((StatusCode::CREATED, Json(expense)))
 }
 #[utoipa::path(put,path="/api/expenses/{id}",params(("id"=String,Path)),request_body=ExpenseUpsertRequest,responses((status=200,body=Expense),(status=400),(status=404)))]
 pub async fn update(

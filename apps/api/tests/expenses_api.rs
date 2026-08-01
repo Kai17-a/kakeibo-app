@@ -34,7 +34,8 @@ const SCHEMA: &str = concat!(
     "CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-'||'4'||substr(hex(randomblob(2)),2)||'-'||substr('AB89',1+(abs(random())%4),1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,amount TEXT NOT NULL,payment_day INTEGER NOT NULL,start_date TEXT NOT NULL,end_date TEXT,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),is_active INTEGER NOT NULL,is_variable INTEGER NOT NULL DEFAULT 0,description TEXT);",
     "CREATE TABLE expenses(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-'||'4'||substr(hex(randomblob(2)),2)||'-'||substr('AB89',1+(abs(random())%4),1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,transaction_date TEXT NOT NULL,amount TEXT NOT NULL,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),recurring_expense_id TEXT REFERENCES recurring_expenses(id),description TEXT);",
     "INSERT INTO expense_categories VALUES('ec');",
-    "INSERT INTO payment_methods VALUES('pm')"
+    "INSERT INTO payment_methods VALUES('pm');",
+    "CREATE TABLE webhook_urls(id TEXT PRIMARY KEY,url TEXT NOT NULL,description TEXT,is_active INTEGER NOT NULL DEFAULT 1);",
 );
 async fn setup_pool() -> SqlitePool {
     let p = SqlitePoolOptions::new()
@@ -124,4 +125,19 @@ async fn insert_recurring_for_month_skips_variable_expenses() {
     let repo = ExpenseRepository::new(p.clone());
 
     assert_eq!(repo.insert_recurring_for_month("2026-02").await.unwrap(), 0);
+}
+#[tokio::test]
+async fn create_succeeds_even_when_webhook_notification_fails() {
+    let p = setup_pool().await;
+    // 接続不能な通知先URLが登録されていても、支出の登録自体は成功する
+    sqlx::query(
+        "INSERT INTO webhook_urls(id,url,is_active) VALUES('wu-1','http://127.0.0.1:1/hook',1)",
+    )
+    .execute(&p)
+    .await
+    .unwrap();
+    let app = expenses::create(p);
+    let v = json!({"transaction_date":"2026-07-22","amount":"1200","category_id":"ec","payment_method_id":"pm","recurring_expense_id":null,"description":null});
+    let (s, b) = call(&app, "POST", "/api/expenses", Some(v)).await;
+    assert_eq!(s, StatusCode::CREATED, "{b:?}");
 }

@@ -1,19 +1,21 @@
 use crate::{
-    handler::expenses::{self as handler, AppState},
-    repository::{expenses::ExpenseRepository, webhook_urls::WebhookUrlRepository},
-    service::{expenses::ExpenseService, webhook_urls::WebhookUrlService},
+    handler::webhook_urls::{self as handler, AppState},
+    repository::webhook_urls::WebhookUrlRepository,
+    service::webhook_urls::WebhookUrlService,
 };
 use axum::{Router, routing::get};
 use sqlx::SqlitePool;
 pub fn create(pool: SqlitePool) -> Router {
     let state = AppState {
-        expenses: ExpenseService::new(ExpenseRepository::new(pool.clone())),
         webhook_urls: WebhookUrlService::new(WebhookUrlRepository::new(pool)),
     };
     Router::new()
-        .route("/api/expenses", get(handler::list).post(handler::create))
         .route(
-            "/api/expenses/{id}",
+            "/api/webhook-urls",
+            get(handler::list).post(handler::create),
+        )
+        .route(
+            "/api/webhook-urls/{id}",
             get(handler::get)
                 .put(handler::update)
                 .delete(handler::delete),

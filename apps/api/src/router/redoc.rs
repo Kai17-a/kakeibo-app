@@ -6,7 +6,7 @@ use utoipa_redoc::{Redoc, Servable};
 use crate::{
     handler::{
         expense_categories, expenses, export, health, import, income_categories, incomes,
-        payment_methods, recurring_expenses,
+        payment_methods, recurring_expenses, webhook_urls,
     },
     model::expense_categories::{
         ExpenseCategory, ExpenseCategoryListResponse, ExpenseCategoryPagination,
@@ -27,6 +27,7 @@ use crate::{
         PaymentMethodSortOrder, PaymentMethodUpsertRequest,
     },
     model::recurring_expenses::{RecurringExpense, RecurringExpenseUpsertRequest},
+    model::webhook_urls::{WebhookUrl, WebhookUrlUpsertRequest},
 };
 
 #[derive(OpenApi)]
@@ -66,6 +67,11 @@ use crate::{
         incomes::create,
         incomes::update,
         incomes::delete,
+        webhook_urls::list,
+        webhook_urls::get,
+        webhook_urls::create,
+        webhook_urls::update,
+        webhook_urls::delete,
         health::get
     ),
     components(schemas(
@@ -98,6 +104,8 @@ use crate::{
         Pagination,
         IncomeSortBy,
         SortOrder,
+        WebhookUrl,
+        WebhookUrlUpsertRequest,
         Health
     )),
     modifiers(&Documentation),
@@ -114,6 +122,7 @@ use crate::{
         (name = "インポート", description = "収支データのCSVインポート"),
         (name = "支払方法", description = "支払方法の管理"),
         (name = "定期支出", description = "定期支出の管理"),
+        (name = "Webhook", description = "Webhook通知先URLの管理"),
         (name = "システム", description = "稼働状態の確認")
     )
 )]
@@ -150,6 +159,7 @@ fn tag_for_path(path: &str) -> &'static str {
         "/api/import/expenses" | "/api/import/incomes" => "インポート",
         "/api/payment-methods" | "/api/payment-methods/{id}" => "支払方法",
         "/api/recurring-expenses" | "/api/recurring-expenses/{id}" => "定期支出",
+        "/api/webhook-urls" | "/api/webhook-urls/{id}" => "Webhook",
         _ => "システム",
     }
 }
