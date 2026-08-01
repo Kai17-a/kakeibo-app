@@ -54,6 +54,15 @@ mise run web-ci
 
 個別のタスクは `mise tasks` で確認できます。
 
+### Docker Image
+
+ローカルでDockerイメージをビルドして起動を確認する場合:
+
+```bash
+docker build -t kakeibo-app .
+docker run --rm -p 8000:8000 -v kakeibo-data:/data kakeibo-app
+```
+
 ### Test Data
 
 ```bash
