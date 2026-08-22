@@ -70,29 +70,26 @@
 
 <section class="grid gap-4 md:grid-cols-3" aria-label={`${monthLabel}の収支概要`}>
   <Card.Root>
-    <Card.Header
-      ><Card.Description>収入</Card.Description><Card.Title>{formatYen(incomeTotal)}</Card.Title
-      ></Card.Header
-    >
+    <Card.Header>
+      <Card.Description>収入</Card.Description><Card.Title>{formatYen(incomeTotal)}</Card.Title>
+    </Card.Header>
     <Card.Content><Badge variant="secondary">{incomes.length} 件の入金</Badge></Card.Content>
   </Card.Root>
   <Card.Root>
-    <Card.Header
-      ><Card.Description>支出</Card.Description><Card.Title>{formatYen(expenseTotal)}</Card.Title
-      ></Card.Header
-    >
+    <Card.Header>
+      <Card.Description>支出</Card.Description><Card.Title>{formatYen(expenseTotal)}</Card.Title>
+    </Card.Header>
     <Card.Content><Badge variant="secondary">{expenses.length} 件の支払い</Badge></Card.Content>
   </Card.Root>
   <Card.Root>
-    <Card.Header
-      ><Card.Description>残り</Card.Description><Card.Title>{formatYen(balance)}</Card.Title
-      ></Card.Header
-    >
-    <Card.Content
-      ><Progress
+    <Card.Header>
+      <Card.Description>残り</Card.Description><Card.Title>{formatYen(balance)}</Card.Title>
+    </Card.Header>
+    <Card.Content>
+      <Progress
         value={incomeTotal ? Math.min(100, Math.max(0, (balance / incomeTotal) * 100)) : 0}
-      /></Card.Content
-    >
+      />
+    </Card.Content>
   </Card.Root>
 </section>
 <div class="mt-8 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
@@ -112,9 +109,9 @@
                     ? 'bg-secondary text-secondary-foreground'
                     : 'bg-muted text-destructive',
                 ]}
-                >{#if item.kind === 'income'}<ArrowDownLeftIcon />{:else}<ArrowUpRightIcon
-                  />{/if}</span
               >
+                {#if item.kind === 'income'}<ArrowDownLeftIcon />{:else}<ArrowUpRightIcon />{/if}
+              </span>
               <div class="min-w-0 flex-1">
                 <p class="truncate text-sm font-bold">{label(item)}</p>
                 <p class="text-xs text-muted-foreground">
@@ -127,13 +124,13 @@
                 {item.kind === 'income' ? '+' : '−'}{formatYen(item.amount)}
               </p>
             </li>{/each}
-        </ul>{:else}<Empty.Root
-          ><Empty.Header
-            ><Empty.Title>この月の明細はまだありません</Empty.Title><Empty.Description
-              >収入または支出を登録すると、ここに表示されます。</Empty.Description
-            ></Empty.Header
-          ></Empty.Root
-        >{/if}
+        </ul>{:else}<Empty.Root>
+          <Empty.Header>
+            <Empty.Title>この月の明細はまだありません</Empty.Title><Empty.Description>
+              収入または支出を登録すると、ここに表示されます。
+            </Empty.Description>
+          </Empty.Header>
+        </Empty.Root>{/if}
     </Card.Content>
   </Card.Root>
   <div class="grid content-start gap-6">
@@ -142,7 +139,8 @@
       <Card.Content class="grid gap-4">
         {#each spending as category (category.id)}<div>
             <div class="flex justify-between text-sm">
-              <b>{category.name}</b><span>{formatYen(category.total)}</span>
+              <b>{category.name}</b>
+              <span>{formatYen(category.total)}</span>
             </div>
             <Progress
               class="mt-1"
@@ -158,8 +156,11 @@
           {#each fixedRecurring as item (item.id)}<li
               class="flex items-center justify-between py-3 text-sm"
             >
-              <span><b class="block">{item.name}</b><small>毎月 {item.payment_day} 日</small></span
-              ><b>{formatYen(item.amount)}</b>
+              <span>
+                <b class="block">{item.name}</b>
+                <small>毎月 {item.payment_day} 日</small>
+              </span>
+              <b>{formatYen(item.amount)}</b>
             </li>{/each}
         </ul>
         {#if variableRecurring.length}
@@ -170,17 +171,18 @@
             {#each variableRecurring as item (item.id)}<li
                 class="flex items-center justify-between py-3 text-sm"
               >
-                <span
-                  ><b class="block">{item.name}</b><small
-                    >毎月 {item.payment_day} 日 · 目安 {formatYen(item.amount)}</small
-                  ></span
-                >
+                <span>
+                  <b class="block">{item.name}</b>
+                  <small>毎月 {item.payment_day} 日 · 目安 {formatYen(item.amount)}</small>
+                </span>
                 <Button
                   variant="outline"
                   size="sm"
                   aria-label={`${item.name}の今月分を登録`}
-                  onclick={() => onregistervariable(item)}>今月分を登録</Button
+                  onclick={() => onregistervariable(item)}
                 >
+                  今月分を登録
+                </Button>
               </li>{/each}
           </ul>
         {/if}

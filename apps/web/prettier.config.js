@@ -5,4 +5,5 @@ export default {
   singleQuote: true,
   trailingComma: 'all',
   tailwindStylesheet: './src/app.css',
+  htmlWhitespaceSensitivity: 'ignore',
 };

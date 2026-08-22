@@ -17,12 +17,14 @@
 
 <header class="border-b bg-background/95">
   <div class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-10">
-    <a class="flex items-center gap-3" href={resolve('/')} aria-label="Kakeibo ホーム"
-      ><span
+    <a class="flex items-center gap-3" href={resolve('/')} aria-label="Kakeibo ホーム">
+      <span
         class="grid size-10 place-items-center rounded-lg bg-primary text-lg font-black text-primary-foreground"
-        >K</span
-      ><strong class="hidden font-serif text-xl tracking-tight sm:block">Kakeibo</strong></a
-    >
+      >
+        K
+      </span>
+      <strong class="hidden font-serif text-xl tracking-tight sm:block">Kakeibo</strong>
+    </a>
     <div class="flex items-center gap-2">
       <Button variant="outline" size="icon" onclick={toggleMode} aria-label="テーマを切り替え">
         <SunIcon class="dark:hidden" />
@@ -33,12 +35,12 @@
       </Button>
       {#if onRecurring && onTransaction}
         <Button variant="outline" onclick={onRecurring} aria-label="固定費">
-          <ReceiptTextIcon data-icon="inline-start" /><span class="hidden sm:inline">固定費</span>
+          <ReceiptTextIcon data-icon="inline-start" />
+          <span class="hidden sm:inline">固定費</span>
         </Button>
         <Button onclick={onTransaction} aria-label="収支を登録">
-          <CircleDollarSignIcon data-icon="inline-start" /><span class="hidden sm:inline"
-            >収支を登録</span
-          >
+          <CircleDollarSignIcon data-icon="inline-start" />
+          <span class="hidden sm:inline">収支を登録</span>
         </Button>
       {/if}
     </div>

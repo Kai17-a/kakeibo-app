@@ -63,8 +63,10 @@
         </Field.Field>
         <Field.Field orientation="horizontal">
           <Checkbox id="webhook-active" bind:checked={active} /><Field.FieldLabel
-            for="webhook-active">通知を有効にする</Field.FieldLabel
+            for="webhook-active"
           >
+            通知を有効にする
+          </Field.FieldLabel>
         </Field.Field>
       </Field.FieldGroup>
       <Dialog.Footer>

@@ -21,9 +21,9 @@
     </AlertDialog.Header>
     <AlertDialog.Footer>
       <AlertDialog.Cancel onclick={oncancel}>キャンセル</AlertDialog.Cancel>
-      <AlertDialog.Action variant="destructive" onclick={onconfirm}
-        >{actionLabel}</AlertDialog.Action
-      >
+      <AlertDialog.Action variant="destructive" onclick={onconfirm}>
+        {actionLabel}
+      </AlertDialog.Action>
     </AlertDialog.Footer>
   </AlertDialog.Content>
 </AlertDialog.Root>

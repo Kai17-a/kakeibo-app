@@ -510,14 +510,18 @@
                       variant="ghost"
                       size="sm"
                       aria-label={`${category.name}を編集`}
-                      onclick={() => editCategory(category)}>編集</Button
+                      onclick={() => editCategory(category)}
                     >
+                      編集
+                    </Button>
                     <Button
                       variant="destructive"
                       size="sm"
                       aria-label={`${category.name}を削除`}
-                      onclick={() => askDeleteCategory(category)}>削除</Button
+                      onclick={() => askDeleteCategory(category)}
                     >
+                      削除
+                    </Button>
                   </div>
                 </Table.Cell>
               </Table.Row>
@@ -586,14 +590,18 @@
                       variant="ghost"
                       size="sm"
                       aria-label={`${method.name}を編集`}
-                      onclick={() => editPaymentMethod(method)}>編集</Button
+                      onclick={() => editPaymentMethod(method)}
                     >
+                      編集
+                    </Button>
                     <Button
                       variant="destructive"
                       size="sm"
                       aria-label={`${method.name}を削除`}
-                      onclick={() => askDeletePaymentMethod(method)}>削除</Button
+                      onclick={() => askDeletePaymentMethod(method)}
                     >
+                      削除
+                    </Button>
                   </div>
                 </Table.Cell>
               </Table.Row>
@@ -657,10 +665,11 @@
             {#each recurringExpenses as item (item.id)}
               <Table.Row>
                 <Table.Cell class="font-medium">
-                  <span class="flex items-center gap-2"
-                    >{item.name}{#if item.is_variable}<Badge variant="secondary">準固定費</Badge
-                      >{/if}</span
-                  >
+                  <span class="flex items-center gap-2">
+                    {item.name}{#if item.is_variable}<Badge variant="secondary">
+                        準固定費
+                      </Badge>{/if}
+                  </span>
                 </Table.Cell>
                 <Table.Cell class="text-muted-foreground">
                   {expenseCategoryNames.get(item.category_id) ?? ''} / {paymentMethodNames.get(
@@ -671,8 +680,10 @@
                 <Table.Cell class="text-right">{formatYen(item.amount)}</Table.Cell>
                 <Table.Cell>
                   {#if item.is_active}<Badge variant="outline">有効</Badge>{:else}<Badge
-                      variant="secondary">無効</Badge
-                    >{/if}
+                      variant="secondary"
+                    >
+                      無効
+                    </Badge>{/if}
                 </Table.Cell>
                 <Table.Cell class="text-right">
                   <div class="flex justify-end gap-2">
@@ -680,14 +691,18 @@
                       variant="ghost"
                       size="sm"
                       aria-label={`定期支出 ${item.name}を編集`}
-                      onclick={() => editRecurring(item)}>編集</Button
+                      onclick={() => editRecurring(item)}
                     >
+                      編集
+                    </Button>
                     <Button
                       variant="destructive"
                       size="sm"
                       aria-label={`定期支出 ${item.name}を削除`}
-                      onclick={() => askDeleteRecurring(item)}>削除</Button
+                      onclick={() => askDeleteRecurring(item)}
                     >
+                      削除
+                    </Button>
                   </div>
                 </Table.Cell>
               </Table.Row>
@@ -754,8 +769,10 @@
                 </Table.Cell>
                 <Table.Cell>
                   {#if item.is_active}<Badge variant="outline">有効</Badge>{:else}<Badge
-                      variant="secondary">無効</Badge
-                    >{/if}
+                      variant="secondary"
+                    >
+                      無効
+                    </Badge>{/if}
                 </Table.Cell>
                 <Table.Cell class="text-right">
                   <div class="flex justify-end gap-2">
@@ -763,14 +780,18 @@
                       variant="ghost"
                       size="sm"
                       aria-label={`${item.url}を編集`}
-                      onclick={() => editWebhookUrl(item)}>編集</Button
+                      onclick={() => editWebhookUrl(item)}
                     >
+                      編集
+                    </Button>
                     <Button
                       variant="destructive"
                       size="sm"
                       aria-label={`${item.url}を削除`}
-                      onclick={() => askDeleteWebhookUrl(item)}>削除</Button
+                      onclick={() => askDeleteWebhookUrl(item)}
                     >
+                      削除
+                    </Button>
                   </div>
                 </Table.Cell>
               </Table.Row>

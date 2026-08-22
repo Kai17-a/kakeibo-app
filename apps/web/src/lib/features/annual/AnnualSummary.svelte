@@ -31,33 +31,31 @@
 </script>
 
 <section class="grid gap-4 md:grid-cols-3">
-  <Card.Root
-    ><Card.Header
-      ><Card.Description>年間収入</Card.Description><Card.Title>{formatYen(incomeTotal)}</Card.Title
-      ></Card.Header
-    ><Card.Content>月平均 {formatYen(incomeTotal / 12)}</Card.Content></Card.Root
-  >
-  <Card.Root
-    ><Card.Header
-      ><Card.Description>年間支出</Card.Description><Card.Title
-        >{formatYen(expenseTotal)}</Card.Title
-      ></Card.Header
-    ><Card.Content>月平均 {formatYen(expenseTotal / 12)}</Card.Content></Card.Root
-  >
-  <Card.Root
-    ><Card.Header
-      ><Card.Description>年間収支</Card.Description><Card.Title>{formatYen(balance)}</Card.Title
-      ></Card.Header
-    ><Card.Content
-      >貯蓄率 {incomeTotal ? Math.round((balance / incomeTotal) * 100) : 0}%</Card.Content
-    ></Card.Root
-  >
+  <Card.Root>
+    <Card.Header>
+      <Card.Description>年間収入</Card.Description><Card.Title>{formatYen(incomeTotal)}</Card.Title>
+    </Card.Header><Card.Content>月平均 {formatYen(incomeTotal / 12)}</Card.Content>
+  </Card.Root>
+  <Card.Root>
+    <Card.Header>
+      <Card.Description>年間支出</Card.Description><Card.Title>
+        {formatYen(expenseTotal)}
+      </Card.Title>
+    </Card.Header><Card.Content>月平均 {formatYen(expenseTotal / 12)}</Card.Content>
+  </Card.Root>
+  <Card.Root>
+    <Card.Header>
+      <Card.Description>年間収支</Card.Description><Card.Title>{formatYen(balance)}</Card.Title>
+    </Card.Header><Card.Content>
+      貯蓄率 {incomeTotal ? Math.round((balance / incomeTotal) * 100) : 0}%
+    </Card.Content>
+  </Card.Root>
 </section>
 <div class="mt-8 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
   <Card.Root>
     <Card.Header><Card.Title>月別の収支推移</Card.Title></Card.Header>
-    <Card.Content
-      ><div class="flex h-72 items-end gap-2 border-b">
+    <Card.Content>
+      <div class="flex h-72 items-end gap-2 border-b">
         {#each months as item (item.month)}<div class="flex h-full flex-1 flex-col justify-end">
             <div class="flex h-[calc(100%_-_2rem)] items-end justify-center gap-1">
               <div
@@ -73,14 +71,15 @@
             </div>
             <span class="mt-2 text-center text-xs">{item.month}月</span>
           </div>{/each}
-      </div></Card.Content
-    >
+      </div>
+    </Card.Content>
   </Card.Root>
   <Card.Root>
     <Card.Header><Card.Title>年間支出の内訳</Card.Title></Card.Header>
     <Card.Content class="grid gap-4">
       {#each spending.slice(0, 6) as item (item.id)}<div class="flex justify-between text-sm">
-          <b>{item.name}</b><span>{formatYen(item.total)}</span>
+          <b>{item.name}</b>
+          <span>{formatYen(item.total)}</span>
         </div>{/each}
     </Card.Content>
   </Card.Root>
@@ -89,22 +88,26 @@
   <Card.Header><Card.Title>月ごとの収支</Card.Title></Card.Header>
   <Card.Content class="px-0">
     <Table.Root>
-      <Table.Header
-        ><Table.Row
-          ><Table.Head>月</Table.Head><Table.Head class="text-right">収入</Table.Head><Table.Head
-            class="text-right">支出</Table.Head
-          ><Table.Head class="text-right">収支</Table.Head></Table.Row
-        ></Table.Header
-      >
-      <Table.Body
-        >{#each months as item (item.month)}<Table.Row
-            ><Table.Head>{item.month}月</Table.Head><Table.Cell class="text-right"
-              >{formatYen(item.income)}</Table.Cell
-            ><Table.Cell class="text-right">{formatYen(item.expense)}</Table.Cell><Table.Cell
-              class="text-right font-bold">{formatYen(item.balance)}</Table.Cell
-            ></Table.Row
-          >{/each}</Table.Body
-      >
+      <Table.Header>
+        <Table.Row>
+          <Table.Head>月</Table.Head><Table.Head class="text-right">収入</Table.Head><Table.Head
+            class="text-right"
+          >
+            支出
+          </Table.Head><Table.Head class="text-right">収支</Table.Head>
+        </Table.Row>
+      </Table.Header>
+      <Table.Body>
+        {#each months as item (item.month)}<Table.Row>
+            <Table.Head>{item.month}月</Table.Head><Table.Cell class="text-right">
+              {formatYen(item.income)}
+            </Table.Cell><Table.Cell class="text-right">
+              {formatYen(item.expense)}
+            </Table.Cell><Table.Cell class="text-right font-bold">
+              {formatYen(item.balance)}
+            </Table.Cell>
+          </Table.Row>{/each}
+      </Table.Body>
     </Table.Root>
   </Card.Content>
 </Card.Root>

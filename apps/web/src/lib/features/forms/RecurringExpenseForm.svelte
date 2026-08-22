@@ -62,95 +62,100 @@
     </Dialog.Header>
     <form class="flex flex-col gap-6" onsubmit={submit}>
       <Field.FieldGroup class="grid sm:grid-cols-2">
-        <Field.Field class="sm:col-span-2"
-          ><Field.FieldLabel for="recurring-name">名称</Field.FieldLabel><Input
+        <Field.Field class="sm:col-span-2">
+          <Field.FieldLabel for="recurring-name">名称</Field.FieldLabel><Input
             id="recurring-name"
             required
             bind:value={name}
-          /></Field.Field
-        >
-        <Field.Field
-          ><Field.FieldLabel for="recurring-amount"
-            >{variable ? '金額（目安）' : '金額'}</Field.FieldLabel
-          ><Input
+          />
+        </Field.Field>
+        <Field.Field>
+          <Field.FieldLabel for="recurring-amount">
+            {variable ? '金額（目安）' : '金額'}
+          </Field.FieldLabel><Input
             id="recurring-amount"
             type="number"
             min="1"
             required
             bind:value={amount}
-          /></Field.Field
-        >
-        <Field.Field
-          ><Field.FieldLabel for="recurring-day">毎月の支払日</Field.FieldLabel><Input
+          />
+        </Field.Field>
+        <Field.Field>
+          <Field.FieldLabel for="recurring-day">毎月の支払日</Field.FieldLabel><Input
             id="recurring-day"
             type="number"
             min="1"
             max="31"
             required
             bind:value={paymentDay}
-          /></Field.Field
-        >
-        <Field.Field
-          ><Field.FieldLabel for="recurring-category">カテゴリ</Field.FieldLabel><NativeSelect.Root
+          />
+        </Field.Field>
+        <Field.Field>
+          <Field.FieldLabel for="recurring-category">カテゴリ</Field.FieldLabel><NativeSelect.Root
             id="recurring-category"
             required
             bind:value={categoryId}
-            >{#each categories as category (category.id)}<NativeSelect.Option value={category.id}
-                >{category.name}</NativeSelect.Option
-              >{/each}</NativeSelect.Root
-          ></Field.Field
-        >
-        <Field.Field
-          ><Field.FieldLabel for="recurring-payment">支払方法</Field.FieldLabel><NativeSelect.Root
+          >
+            {#each categories as category (category.id)}<NativeSelect.Option value={category.id}>
+                {category.name}
+              </NativeSelect.Option>{/each}
+          </NativeSelect.Root>
+        </Field.Field>
+        <Field.Field>
+          <Field.FieldLabel for="recurring-payment">支払方法</Field.FieldLabel><NativeSelect.Root
             id="recurring-payment"
             required
             bind:value={paymentMethodId}
-            >{#each paymentMethods as method (method.id)}<NativeSelect.Option value={method.id}
-                >{method.name}</NativeSelect.Option
-              >{/each}</NativeSelect.Root
-          ></Field.Field
-        >
-        <Field.Field
-          ><Field.FieldLabel for="recurring-start">開始日</Field.FieldLabel><Input
+          >
+            {#each paymentMethods as method (method.id)}<NativeSelect.Option value={method.id}>
+                {method.name}
+              </NativeSelect.Option>{/each}
+          </NativeSelect.Root>
+        </Field.Field>
+        <Field.Field>
+          <Field.FieldLabel for="recurring-start">開始日</Field.FieldLabel><Input
             id="recurring-start"
             type="date"
             required
             bind:value={startDate}
-          /></Field.Field
-        >
-        <Field.Field
-          ><Field.FieldLabel for="recurring-end">終了日（任意）</Field.FieldLabel><Input
+          />
+        </Field.Field>
+        <Field.Field>
+          <Field.FieldLabel for="recurring-end">終了日（任意）</Field.FieldLabel><Input
             id="recurring-end"
             type="date"
             min={startDate}
             bind:value={endDate}
-          /></Field.Field
-        >
-        <Field.Field class="sm:col-span-2"
-          ><Field.FieldLabel for="recurring-description">備考（任意）</Field.FieldLabel><Textarea
+          />
+        </Field.Field>
+        <Field.Field class="sm:col-span-2">
+          <Field.FieldLabel for="recurring-description">備考（任意）</Field.FieldLabel><Textarea
             id="recurring-description"
             bind:value={description}
-          /></Field.Field
-        >
-        <Field.Field orientation="horizontal" class="sm:col-span-2"
-          ><Checkbox id="recurring-variable" bind:checked={variable} /><Field.FieldLabel
-            for="recurring-variable">金額が月ごとに変動する（準固定費）</Field.FieldLabel
-          ></Field.Field
-        >
-        <Field.Field orientation="horizontal" class="sm:col-span-2"
-          ><Checkbox id="recurring-active" bind:checked={active} /><Field.FieldLabel
+          />
+        </Field.Field>
+        <Field.Field orientation="horizontal" class="sm:col-span-2">
+          <Checkbox id="recurring-variable" bind:checked={variable} /><Field.FieldLabel
+            for="recurring-variable"
+          >
+            金額が月ごとに変動する（準固定費）
+          </Field.FieldLabel>
+        </Field.Field>
+        <Field.Field orientation="horizontal" class="sm:col-span-2">
+          <Checkbox id="recurring-active" bind:checked={active} /><Field.FieldLabel
             for="recurring-active"
-            >{editing ? '有効にする' : '登録後すぐに有効にする'}</Field.FieldLabel
-          ></Field.Field
-        >
+          >
+            {editing ? '有効にする' : '登録後すぐに有効にする'}
+          </Field.FieldLabel>
+        </Field.Field>
       </Field.FieldGroup>
       <Dialog.Footer>
         <Button variant="outline" type="button" onclick={onclose}>キャンセル</Button>
-        <Button type="submit" disabled={saving}
-          >{#if saving}<Spinner data-icon="inline-start" />{editing
+        <Button type="submit" disabled={saving}>
+          {#if saving}<Spinner data-icon="inline-start" />{editing
               ? '更新'
-              : '登録'}中…{:else}固定費を{editing ? '更新' : '登録'}{/if}</Button
-        >
+              : '登録'}中…{:else}固定費を{editing ? '更新' : '登録'}{/if}
+        </Button>
       </Dialog.Footer>
     </form>
   </Dialog.Content>

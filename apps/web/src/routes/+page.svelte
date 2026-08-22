@@ -229,9 +229,9 @@
         <CircleAlertIcon />
         <Alert.Title>読み込みエラー</Alert.Title>
         <Alert.Description>{error}</Alert.Description>
-        <Alert.Action
-          ><Button variant="outline" size="sm" onclick={loadAll}>再試行</Button></Alert.Action
-        >
+        <Alert.Action>
+          <Button variant="outline" size="sm" onclick={loadAll}>再試行</Button>
+        </Alert.Action>
       </Alert.Root>
     {/if}
     {#if loading}<div class="grid min-h-72 gap-4 py-12">
