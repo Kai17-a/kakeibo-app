@@ -5,6 +5,7 @@
   import * as Tabs from '$lib/components/ui/tabs';
   import { categoryTotals, sumAmounts } from '../../domain/summaries';
   import { formatDate, formatYen } from '../../format';
+  import { cn } from '../../utils';
   import type {
     Expense,
     ExpenseCategory,
@@ -72,6 +73,12 @@
   const ledger = $derived(
     [...expenses].sort((a, b) => a.transaction_date.localeCompare(b.transaction_date)),
   );
+  function headClass(...extra: string[]) {
+    return cn(
+      'px-3 py-2 text-xs font-medium tracking-wider text-muted-foreground uppercase',
+      extra,
+    );
+  }
 </script>
 
 <Card.Root class="overflow-hidden">
@@ -94,18 +101,19 @@
           <h3 class="bg-muted px-3 py-2 text-sm font-bold">支出明細</h3>
           <div class="max-h-[38rem] overflow-auto">
             <table class="w-full min-w-[800px] text-sm">
-              <thead class="sticky top-0 bg-background text-foreground"
-                ><tr
-                  ><th class="w-32 px-3 py-2 text-left whitespace-nowrap">日付</th><th
-                    class="min-w-28 px-3 py-2 text-left">摘要</th
-                  ><th class="min-w-28 px-3 py-2 text-left">支払種別</th><th
-                    class="w-32 px-3 py-2 text-right whitespace-nowrap">金額</th
-                  ><th class="min-w-40 px-3 py-2 text-left">備考</th><th
+              <thead class="sticky top-0 bg-background"
+                ><tr class="border-b"
+                  ><th class={headClass('w-32 text-left whitespace-nowrap')}>日付</th><th
+                    class={headClass('min-w-28 text-left')}>摘要</th
+                  ><th class={headClass('min-w-28 text-left')}>支払種別</th><th
+                    class={headClass('w-32 text-right whitespace-nowrap')}>金額</th
+                  ><th class={headClass('min-w-40 text-left')}>備考</th><th
                     class="w-36 px-3 py-2 text-right"><span class="sr-only">操作</span></th
                   ></tr
                 ></thead
               ><tbody
-                >{#each ledger as item (item.id)}<tr class="border-t"
+                >{#each ledger as item (item.id)}<tr
+                    class="border-t transition-colors hover:bg-muted/50"
                     ><td class="px-3 py-2 whitespace-nowrap">{formatDate(item.transaction_date)}</td
                     ><td class="px-3 py-2">{categoryNames.get(item.category_id)}</td><td
                       class="px-3 py-2">{paymentNames.get(item.payment_method_id)}</td
