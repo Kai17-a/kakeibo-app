@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "kakeibo-app システム構成",
+    "output": "kakeibo-app-architecture.html",
+    "quality_profile": "showcase",
+    "viewBox": [1180, 680],
+    "repository": {
+      "url": "https://github.com/Kai17-a/kakeibo-app",
+      "revision": "cfab924ff3025f34fbe5840dd19da9606f374bbf"
+    }
+  },
+  "components": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "利用者",
+      "sublabel": "Webブラウザ",
+      "pos": [40, 290],
+      "size": [130, 68]
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "SvelteKit Web UI",
+      "sublabel": "Svelte 5 / 静的SPA",
+      "tag": "shadcn-svelte",
+      "pos": [235, 290],
+      "size": [165, 68],
+      "sources": [
+        { "path": "apps/web/package.json", "label": "フロントエンド依存関係" },
+        { "path": "apps/web/src/routes/+page.svelte", "label": "メイン画面" }
+      ]
+    },
+    {
+      "id": "axum",
+      "type": "backend",
+      "label": "Axum HTTP Server",
+      "sublabel": ":8000 / Tokio",
+      "tag": "API + 静的配信",
+      "pos": [470, 290],
+      "size": [165, 68],
+      "sources": [
+        { "path": "apps/api/src/main.rs", "label": "HTTPサーバー構成" },
+        { "path": "apps/api/Cargo.toml", "label": "Rust依存関係" }
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "APIレイヤー",
+      "sublabel": "Router → Handler → Service",
+      "tag": "REST / JSON",
+      "pos": [705, 290],
+      "size": [180, 68],
+      "sources": [
+        { "path": "apps/api/src/router/mod.rs", "label": "APIルーター" },
+        { "path": "apps/api/src/handler/mod.rs", "label": "ハンドラー" },
+        { "path": "apps/api/src/service/mod.rs", "label": "サービス" }
+      ]
+    },
+    {
+      "id": "sqlite",
+      "type": "database",
+      "label": "SQLite",
+      "sublabel": "/data/kakeibo.db",
+      "tag": "SQLx + migrations",
+      "pos": [955, 290],
+      "size": [165, 68],
+      "sources": [
+        { "path": "apps/api/src/database/mod.rs", "label": "DBモジュール" },
+        { "path": "apps/api/migrations/0001__initial.up.sql", "label": "初期スキーマ" }
+      ]
+    },
+    {
+      "id": "redoc",
+      "type": "frontend",
+      "label": "Redoc",
+      "sublabel": "/docs",
+      "tag": "OpenAPI",
+      "pos": [470, 100],
+      "size": [165, 64],
+      "sources": [
+        { "path": "apps/api/src/router/redoc.rs", "label": "APIドキュメント" }
+      ]
+    },
+    {
+      "id": "webhook",
+      "type": "external",
+      "label": "Webhook送信先",
+      "sublabel": "登録済み外部URL",
+      "pos": [705, 485],
+      "size": [180, 64],
+      "sources": [
+        { "path": "apps/api/src/service/webhook_urls.rs", "label": "Webhook通知" },
+        { "path": "apps/api/src/model/webhook_urls.rs", "label": "Webhook URLモデル" }
+      ]
+    },
+    {
+      "id": "volume",
+      "type": "cloud",
+      "label": "Docker Volume",
+      "sublabel": "kakeibo-data",
+      "tag": "永続化",
+      "pos": [955, 485],
+      "size": [165, 64],
+      "sources": [
+        { "path": "compose.yaml", "label": "ボリューム定義" }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "単一Dockerコンテナ",
+      "wraps": ["web", "axum", "api", "sqlite", "redoc"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "browser-ui",
+      "from": "user",
+      "to": "web",
+      "label": "画面操作",
+      "variant": "emphasis"
+    },
+    {
+      "id": "ui-server",
+      "from": "web",
+      "to": "axum",
+      "label": "HTTP / JSON API",
+      "variant": "emphasis",
+      "labelAt": [435, 372]
+    },
+    {
+      "id": "server-api",
+      "from": "axum",
+      "to": "api",
+      "label": "ルーティング",
+      "variant": "emphasis"
+    },
+    {
+      "id": "api-db",
+      "from": "api",
+      "to": "sqlite",
+      "label": "SQLx queries",
+      "variant": "emphasis"
+    },
+    {
+      "id": "server-redoc",
+      "from": "axum",
+      "to": "redoc",
+      "label": "OpenAPIを公開",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "service-webhook",
+      "from": "api",
+      "to": "webhook",
+      "label": "HTTP POST",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [795, 372]
+    },
+    {
+      "id": "db-volume",
+      "from": "sqlite",
+      "to": "volume",
+      "label": "DBファイルを永続化",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [1038, 372]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "配信",
+      "items": [
+        "SvelteKitの静的成果物とRust APIをAxumが同一ポートで配信",
+        "Dockerイメージ1つでWeb UI・API・APIドキュメントを提供"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "データ",
+      "items": [
+        "収入・支出・カテゴリ・支払方法・定期支出をSQLiteで管理",
+        "CSVのインポート／エクスポートとWebhook通知に対応"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "永続化",
+      "items": [
+        "/data/kakeibo.dbをDocker Volume kakeibo-dataへ保存",
+        "起動時にSQLx migrationsを適用"
+      ]
+    }
+  ]
+}
