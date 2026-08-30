@@ -11,8 +11,9 @@
   interface Props {
     onTransaction?: () => void;
     onRecurring?: () => void;
+    onRecurringIncome?: () => void;
   }
-  let { onTransaction, onRecurring }: Props = $props();
+  let { onTransaction, onRecurring, onRecurringIncome }: Props = $props();
 </script>
 
 <header class="border-b bg-background/95">
@@ -38,6 +39,12 @@
           <ReceiptTextIcon data-icon="inline-start" />
           <span class="hidden sm:inline">固定費</span>
         </Button>
+        {#if onRecurringIncome}
+          <Button variant="outline" onclick={onRecurringIncome} aria-label="定期収入">
+            <CircleDollarSignIcon data-icon="inline-start" />
+            <span class="hidden lg:inline">定期収入</span>
+          </Button>
+        {/if}
         <Button onclick={onTransaction} aria-label="収支を登録">
           <CircleDollarSignIcon data-icon="inline-start" />
           <span class="hidden sm:inline">収支を登録</span>

@@ -6,4 +6,5 @@ pub mod income_categories;
 pub mod incomes;
 pub mod payment_methods;
 pub mod recurring_expenses;
+pub mod recurring_incomes;
 pub mod webhook_urls;

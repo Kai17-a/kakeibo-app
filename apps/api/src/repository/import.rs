@@ -111,6 +111,7 @@ impl ImportRepository {
             .bind(&v.category_id)
             .bind(&v.transaction_date)
             .bind(&v.amount)
+            .bind(&v.recurring_income_id)
             .bind(&v.description)
             .fetch_one(&mut **tx)
             .await?;

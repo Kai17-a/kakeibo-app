@@ -26,6 +26,7 @@ export interface Income extends BaseResource {
   transaction_date: string;
   amount: string;
   category_id: string;
+  recurring_income_id: string | null;
   description: string | null;
 }
 export interface RecurringExpense extends BaseResource {
@@ -36,6 +37,17 @@ export interface RecurringExpense extends BaseResource {
   end_date: string | null;
   category_id: string;
   payment_method_id: string;
+  is_active: boolean;
+  is_variable: boolean;
+  description: string | null;
+}
+export interface RecurringIncome extends BaseResource {
+  name: string;
+  amount: string;
+  payment_day: number;
+  start_date: string;
+  end_date: string | null;
+  category_id: string;
   is_active: boolean;
   is_variable: boolean;
   description: string | null;
@@ -71,6 +83,7 @@ export interface IncomeInput {
   transaction_date: string;
   amount: string;
   category_id: string;
+  recurring_income_id?: string | null;
   description: string | null;
 }
 export interface RecurringExpenseInput {
@@ -81,6 +94,17 @@ export interface RecurringExpenseInput {
   end_date: string | null;
   category_id: string;
   payment_method_id: string;
+  is_active: boolean;
+  is_variable: boolean;
+  description: string | null;
+}
+export interface RecurringIncomeInput {
+  name: string;
+  amount: string;
+  payment_day: number;
+  start_date: string;
+  end_date: string | null;
+  category_id: string;
   is_active: boolean;
   is_variable: boolean;
   description: string | null;

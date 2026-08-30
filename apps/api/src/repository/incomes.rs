@@ -19,7 +19,7 @@ impl IncomeRepository {
     pub async fn find_all(&self, query: &IncomeQuery) -> AppResult<Vec<IncomeRow>> {
         let mut builder = filtered_query(
             "SELECT id, created_at, updated_at, category_id, transaction_date, amount, \
-             description FROM incomes WHERE 1 = 1",
+             recurring_income_id, description FROM incomes WHERE 1 = 1",
             query,
         );
 
@@ -59,6 +59,7 @@ impl IncomeRepository {
             .bind(&input.category_id)
             .bind(&input.transaction_date)
             .bind(&input.amount)
+            .bind(&input.recurring_income_id)
             .bind(&input.description)
             .fetch_one(&self.pool)
             .await
@@ -74,6 +75,7 @@ impl IncomeRepository {
             .bind(&input.category_id)
             .bind(&input.transaction_date)
             .bind(&input.amount)
+            .bind(&input.recurring_income_id)
             .bind(&input.description)
             .bind(id)
             .fetch_optional(&self.pool)
@@ -87,6 +89,23 @@ impl IncomeRepository {
             .execute(&self.pool)
             .await?;
         Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn current_month(&self) -> AppResult<String> {
+        sqlx::query_scalar(include_str!("../../queries/incomes/current_month.sql"))
+            .fetch_one(&self.pool)
+            .await
+            .map_err(Into::into)
+    }
+
+    pub async fn insert_recurring_for_month(&self, month: &str) -> AppResult<u64> {
+        Ok(sqlx::query(include_str!(
+            "../../queries/incomes/insert_recurring_for_month.sql"
+        ))
+        .bind(month)
+        .execute(&self.pool)
+        .await?
+        .rows_affected())
     }
 }
 

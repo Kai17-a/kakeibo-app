@@ -11,6 +11,7 @@ pub struct Income {
     pub category_id: String,
     pub transaction_date: String,
     pub amount: String,
+    pub recurring_income_id: Option<String>,
     pub description: Option<String>,
 }
 
@@ -23,6 +24,7 @@ impl From<IncomeRow> for Income {
             category_id: row.category_id,
             transaction_date: row.transaction_date,
             amount: row.amount,
+            recurring_income_id: row.recurring_income_id,
             description: row.description,
         }
     }
@@ -33,6 +35,7 @@ pub struct IncomeUpsertRequest {
     pub category_id: String,
     pub transaction_date: String,
     pub amount: String,
+    pub recurring_income_id: Option<String>,
     pub description: Option<String>,
 }
 

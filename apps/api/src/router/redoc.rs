@@ -6,7 +6,7 @@ use utoipa_redoc::{Redoc, Servable};
 use crate::{
     handler::{
         expense_categories, expenses, export, health, import, income_categories, incomes,
-        payment_methods, recurring_expenses, webhook_urls,
+        payment_methods, recurring_expenses, recurring_incomes, webhook_urls,
     },
     model::expense_categories::{
         ExpenseCategory, ExpenseCategoryListResponse, ExpenseCategoryPagination,
@@ -27,6 +27,7 @@ use crate::{
         PaymentMethodSortOrder, PaymentMethodUpsertRequest,
     },
     model::recurring_expenses::{RecurringExpense, RecurringExpenseUpsertRequest},
+    model::recurring_incomes::{RecurringIncome, RecurringIncomeUpsertRequest},
     model::webhook_urls::{WebhookUrl, WebhookUrlUpsertRequest},
 };
 
@@ -57,6 +58,11 @@ use crate::{
         recurring_expenses::create,
         recurring_expenses::update,
         recurring_expenses::delete,
+        recurring_incomes::list,
+        recurring_incomes::get,
+        recurring_incomes::create,
+        recurring_incomes::update,
+        recurring_incomes::delete,
         income_categories::list,
         income_categories::get,
         income_categories::create,
@@ -92,6 +98,8 @@ use crate::{
         PaymentMethodSortOrder,
         RecurringExpense,
         RecurringExpenseUpsertRequest,
+        RecurringIncome,
+        RecurringIncomeUpsertRequest,
         IncomeCategory,
         IncomeCategoryUpsertRequest,
         IncomeCategoryListResponse,
@@ -122,6 +130,7 @@ use crate::{
         (name = "インポート", description = "収支データのCSVインポート"),
         (name = "支払方法", description = "支払方法の管理"),
         (name = "定期支出", description = "定期支出の管理"),
+        (name = "定期収入", description = "定期収入の管理"),
         (name = "Webhook", description = "Webhook通知先URLの管理"),
         (name = "システム", description = "稼働状態の確認")
     )
@@ -159,6 +168,7 @@ fn tag_for_path(path: &str) -> &'static str {
         "/api/import/expenses" | "/api/import/incomes" => "インポート",
         "/api/payment-methods" | "/api/payment-methods/{id}" => "支払方法",
         "/api/recurring-expenses" | "/api/recurring-expenses/{id}" => "定期支出",
+        "/api/recurring-incomes" | "/api/recurring-incomes/{id}" => "定期収入",
         "/api/webhook-urls" | "/api/webhook-urls/{id}" => "Webhook",
         _ => "システム",
     }

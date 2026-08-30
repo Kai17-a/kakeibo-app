@@ -11,6 +11,7 @@
   import { inPeriod } from '$lib/domain/summaries';
   import AnnualSummary from '$lib/features/annual/AnnualSummary.svelte';
   import RecurringExpenseForm from '$lib/features/forms/RecurringExpenseForm.svelte';
+  import RecurringIncomeForm from '$lib/features/forms/RecurringIncomeForm.svelte';
   import TransactionForm from '$lib/features/forms/TransactionForm.svelte';
   import LedgerSheet from '$lib/features/ledger/LedgerSheet.svelte';
   import MonthlySummary from '$lib/features/monthly/MonthlySummary.svelte';
@@ -26,6 +27,8 @@
     PaymentMethod,
     RecurringExpense,
     RecurringExpenseInput,
+    RecurringIncome,
+    RecurringIncomeInput,
   } from '$lib/types';
 
   let expenses = $state.raw<Expense[]>([]);
@@ -34,13 +37,16 @@
   let incomeCategories = $state.raw<IncomeCategory[]>([]);
   let paymentMethods = $state.raw<PaymentMethod[]>([]);
   let recurringExpenses = $state.raw<RecurringExpense[]>([]);
+  let recurringIncomes = $state.raw<RecurringIncome[]>([]);
   let selectedMonth = $state(currentMonth());
   let selectedYear = $state(currentMonth().slice(0, 4));
   let view = $state<SummaryView>('monthly');
   let transactionFormOpen = $state(false);
   let editingExpense = $state<Expense | null>(null);
   let transactionPreset = $state<RecurringExpense | null>(null);
+  let incomeTransactionPreset = $state<RecurringIncome | null>(null);
   let recurringFormOpen = $state(false);
+  let recurringIncomeFormOpen = $state(false);
   let loading = $state(true);
   let saving = $state(false);
   let error = $state('');
@@ -77,6 +83,7 @@
         incomeCategoryData,
         paymentData,
         recurringData,
+        recurringIncomeData,
       ] = await Promise.all([
         api.expenses(),
         api.incomes(),
@@ -84,6 +91,7 @@
         api.incomeCategories(),
         api.paymentMethods(),
         api.recurringExpenses(),
+        api.recurringIncomes(),
       ]);
       expenses = expenseData;
       incomes = incomeData.items;
@@ -91,6 +99,7 @@
       incomeCategories = incomeCategoryData.items;
       paymentMethods = paymentData.items;
       recurringExpenses = recurringData;
+      recurringIncomes = recurringIncomeData;
     } catch (caught) {
       error = message(caught, 'データを読み込めませんでした。');
     } finally {
@@ -121,6 +130,7 @@
         transactionFormOpen = false;
         editingExpense = null;
         transactionPreset = null;
+        incomeTransactionPreset = null;
       }
       return true;
     } catch (caught) {
@@ -134,12 +144,20 @@
   function openTransaction() {
     editingExpense = null;
     transactionPreset = null;
+    incomeTransactionPreset = null;
     transactionFormOpen = true;
   }
 
   function registerVariableRecurring(item: RecurringExpense) {
     editingExpense = null;
     transactionPreset = item;
+    transactionFormOpen = true;
+  }
+
+  function registerVariableRecurringIncome(item: RecurringIncome) {
+    editingExpense = null;
+    transactionPreset = null;
+    incomeTransactionPreset = item;
     transactionFormOpen = true;
   }
 
@@ -152,6 +170,7 @@
     transactionFormOpen = false;
     editingExpense = null;
     transactionPreset = null;
+    incomeTransactionPreset = null;
   }
 
   async function saveRecurring(input: RecurringExpenseInput) {
@@ -174,6 +193,27 @@
 
   function closeRecurringForm() {
     recurringFormOpen = false;
+  }
+
+  async function saveRecurringIncome(input: RecurringIncomeInput) {
+    saving = true;
+    error = '';
+    try {
+      recurringIncomes = [await api.createRecurringIncome(input), ...recurringIncomes];
+      recurringIncomeFormOpen = false;
+      toast.success('定期収入を登録しました。');
+    } catch (caught) {
+      error = message(caught, '定期収入を登録できませんでした。');
+    } finally {
+      saving = false;
+    }
+  }
+
+  function openRecurringIncomeForm() {
+    recurringIncomeFormOpen = true;
+  }
+  function closeRecurringIncomeForm() {
+    recurringIncomeFormOpen = false;
   }
 
   async function removeExpense(item: Expense) {
@@ -213,7 +253,11 @@
 </svelte:head>
 
 <div class="min-h-screen bg-background">
-  <Header onTransaction={openTransaction} onRecurring={openRecurringForm} />
+  <Header
+    onTransaction={openTransaction}
+    onRecurring={openRecurringForm}
+    onRecurringIncome={openRecurringIncomeForm}
+  />
   <main class="mx-auto max-w-7xl px-5 py-8 lg:px-10 lg:py-12">
     <PeriodSelector
       {view}
@@ -264,7 +308,9 @@
         {incomeCategories}
         {paymentMethods}
         {recurringExpenses}
+        {recurringIncomes}
         onregistervariable={registerVariableRecurring}
+        onregistervariableincome={registerVariableRecurringIncome}
       />{/if}
   </main>
 </div>
@@ -276,9 +322,16 @@
     {saving}
     initialExpense={editingExpense ?? undefined}
     initialRecurring={transactionPreset ?? undefined}
+    initialRecurringIncome={incomeTransactionPreset ?? undefined}
     initialDate={`${selectedMonth}-${String(Math.min(new Date().getDate(), 28)).padStart(2, '0')}`}
     onclose={closeTransaction}
     onsubmit={saveTransaction}
+  />{/if}
+{#if recurringIncomeFormOpen}<RecurringIncomeForm
+    categories={incomeCategories}
+    {saving}
+    onclose={closeRecurringIncomeForm}
+    onsubmit={saveRecurringIncome}
   />{/if}
 {#if recurringFormOpen}<RecurringExpenseForm
     categories={expenseCategories}

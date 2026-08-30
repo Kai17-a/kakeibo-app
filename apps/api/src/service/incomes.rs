@@ -18,6 +18,8 @@ impl IncomeService {
 
     pub async fn list(&self, query: &IncomeQuery) -> AppResult<IncomeListResponse> {
         validate_query(query)?;
+        let month = self.repository.current_month().await?;
+        self.repository.insert_recurring_for_month(&month).await?;
         let items = self
             .repository
             .find_all(query)

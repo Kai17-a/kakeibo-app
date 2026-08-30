@@ -16,6 +16,7 @@
     IncomeInput,
     PaymentMethod,
     RecurringExpense,
+    RecurringIncome,
   } from '../../types';
   interface Props {
     expenseCategories: ExpenseCategory[];
@@ -26,6 +27,7 @@
     initialExpense?: Expense;
     initialIncome?: Income;
     initialRecurring?: RecurringExpense;
+    initialRecurringIncome?: RecurringIncome;
     onclose(): void;
     onsubmit(
       kind: 'expense' | 'income',
@@ -42,20 +44,24 @@
     initialExpense,
     initialIncome,
     initialRecurring,
+    initialRecurringIncome,
     onclose,
     onsubmit,
   }: Props = $props();
-  let kind = $derived<'expense' | 'income'>(initialIncome ? 'income' : 'expense');
+  let kind = $derived<'expense' | 'income'>(
+    initialIncome || initialRecurringIncome ? 'income' : 'expense',
+  );
   const categories = $derived(kind === 'expense' ? expenseCategories : incomeCategories);
   const editing = $derived(Boolean(initialExpense ?? initialIncome));
-  const preset = $derived(Boolean(initialRecurring));
+  const preset = $derived(Boolean(initialRecurring ?? initialRecurringIncome));
   const recurringDate = $derived.by(() => {
-    if (!initialRecurring) return undefined;
-    const now = new Date();
-    const year = now.getFullYear();
-    const monthIndex = now.getMonth();
+    const recurring = initialRecurring ?? initialRecurringIncome;
+    if (!recurring) return undefined;
+    const [yearValue, monthValue] = initialDate.split('-').map(Number);
+    const year = yearValue;
+    const monthIndex = monthValue - 1;
     const lastDay = new Date(year, monthIndex + 1, 0).getDate();
-    const day = Math.min(initialRecurring.payment_day, lastDay);
+    const day = Math.min(recurring.payment_day, lastDay);
     return `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   });
   let date = $derived(
@@ -65,12 +71,17 @@
       initialDate,
   );
   let amount = $derived(
-    initialExpense?.amount ?? initialIncome?.amount ?? initialRecurring?.amount ?? '',
+    initialExpense?.amount ??
+      initialIncome?.amount ??
+      initialRecurring?.amount ??
+      initialRecurringIncome?.amount ??
+      '',
   );
   let categoryId = $derived(
     initialExpense?.category_id ??
       initialIncome?.category_id ??
       initialRecurring?.category_id ??
+      initialRecurringIncome?.category_id ??
       categories[0]?.id ??
       '',
   );
@@ -83,7 +94,8 @@
   let description = $derived(
     initialExpense?.description ??
       initialIncome?.description ??
-      (initialRecurring ? initialRecurring.name : ''),
+      (initialRecurring ?? initialRecurringIncome)?.name ??
+      '',
   );
   async function submit(event: SubmitEvent) {
     event.preventDefault();
@@ -104,6 +116,8 @@
             transaction_date: date,
             amount: String(amount),
             category_id: categoryId,
+            recurring_income_id:
+              initialIncome?.recurring_income_id ?? initialRecurringIncome?.id ?? null,
             description: description || null,
           },
       keepOpen,
@@ -125,7 +139,9 @@
           : initialIncome
             ? '収入を編集'
             : preset
-              ? '準固定費を登録'
+              ? initialRecurringIncome
+                ? '準固定収入を登録'
+                : '準固定費を登録'
               : '収支を登録'}
       </Dialog.Title>
       <Dialog.Description>日付や金額、カテゴリを入力してください。</Dialog.Description>

@@ -5,6 +5,7 @@ SELECT
   , category_id
   , transaction_date
   , amount
+  , recurring_income_id
   , description
 FROM
   incomes

@@ -16,6 +16,7 @@
     IncomeCategory,
     PaymentMethod,
     RecurringExpense,
+    RecurringIncome,
   } from '../../types';
   interface Props {
     monthLabel: string;
@@ -25,7 +26,9 @@
     incomeCategories: IncomeCategory[];
     paymentMethods: PaymentMethod[];
     recurringExpenses: RecurringExpense[];
+    recurringIncomes: RecurringIncome[];
     onregistervariable(item: RecurringExpense): void;
+    onregistervariableincome(item: RecurringIncome): void;
   }
   let {
     monthLabel,
@@ -35,7 +38,9 @@
     incomeCategories,
     paymentMethods,
     recurringExpenses,
+    recurringIncomes,
     onregistervariable,
+    onregistervariableincome,
   }: Props = $props();
   const expenseTotal = $derived(sumAmounts(expenses));
   const incomeTotal = $derived(sumAmounts(incomes));
@@ -46,6 +51,12 @@
   );
   const variableRecurring = $derived(
     recurringExpenses.filter((item) => item.is_active && item.is_variable),
+  );
+  const fixedRecurringIncomes = $derived(
+    recurringIncomes.filter((item) => item.is_active && !item.is_variable),
+  );
+  const variableRecurringIncomes = $derived(
+    recurringIncomes.filter((item) => item.is_active && item.is_variable),
   );
   const expenseNames = $derived(
     new SvelteMap(expenseCategories.map((item) => [item.id, item.name])),
@@ -184,6 +195,45 @@
                   今月分を登録
                 </Button>
               </li>{/each}
+          </ul>
+        {/if}
+      </Card.Content>
+    </Card.Root>
+    <Card.Root>
+      <Card.Header><Card.Title>定期収入</Card.Title></Card.Header>
+      <Card.Content>
+        <ul class="divide-y">
+          {#each fixedRecurringIncomes as item (item.id)}
+            <li class="flex items-center justify-between py-3 text-sm">
+              <span>
+                <b class="block">{item.name}</b>
+                <small>毎月 {item.payment_day} 日</small>
+              </span>
+              <b>{formatYen(item.amount)}</b>
+            </li>
+          {/each}
+        </ul>
+        {#if variableRecurringIncomes.length}
+          <h4 class="mt-4 text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+            準固定収入（金額変動）
+          </h4>
+          <ul class="mt-2 divide-y">
+            {#each variableRecurringIncomes as item (item.id)}
+              <li class="flex items-center justify-between py-3 text-sm">
+                <span>
+                  <b class="block">{item.name}</b>
+                  <small>毎月 {item.payment_day} 日 · 目安 {formatYen(item.amount)}</small>
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  aria-label={`${item.name}の今月分を登録`}
+                  onclick={() => onregistervariableincome(item)}
+                >
+                  今月分を登録
+                </Button>
+              </li>
+            {/each}
           </ul>
         {/if}
       </Card.Content>

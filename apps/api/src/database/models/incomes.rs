@@ -10,5 +10,6 @@ pub struct IncomeRow {
     pub category_id: String,
     pub transaction_date: String,
     pub amount: String,
+    pub recurring_income_id: Option<String>,
     pub description: Option<String>,
 }

@@ -132,6 +132,7 @@ impl ImportService {
                         transaction_date: row.transaction_date.trim().to_owned(),
                         amount: row.amount.trim().to_owned(),
                         category_id,
+                        recurring_income_id: None,
                         description: row.description.clone(),
                     },
                 )

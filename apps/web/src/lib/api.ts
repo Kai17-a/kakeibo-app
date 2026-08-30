@@ -12,6 +12,8 @@ import type {
   PaymentMethod,
   RecurringExpense,
   RecurringExpenseInput,
+  RecurringIncome,
+  RecurringIncomeInput,
   WebhookUrl,
   WebhookUrlInput,
 } from './types';
@@ -94,6 +96,7 @@ export const api = {
   deletePaymentMethod: (id: string) =>
     request<void>(`/api/payment-methods/${id}`, { method: 'delete' }),
   recurringExpenses: () => request<RecurringExpense[]>('/api/recurring-expenses'),
+  recurringIncomes: () => request<RecurringIncome[]>('/api/recurring-incomes'),
   createExpense: (input: ExpenseInput) =>
     request<Expense>('/api/expenses', { method: 'post', json: input }),
   updateExpense: (id: string, input: ExpenseInput) =>
@@ -113,6 +116,12 @@ export const api = {
   deleteIncome: (id: string) => request<void>(`/api/incomes/${id}`, { method: 'delete' }),
   deleteRecurringExpense: (id: string) =>
     request<void>(`/api/recurring-expenses/${id}`, { method: 'delete' }),
+  createRecurringIncome: (input: RecurringIncomeInput) =>
+    request<RecurringIncome>('/api/recurring-incomes', { method: 'post', json: input }),
+  updateRecurringIncome: (id: string, input: RecurringIncomeInput) =>
+    request<RecurringIncome>(`/api/recurring-incomes/${id}`, { method: 'put', json: input }),
+  deleteRecurringIncome: (id: string) =>
+    request<void>(`/api/recurring-incomes/${id}`, { method: 'delete' }),
   webhookUrls: () => request<WebhookUrl[]>('/api/webhook-urls'),
   createWebhookUrl: (input: WebhookUrlInput) =>
     request<WebhookUrl>('/api/webhook-urls', { method: 'post', json: input }),

@@ -81,7 +81,7 @@ async fn import_expenses_csv() {
 }
 #[tokio::test]
 async fn import_incomes_csv() {
-    let p = pool("CREATE TABLE income_categories(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT);CREATE TABLE incomes(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,category_id TEXT NOT NULL REFERENCES income_categories(id),transaction_date TEXT NOT NULL,amount TEXT NOT NULL,description TEXT);INSERT INTO income_categories(name,description) VALUES('給与',NULL)").await;
+    let p = pool("CREATE TABLE income_categories(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT);CREATE TABLE incomes(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,category_id TEXT NOT NULL REFERENCES income_categories(id),transaction_date TEXT NOT NULL,amount TEXT NOT NULL,recurring_income_id TEXT,description TEXT);INSERT INTO income_categories(name,description) VALUES('給与',NULL)").await;
     let app = import::create(p.clone());
     let csv = "日付,金額,カテゴリ,メモ\n2026-07-25,300000,給与,7月分\n2026-07-10,20000,賞与,\n";
     let (s, b) = call(&app, "/api/import/incomes", csv).await;
