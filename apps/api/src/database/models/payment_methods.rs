@@ -6,4 +6,7 @@ pub struct PaymentMethodRow {
     pub updated_at: String,
     pub name: String,
     pub description: Option<String>,
+    pub initial_balance: Option<String>,
+    pub income_total: i64,
+    pub expense_total: i64,
 }

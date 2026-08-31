@@ -669,6 +669,7 @@
             <Table.Row>
               <Table.Head class="w-1/3">支払方法名</Table.Head>
               <Table.Head>説明</Table.Head>
+              <Table.Head class="text-right">残高</Table.Head>
               <Table.Head class="w-36 text-right">操作</Table.Head>
             </Table.Row>
           </Table.Header>
@@ -678,6 +679,9 @@
                 <Table.Cell class="font-medium">{method.name}</Table.Cell>
                 <Table.Cell class="text-muted-foreground">
                   {method.description || '説明はありません'}
+                </Table.Cell>
+                <Table.Cell class="text-right tabular-nums">
+                  {method.balance == null ? '未設定' : formatYen(method.balance)}
                 </Table.Cell>
                 <Table.Cell class="text-right">
                   <div class="flex justify-end gap-2">

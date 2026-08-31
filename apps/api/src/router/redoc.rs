@@ -20,7 +20,8 @@ use crate::{
         IncomeCategorySortOrder, IncomeCategoryUpsertRequest,
     },
     model::incomes::{
-        Income, IncomeListResponse, IncomeSortBy, IncomeUpsertRequest, Pagination, SortOrder,
+        Income, IncomeListResponse, IncomeQuery, IncomeSortBy, IncomeUpsertRequest, Pagination,
+        SortOrder,
     },
     model::payment_methods::{
         PaymentMethod, PaymentMethodListResponse, PaymentMethodPagination, PaymentMethodSortBy,
@@ -108,6 +109,7 @@ use crate::{
         IncomeCategorySortOrder,
         Income,
         IncomeUpsertRequest,
+        IncomeQuery,
         IncomeListResponse,
         Pagination,
         IncomeSortBy,

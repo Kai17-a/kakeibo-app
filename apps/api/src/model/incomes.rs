@@ -11,6 +11,7 @@ pub struct Income {
     pub category_id: String,
     pub transaction_date: String,
     pub amount: String,
+    pub payment_method_id: Option<String>,
     pub recurring_income_id: Option<String>,
     pub description: Option<String>,
 }
@@ -24,6 +25,7 @@ impl From<IncomeRow> for Income {
             category_id: row.category_id,
             transaction_date: row.transaction_date,
             amount: row.amount,
+            payment_method_id: row.payment_method_id,
             recurring_income_id: row.recurring_income_id,
             description: row.description,
         }
@@ -35,6 +37,7 @@ pub struct IncomeUpsertRequest {
     pub category_id: String,
     pub transaction_date: String,
     pub amount: String,
+    pub payment_method_id: Option<String>,
     pub recurring_income_id: Option<String>,
     pub description: Option<String>,
 }
@@ -51,12 +54,13 @@ pub struct Pagination {
     pub per_page: u32,
 }
 
-#[derive(Debug, Clone, Default, Deserialize, IntoParams)]
+#[derive(Debug, Clone, Default, Deserialize, IntoParams, ToSchema)]
 #[serde(deny_unknown_fields)]
 #[into_params(parameter_in = Query)]
 pub struct IncomeQuery {
     pub id: Option<String>,
     pub category_id: Option<String>,
+    pub payment_method_id: Option<String>,
     pub date_from: Option<String>,
     pub date_to: Option<String>,
     pub sort_by: Option<IncomeSortBy>,

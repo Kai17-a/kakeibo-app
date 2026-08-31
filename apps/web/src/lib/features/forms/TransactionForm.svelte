@@ -87,8 +87,9 @@
   );
   let paymentMethodId = $derived(
     initialExpense?.payment_method_id ??
+      initialIncome?.payment_method_id ??
       initialRecurring?.payment_method_id ??
-      paymentMethods[0]?.id ??
+      (kind === 'expense' ? paymentMethods[0]?.id : '') ??
       '',
   );
   let description = $derived(
@@ -116,6 +117,7 @@
             transaction_date: date,
             amount: String(amount),
             category_id: categoryId,
+            payment_method_id: paymentMethodId || undefined,
             recurring_income_id:
               initialIncome?.recurring_income_id ?? initialRecurringIncome?.id ?? null,
             description: description || null,
@@ -179,16 +181,23 @@
             {/each}
           </NativeSelect.Root>
         </Field.Field>
-        {#if kind === 'expense'}
-          <Field.Field>
-            <Field.FieldLabel for="transaction-payment">支払方法</Field.FieldLabel>
-            <NativeSelect.Root id="transaction-payment" required bind:value={paymentMethodId}>
-              {#each paymentMethods as method (method.id)}
-                <NativeSelect.Option value={method.id}>{method.name}</NativeSelect.Option>
-              {/each}
-            </NativeSelect.Root>
-          </Field.Field>
-        {/if}
+        <Field.Field>
+          <Field.FieldLabel for="transaction-payment">
+            支払方法{kind === 'income' ? '（任意）' : ''}
+          </Field.FieldLabel>
+          <NativeSelect.Root
+            id="transaction-payment"
+            required={kind === 'expense'}
+            bind:value={paymentMethodId}
+          >
+            {#if kind === 'income'}
+              <NativeSelect.Option value="">未選択</NativeSelect.Option>
+            {/if}
+            {#each paymentMethods as method (method.id)}
+              <NativeSelect.Option value={method.id}>{method.name}</NativeSelect.Option>
+            {/each}
+          </NativeSelect.Root>
+        </Field.Field>
         <Field.Field>
           <Field.FieldLabel for="transaction-description">メモ（任意）</Field.FieldLabel>
           <Textarea id="transaction-description" bind:value={description} />

@@ -18,6 +18,7 @@
   let { saving, initial, onclose, onsubmit }: Props = $props();
   let name = $state(untrack(() => initial?.name ?? ''));
   let description = $state(untrack(() => initial?.description ?? ''));
+  let initialBalance = $state(untrack(() => initial?.initial_balance ?? ''));
   const editing = $derived(Boolean(initial));
 
   function submit(event: SubmitEvent) {
@@ -25,6 +26,7 @@
     return onsubmit({
       name: name.trim(),
       description: description.trim() || null,
+      initial_balance: String(initialBalance).trim() || undefined,
     });
   }
 </script>
@@ -39,6 +41,20 @@
     </Dialog.Header>
     <form class="flex flex-col gap-6" onsubmit={submit}>
       <Field.FieldGroup>
+        <Field.Field>
+          <Field.FieldLabel for="payment-method-initial-balance">初期残高（任意）</Field.FieldLabel>
+          <Input
+            id="payment-method-initial-balance"
+            type="number"
+            min="0"
+            step="1"
+            placeholder="例：100000"
+            bind:value={initialBalance}
+          />
+          <Field.FieldDescription>
+            残高管理を行う場合の開始時点の金額を入力してください。
+          </Field.FieldDescription>
+        </Field.Field>
         <Field.Field>
           <Field.FieldLabel for="payment-method-name">支払方法名</Field.FieldLabel>
           <Input

@@ -26,16 +26,22 @@ async fn pool() -> SqlitePool {
          name TEXT NOT NULL, amount TEXT NOT NULL, payment_day INTEGER NOT NULL, start_date TEXT NOT NULL, \
          end_date TEXT, category_id TEXT NOT NULL REFERENCES income_categories(id), is_active INTEGER NOT NULL, \
          is_variable INTEGER NOT NULL DEFAULT 0, description TEXT); \
+         CREATE TABLE payment_methods (id TEXT PRIMARY KEY); \
          CREATE TABLE incomes (id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))), \
          created_at TEXT NOT NULL DEFAULT current_timestamp, \
          updated_at TEXT NOT NULL DEFAULT current_timestamp, category_id TEXT NOT NULL \
          REFERENCES income_categories(id), transaction_date TEXT NOT NULL, amount TEXT NOT NULL, \
+         payment_method_id TEXT REFERENCES payment_methods(id), \
          recurring_income_id TEXT REFERENCES recurring_incomes(id), description TEXT)",
     )
     .execute(&pool)
     .await
     .unwrap();
     sqlx::query("INSERT INTO income_categories (id) VALUES ('salary')")
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("INSERT INTO payment_methods (id) VALUES ('bank')")
         .execute(&pool)
         .await
         .unwrap();
@@ -53,11 +59,11 @@ async fn app_with_incomes() -> Router {
         .await
         .unwrap();
     sqlx::query(
-        "INSERT INTO incomes (id, category_id, transaction_date, amount, description) VALUES \
-         ('income-a', 'salary', '2026-07-01', '100', NULL), \
-         ('income-b', 'salary', '2026-07-15', '300', NULL), \
-         ('income-c', 'freelance', '2026-07-10', '200', NULL), \
-         ('income-d', 'salary', '2026-06-30', '400', NULL)",
+        "INSERT INTO incomes (id, category_id, transaction_date, amount, payment_method_id, description) VALUES \
+         ('income-a', 'salary', '2026-07-01', '100', 'bank', NULL), \
+         ('income-b', 'salary', '2026-07-15', '300', 'bank', NULL), \
+         ('income-c', 'freelance', '2026-07-10', '200', NULL, NULL), \
+         ('income-d', 'salary', '2026-06-30', '400', NULL, NULL)",
     )
     .execute(&pool)
     .await
@@ -97,12 +103,14 @@ async fn income_crud_lifecycle() {
         "category_id": "salary",
         "transaction_date": "2026-07-19",
         "amount": "300000",
+        "payment_method_id": "bank",
         "description": "July salary"
     });
 
     let (status, created) = call(&app, "POST", "/api/incomes", Some(input.clone())).await;
     assert_eq!(status, StatusCode::CREATED, "{created:?}");
     assert_eq!(created.as_ref().unwrap()["amount"], "300000");
+    assert_eq!(created.as_ref().unwrap()["payment_method_id"], "bank");
     let id = created.as_ref().unwrap()["id"].as_str().unwrap().to_owned();
 
     let (status, list) = call(&app, "GET", "/api/incomes", None).await;
@@ -116,6 +124,7 @@ async fn income_crud_lifecycle() {
         "category_id": "salary",
         "transaction_date": "2026-07-19",
         "amount": "310000",
+        "payment_method_id": null,
         "description": "July salary"
     });
     let (status, body) = call(&app, "PUT", &format!("/api/incomes/{id}"), Some(updated)).await;
@@ -131,7 +140,7 @@ async fn income_crud_lifecycle() {
 #[tokio::test]
 async fn filters_sorts_and_paginates_incomes() {
     let app = app_with_incomes().await;
-    let uri = "/api/incomes?category_id=salary&date_from=2026-07-01&date_to=2026-07-31&sort_by=amount&sort_order=asc&page=1&per_page=1";
+    let uri = "/api/incomes?category_id=salary&payment_method_id=bank&date_from=2026-07-01&date_to=2026-07-31&sort_by=amount&sort_order=asc&page=1&per_page=1";
 
     let (status, first_page) = call(&app, "GET", uri, None).await;
     assert_eq!(status, StatusCode::OK);
@@ -140,7 +149,7 @@ async fn filters_sorts_and_paginates_incomes() {
     assert_eq!(first_page["pagination"]["page"], 1);
     assert_eq!(first_page["pagination"]["per_page"], 1);
 
-    let second_page_uri = "/api/incomes?category_id=salary&date_from=2026-07-01&date_to=2026-07-31&sort_by=amount&sort_order=asc&page=2&per_page=1";
+    let second_page_uri = "/api/incomes?category_id=salary&payment_method_id=bank&date_from=2026-07-01&date_to=2026-07-31&sort_by=amount&sort_order=asc&page=2&per_page=1";
     let (status, second_page) = call(&app, "GET", second_page_uri, None).await;
     assert_eq!(status, StatusCode::OK);
     let second_page = second_page.unwrap();

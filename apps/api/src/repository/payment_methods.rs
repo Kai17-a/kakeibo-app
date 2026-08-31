@@ -16,7 +16,12 @@ impl PaymentMethodRepository {
     }
     pub async fn find_all(&self, q: &PaymentMethodQuery) -> AppResult<Vec<PaymentMethodRow>> {
         let mut b = QueryBuilder::<Sqlite>::new(
-            "SELECT id,created_at,updated_at,name,description FROM payment_methods WHERE 1=1",
+            "SELECT id,created_at,updated_at,name,description,initial_balance, \
+             (SELECT COALESCE(SUM(CAST(amount AS INTEGER)), 0) FROM incomes \
+              WHERE payment_method_id = payment_methods.id) AS income_total, \
+             (SELECT COALESCE(SUM(CAST(amount AS INTEGER)), 0) FROM expenses \
+              WHERE payment_method_id = payment_methods.id) AS expense_total \
+             FROM payment_methods WHERE 1=1",
         );
         if let Some(id) = &q.id {
             b.push(" AND id = ").push_bind(id);
@@ -47,6 +52,7 @@ impl PaymentMethodRepository {
         sqlx::query_as(include_str!("../../queries/payment_methods/insert.sql"))
             .bind(&v.name)
             .bind(&v.description)
+            .bind(&v.initial_balance)
             .fetch_one(&self.pool)
             .await
             .map_err(Into::into)
@@ -59,6 +65,7 @@ impl PaymentMethodRepository {
         sqlx::query_as(include_str!("../../queries/payment_methods/update.sql"))
             .bind(&v.name)
             .bind(&v.description)
+            .bind(&v.initial_balance)
             .bind(id)
             .fetch_optional(&self.pool)
             .await
@@ -73,5 +80,15 @@ impl PaymentMethodRepository {
         .await?
         .rows_affected()
             > 0)
+    }
+    pub async fn is_referenced_by_transactions(&self, id: &str) -> AppResult<bool> {
+        let count: i64 = sqlx::query_scalar(
+            "SELECT (SELECT COUNT(*) FROM expenses WHERE payment_method_id = ?1) + \
+             (SELECT COUNT(*) FROM incomes WHERE payment_method_id = ?1)",
+        )
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(count > 0)
     }
 }

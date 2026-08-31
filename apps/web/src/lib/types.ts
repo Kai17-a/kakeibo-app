@@ -21,8 +21,12 @@ export interface CategoryInput {
 export interface PaymentMethodInput {
   name: string;
   description: string | null;
+  initial_balance?: string;
 }
-export type PaymentMethod = NamedResource;
+export interface PaymentMethod extends NamedResource {
+  initial_balance: string | null;
+  balance: string | null;
+}
 export interface Expense extends BaseResource {
   transaction_date: string;
   amount: string;
@@ -35,6 +39,7 @@ export interface Income extends BaseResource {
   transaction_date: string;
   amount: string;
   category_id: string;
+  payment_method_id: string | null;
   recurring_income_id: string | null;
   description: string | null;
 }
@@ -92,6 +97,7 @@ export interface IncomeInput {
   transaction_date: string;
   amount: string;
   category_id: string;
+  payment_method_id?: string;
   recurring_income_id?: string | null;
   description: string | null;
 }

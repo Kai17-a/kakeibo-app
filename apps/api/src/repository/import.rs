@@ -79,12 +79,14 @@ impl ImportRepository {
         tx: &mut Transaction<'_, Sqlite>,
         name: &str,
     ) -> AppResult<String> {
-        insert_named(
-            tx,
-            include_str!("../../queries/payment_methods/insert.sql"),
-            name,
+        Ok(sqlx::query(
+            "INSERT INTO payment_methods (name, description, initial_balance) \
+             VALUES (?1, NULL, NULL) RETURNING id",
         )
-        .await
+        .bind(name)
+        .fetch_one(&mut **tx)
+        .await?
+        .get("id"))
     }
     pub async fn insert_expense(
         &self,
@@ -111,6 +113,7 @@ impl ImportRepository {
             .bind(&v.category_id)
             .bind(&v.transaction_date)
             .bind(&v.amount)
+            .bind(&v.payment_method_id)
             .bind(&v.recurring_income_id)
             .bind(&v.description)
             .fetch_one(&mut **tx)

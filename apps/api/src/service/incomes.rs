@@ -102,5 +102,17 @@ fn validate(input: &IncomeUpsertRequest) -> AppResult<()> {
             "category_id, transaction_date and amount are required",
         ));
     }
+    if input.amount.parse::<u64>().is_err() {
+        return Err(AppError::bad_request(
+            "amount must be a non-negative integer",
+        ));
+    }
+    if input
+        .payment_method_id
+        .as_deref()
+        .is_some_and(|id| id.trim().is_empty())
+    {
+        return Err(AppError::bad_request("payment_method_id must not be empty"));
+    }
     Ok(())
 }

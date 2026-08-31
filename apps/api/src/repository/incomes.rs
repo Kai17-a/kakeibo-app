@@ -19,7 +19,7 @@ impl IncomeRepository {
     pub async fn find_all(&self, query: &IncomeQuery) -> AppResult<Vec<IncomeRow>> {
         let mut builder = filtered_query(
             "SELECT id, created_at, updated_at, category_id, transaction_date, amount, \
-             recurring_income_id, description FROM incomes WHERE 1 = 1",
+             payment_method_id, recurring_income_id, description FROM incomes WHERE 1 = 1",
             query,
         );
 
@@ -59,6 +59,7 @@ impl IncomeRepository {
             .bind(&input.category_id)
             .bind(&input.transaction_date)
             .bind(&input.amount)
+            .bind(&input.payment_method_id)
             .bind(&input.recurring_income_id)
             .bind(&input.description)
             .fetch_one(&self.pool)
@@ -75,6 +76,7 @@ impl IncomeRepository {
             .bind(&input.category_id)
             .bind(&input.transaction_date)
             .bind(&input.amount)
+            .bind(&input.payment_method_id)
             .bind(&input.recurring_income_id)
             .bind(&input.description)
             .bind(id)
@@ -116,6 +118,11 @@ fn filtered_query(select: &'static str, query: &IncomeQuery) -> QueryBuilder<Sql
     }
     if let Some(category_id) = &query.category_id {
         builder.push(" AND category_id = ").push_bind(category_id);
+    }
+    if let Some(payment_method_id) = &query.payment_method_id {
+        builder
+            .push(" AND payment_method_id = ")
+            .push_bind(payment_method_id);
     }
     if let Some(date_from) = &query.date_from {
         builder

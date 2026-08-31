@@ -58,6 +58,10 @@ fn validate(v: &ExpenseUpsertRequest) -> AppResult<()> {
         || v.payment_method_id.trim().is_empty()
     {
         Err(AppError::bad_request("required fields must not be empty"))
+    } else if v.amount.parse::<u64>().is_err() {
+        Err(AppError::bad_request(
+            "amount must be a non-negative integer",
+        ))
     } else {
         Ok(())
     }
