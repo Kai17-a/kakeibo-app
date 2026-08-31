@@ -39,6 +39,8 @@ impl ExpenseCategoryService {
     }
     pub async fn create(&self, v: &ExpenseCategoryUpsertRequest) -> AppResult<ExpenseCategory> {
         validate(v)?;
+        self.validate_parent(None, v.parent_category_id.as_deref())
+            .await?;
         self.repository.insert(v).await.map(Into::into)
     }
     pub async fn update(
@@ -47,6 +49,8 @@ impl ExpenseCategoryService {
         v: &ExpenseCategoryUpsertRequest,
     ) -> AppResult<ExpenseCategory> {
         validate(v)?;
+        self.validate_parent(Some(id), v.parent_category_id.as_deref())
+            .await?;
         self.repository
             .update(id, v)
             .await?
@@ -59,6 +63,31 @@ impl ExpenseCategoryService {
         } else {
             Err(AppError::not_found("expense category", id))
         }
+    }
+
+    async fn validate_parent(&self, id: Option<&str>, parent_id: Option<&str>) -> AppResult<()> {
+        let Some(parent_id) = parent_id else {
+            return Ok(());
+        };
+        if id == Some(parent_id) {
+            return Err(AppError::bad_request("a category cannot be its own parent"));
+        }
+        let parent = self
+            .repository
+            .find_by_id(parent_id)
+            .await?
+            .ok_or_else(|| AppError::bad_request("parent category does not exist"))?;
+        if parent.parent_category_id.is_some() {
+            return Err(AppError::bad_request("a child category cannot be a parent"));
+        }
+        if let Some(id) = id
+            && self.repository.has_children(id).await?
+        {
+            return Err(AppError::bad_request(
+                "a category with children cannot become a child",
+            ));
+        }
+        Ok(())
     }
 }
 fn validate_query(q: &ExpenseCategoryQuery) -> AppResult<()> {

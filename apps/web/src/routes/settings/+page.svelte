@@ -35,6 +35,7 @@
     IncomeCategory,
     NamedResource,
     PaymentMethod,
+    PaymentMethodInput,
     RecurringExpense,
     RecurringExpenseInput,
     RecurringIncome,
@@ -54,7 +55,7 @@
   let webhookUrls = $state.raw<WebhookUrl[]>([]);
   let activeKind = $state<SettingsTab>('expense');
   let formOpen = $state(false);
-  let editingCategory = $state<NamedResource | null>(null);
+  let editingCategory = $state<ExpenseCategory | IncomeCategory | null>(null);
   let paymentFormOpen = $state(false);
   let editingPaymentMethod = $state<PaymentMethod | null>(null);
   let recurringFormOpen = $state(false);
@@ -144,7 +145,7 @@
     formOpen = true;
   }
 
-  function editCategory(category: NamedResource) {
+  function editCategory(category: ExpenseCategory | IncomeCategory) {
     editingCategory = category;
     formOpen = true;
   }
@@ -154,7 +155,7 @@
     editingCategory = null;
   }
 
-  async function removeCategory(category: NamedResource) {
+  async function removeCategory(category: ExpenseCategory | IncomeCategory) {
     try {
       if (activeKind === 'income') {
         await api.deleteIncomeCategory(category.id);
@@ -166,7 +167,7 @@
       toast.success('カテゴリを削除しました。');
     } catch {
       error =
-        'カテゴリを削除できませんでした。登録済みの明細で使用されている場合は削除できません。';
+        'カテゴリを削除できませんでした。登録済みの明細で使用されているか、子カテゴリが存在するため削除できません。';
     }
   }
 
@@ -185,7 +186,7 @@
     editingPaymentMethod = null;
   }
 
-  async function savePaymentMethod(input: CategoryInput) {
+  async function savePaymentMethod(input: PaymentMethodInput) {
     saving = true;
     error = '';
     const editing = editingPaymentMethod;
@@ -382,7 +383,7 @@
   }
 
   type DeleteTarget =
-    | { type: 'category'; item: NamedResource }
+    | { type: 'category'; item: ExpenseCategory | IncomeCategory }
     | { type: 'payment'; item: PaymentMethod }
     | { type: 'recurring'; item: RecurringExpense }
     | { type: 'recurring-income'; item: RecurringIncome }
@@ -401,7 +402,7 @@
     return `Webhook URL「${target.item.url}」を削除しますか？`;
   });
 
-  function askDeleteCategory(category: NamedResource) {
+  function askDeleteCategory(category: ExpenseCategory | IncomeCategory) {
     deleteTarget = { type: 'category', item: category };
   }
 
@@ -443,6 +444,19 @@
 
   function compareByName(a: NamedResource, b: NamedResource) {
     return a.name.localeCompare(b.name, 'ja');
+  }
+
+  function groupCategories<T extends ExpenseCategory | IncomeCategory>(categories: T[]): T[] {
+    const children = new SvelteMap<string, T[]>();
+    for (const category of categories) {
+      if (!category.parent_category_id) continue;
+      const siblings = children.get(category.parent_category_id) ?? [];
+      siblings.push(category);
+      children.set(category.parent_category_id, siblings);
+    }
+    return categories
+      .filter((category) => category.parent_category_id === null)
+      .flatMap((parent) => [parent, ...(children.get(parent.id) ?? [])]);
   }
 
   function message(caught: unknown, fallback: string) {
@@ -529,7 +543,7 @@
   </main>
 </div>
 
-{#snippet categoryPanel(title: string, categories: NamedResource[])}
+{#snippet categoryPanel(title: string, categories: (ExpenseCategory | IncomeCategory)[])}
   <Card.Root>
     <Card.Header>
       <Card.Title class="flex items-center gap-2">
@@ -574,9 +588,14 @@
             </Table.Row>
           </Table.Header>
           <Table.Body>
-            {#each categories as category (category.id)}
+            {#each groupCategories(categories) as category (category.id)}
               <Table.Row>
-                <Table.Cell class="font-medium">{category.name}</Table.Cell>
+                <Table.Cell class={category.parent_category_id ? 'pl-8' : ''}>
+                  <span class="font-medium">{category.name}</span>
+                  <span class="ml-2 text-xs text-muted-foreground">
+                    {category.parent_category_id ? '子カテゴリ' : '親カテゴリ'}
+                  </span>
+                </Table.Cell>
                 <Table.Cell class="text-muted-foreground">
                   {category.description || '説明はありません'}
                 </Table.Cell>
@@ -982,6 +1001,7 @@
   <CategoryForm
     kind={activeKind === 'income' ? 'income' : 'expense'}
     {saving}
+    categories={activeKind === 'income' ? incomeCategories : expenseCategories}
     initial={editingCategory ?? undefined}
     onclose={closeCategoryForm}
     onsubmit={saveCategory}

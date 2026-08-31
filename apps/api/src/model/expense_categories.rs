@@ -9,6 +9,7 @@ pub struct ExpenseCategory {
     pub updated_at: String,
     pub name: String,
     pub description: Option<String>,
+    pub parent_category_id: Option<String>,
 }
 impl From<ExpenseCategoryRow> for ExpenseCategory {
     fn from(v: ExpenseCategoryRow) -> Self {
@@ -18,6 +19,7 @@ impl From<ExpenseCategoryRow> for ExpenseCategory {
             updated_at: v.updated_at,
             name: v.name,
             description: v.description,
+            parent_category_id: v.parent_category_id,
         }
     }
 }
@@ -25,6 +27,7 @@ impl From<ExpenseCategoryRow> for ExpenseCategory {
 pub struct ExpenseCategoryUpsertRequest {
     pub name: String,
     pub description: Option<String>,
+    pub parent_category_id: Option<String>,
 }
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct ExpenseCategoryListResponse {

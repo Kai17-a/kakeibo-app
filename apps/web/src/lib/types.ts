@@ -7,9 +7,18 @@ export interface NamedResource extends BaseResource {
   name: string;
   description: string | null;
 }
-export type ExpenseCategory = NamedResource;
-export type IncomeCategory = NamedResource;
+export interface ExpenseCategory extends NamedResource {
+  parent_category_id: string | null;
+}
+export interface IncomeCategory extends NamedResource {
+  parent_category_id: string | null;
+}
 export interface CategoryInput {
+  name: string;
+  description: string | null;
+  parent_category_id: string | null;
+}
+export interface PaymentMethodInput {
   name: string;
   description: string | null;
 }

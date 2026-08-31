@@ -6,13 +6,13 @@
   import { Input } from '$lib/components/ui/input';
   import { Spinner } from '$lib/components/ui/spinner';
   import { Textarea } from '$lib/components/ui/textarea';
-  import type { CategoryInput, PaymentMethod } from '$lib/types';
+  import type { PaymentMethod, PaymentMethodInput } from '$lib/types';
 
   interface Props {
     saving: boolean;
     initial?: PaymentMethod;
     onclose(): void;
-    onsubmit(input: CategoryInput): Promise<void>;
+    onsubmit(input: PaymentMethodInput): Promise<void>;
   }
 
   let { saving, initial, onclose, onsubmit }: Props = $props();

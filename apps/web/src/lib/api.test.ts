@@ -29,12 +29,20 @@ describe('ky API client', () => {
     const fetchMock = vi.fn(async (request: Request) => {
       expect(request.url).toBe('http://localhost/api/expense-categories');
       expect(request.method).toBe('POST');
-      expect(await request.json()).toEqual({ name: '食費', description: '日々の食事' });
+      expect(await request.json()).toEqual({
+        name: '食費',
+        description: '日々の食事',
+        parent_category_id: null,
+      });
       return Response.json({ id: 'food', name: '食費', description: '日々の食事' });
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    await api.createExpenseCategory({ name: '食費', description: '日々の食事' });
+    await api.createExpenseCategory({
+      name: '食費',
+      description: '日々の食事',
+      parent_category_id: null,
+    });
 
     expect(fetchMock).toHaveBeenCalledOnce();
   });
@@ -43,14 +51,61 @@ describe('ky API client', () => {
     const fetchMock = vi.fn(async (request: Request) => {
       expect(request.url).toBe('http://localhost/api/income-categories');
       expect(request.method).toBe('POST');
-      expect(await request.json()).toEqual({ name: '給与', description: null });
+      expect(await request.json()).toEqual({
+        name: '給与',
+        description: null,
+        parent_category_id: null,
+      });
       return Response.json({ id: 'salary', name: '給与', description: null });
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    await api.createIncomeCategory({ name: '給与', description: null });
+    await api.createIncomeCategory({ name: '給与', description: null, parent_category_id: null });
 
     expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('parses and serializes a non-null parent category id', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(async () =>
+        Response.json({
+          items: [
+            {
+              id: 'dining',
+              name: '外食',
+              description: null,
+              parent_category_id: 'food',
+            },
+          ],
+          pagination: { page: 1, per_page: 100 },
+        }),
+      )
+      .mockImplementationOnce(async (request: Request) => {
+        expect(request.method).toBe('POST');
+        expect(await request.json()).toEqual({
+          name: '外食',
+          description: null,
+          parent_category_id: 'food',
+        });
+        return Response.json({
+          id: 'dining',
+          name: '外食',
+          description: null,
+          parent_category_id: 'food',
+        });
+      });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const categories = await api.expenseCategories();
+    expect(categories.items[0].parent_category_id).toBe('food');
+    const created = await api.createExpenseCategory({
+      name: '外食',
+      description: null,
+      parent_category_id: 'food',
+    });
+    expect(created.parent_category_id).toBe('food');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('creates a payment method', async () => {
@@ -121,12 +176,20 @@ describe('ky API client', () => {
     const fetchMock = vi.fn(async (request: Request) => {
       expect(request.url).toBe('http://localhost/api/expense-categories/food');
       expect(request.method).toBe('PUT');
-      expect(await request.json()).toEqual({ name: '食費', description: '外食含む' });
+      expect(await request.json()).toEqual({
+        name: '食費',
+        description: '外食含む',
+        parent_category_id: null,
+      });
       return Response.json({ id: 'food', name: '食費', description: '外食含む' });
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    await api.updateExpenseCategory('food', { name: '食費', description: '外食含む' });
+    await api.updateExpenseCategory('food', {
+      name: '食費',
+      description: '外食含む',
+      parent_category_id: null,
+    });
 
     expect(fetchMock).toHaveBeenCalledOnce();
   });
@@ -135,12 +198,20 @@ describe('ky API client', () => {
     const fetchMock = vi.fn(async (request: Request) => {
       expect(request.url).toBe('http://localhost/api/income-categories/salary');
       expect(request.method).toBe('PUT');
-      expect(await request.json()).toEqual({ name: '給与', description: null });
+      expect(await request.json()).toEqual({
+        name: '給与',
+        description: null,
+        parent_category_id: null,
+      });
       return Response.json({ id: 'salary', name: '給与', description: null });
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    await api.updateIncomeCategory('salary', { name: '給与', description: null });
+    await api.updateIncomeCategory('salary', {
+      name: '給与',
+      description: null,
+      parent_category_id: null,
+    });
 
     expect(fetchMock).toHaveBeenCalledOnce();
   });

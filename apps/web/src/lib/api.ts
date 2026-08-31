@@ -10,6 +10,7 @@ import type {
   ImportResult,
   ListResponse,
   PaymentMethod,
+  PaymentMethodInput,
   RecurringExpense,
   RecurringExpenseInput,
   RecurringIncome,
@@ -89,9 +90,9 @@ export const api = {
     request<ListResponse<PaymentMethod>>(
       '/api/payment-methods?sort_by=name&sort_order=asc&per_page=100',
     ),
-  createPaymentMethod: (input: CategoryInput) =>
+  createPaymentMethod: (input: PaymentMethodInput) =>
     request<PaymentMethod>('/api/payment-methods', { method: 'post', json: input }),
-  updatePaymentMethod: (id: string, input: CategoryInput) =>
+  updatePaymentMethod: (id: string, input: PaymentMethodInput) =>
     request<PaymentMethod>(`/api/payment-methods/${id}`, { method: 'put', json: input }),
   deletePaymentMethod: (id: string) =>
     request<void>(`/api/payment-methods/${id}`, { method: 'delete' }),

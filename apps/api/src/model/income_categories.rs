@@ -10,6 +10,7 @@ pub struct IncomeCategory {
     pub updated_at: String,
     pub name: String,
     pub description: Option<String>,
+    pub parent_category_id: Option<String>,
 }
 
 impl From<IncomeCategoryRow> for IncomeCategory {
@@ -20,6 +21,7 @@ impl From<IncomeCategoryRow> for IncomeCategory {
             updated_at: row.updated_at,
             name: row.name,
             description: row.description,
+            parent_category_id: row.parent_category_id,
         }
     }
 }
@@ -28,6 +30,7 @@ impl From<IncomeCategoryRow> for IncomeCategory {
 pub struct IncomeCategoryUpsertRequest {
     pub name: String,
     pub description: Option<String>,
+    pub parent_category_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, ToSchema)]

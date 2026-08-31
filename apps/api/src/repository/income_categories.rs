@@ -21,7 +21,7 @@ impl IncomeCategoryRepository {
 
     pub async fn find_all(&self, query: &IncomeCategoryQuery) -> AppResult<Vec<IncomeCategoryRow>> {
         let mut builder = QueryBuilder::<Sqlite>::new(
-            "SELECT id, created_at, updated_at, name, description \
+            "SELECT id, created_at, updated_at, name, description, parent_category_id \
              FROM income_categories WHERE 1 = 1",
         );
         if let Some(id) = &query.id {
@@ -65,6 +65,7 @@ impl IncomeCategoryRepository {
         sqlx::query_as(include_str!("../../queries/income_categories/insert.sql"))
             .bind(&input.name)
             .bind(&input.description)
+            .bind(&input.parent_category_id)
             .fetch_one(&self.pool)
             .await
             .map_err(Into::into)
@@ -78,10 +79,21 @@ impl IncomeCategoryRepository {
         sqlx::query_as(include_str!("../../queries/income_categories/update.sql"))
             .bind(&input.name)
             .bind(&input.description)
+            .bind(&input.parent_category_id)
             .bind(id)
             .fetch_optional(&self.pool)
             .await
             .map_err(Into::into)
+    }
+
+    pub async fn has_children(&self, id: &str) -> AppResult<bool> {
+        sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM income_categories WHERE parent_category_id = ?)",
+        )
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(Into::into)
     }
 
     pub async fn delete(&self, id: &str) -> AppResult<bool> {
