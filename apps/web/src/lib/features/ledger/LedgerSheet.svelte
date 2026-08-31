@@ -2,7 +2,11 @@
   import { SvelteMap } from 'svelte/reactivity';
   import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
+  import * as Field from '$lib/components/ui/field';
+  import { Input } from '$lib/components/ui/input';
+  import * as NativeSelect from '$lib/components/ui/native-select';
   import * as Tabs from '$lib/components/ui/tabs';
+  import { filterExpenses } from '../../domain/expense-filters';
   import { categoryTotals, sumAmounts } from '../../domain/summaries';
   import { formatDate, formatYen } from '../../format';
   import { cn } from '../../utils';
@@ -40,6 +44,9 @@
     ondelete,
   }: Props = $props();
   let tab = $state<'summary' | 'details' | 'categories'>('summary');
+  let keyword = $state('');
+  let categoryId = $state('');
+  let paymentMethodId = $state('');
   const incomeTotal = $derived(sumAmounts(incomes));
   const expenseTotal = $derived(sumAmounts(expenses));
   const paymentNames = $derived(new SvelteMap(paymentMethods.map((item) => [item.id, item.name])));
@@ -71,8 +78,15 @@
   const variableTotal = $derived(sumAmounts(variable));
   const variableTotals = $derived(categoryTotals(variable, expenseCategories));
   const ledger = $derived(
-    [...expenses].sort((a, b) => a.transaction_date.localeCompare(b.transaction_date)),
+    filterExpenses(expenses, { keyword, categoryId, paymentMethodId }).sort((a, b) =>
+      a.transaction_date.localeCompare(b.transaction_date),
+    ),
   );
+  function clearFilters() {
+    keyword = '';
+    categoryId = '';
+    paymentMethodId = '';
+  }
   function headClass(...extra: string[]) {
     return cn(
       'px-3 py-2 text-xs font-medium tracking-wider text-muted-foreground uppercase',
@@ -99,6 +113,46 @@
       {:else if tab === 'details'}
         <section class="min-w-0 p-4">
           <h3 class="bg-muted px-3 py-2 text-sm font-bold">支出明細</h3>
+          <Field.FieldGroup
+            class="grid gap-4 border-b py-4 sm:grid-cols-2 xl:grid-cols-[minmax(12rem,1fr)_12rem_12rem_auto] xl:items-end"
+          >
+            <Field.Field>
+              <Field.FieldLabel for="expense-filter-keyword">備考を検索</Field.FieldLabel>
+              <Input
+                id="expense-filter-keyword"
+                type="search"
+                placeholder="キーワードを入力"
+                bind:value={keyword}
+              />
+            </Field.Field>
+            <Field.Field>
+              <Field.FieldLabel for="expense-filter-category">カテゴリ</Field.FieldLabel>
+              <NativeSelect.Root
+                id="expense-filter-category"
+                class="w-full"
+                bind:value={categoryId}
+              >
+                <NativeSelect.Option value="">すべて</NativeSelect.Option>
+                {#each expenseCategories as category (category.id)}
+                  <NativeSelect.Option value={category.id}>{category.name}</NativeSelect.Option>
+                {/each}
+              </NativeSelect.Root>
+            </Field.Field>
+            <Field.Field>
+              <Field.FieldLabel for="expense-filter-payment">支払方法</Field.FieldLabel>
+              <NativeSelect.Root
+                id="expense-filter-payment"
+                class="w-full"
+                bind:value={paymentMethodId}
+              >
+                <NativeSelect.Option value="">すべて</NativeSelect.Option>
+                {#each paymentMethods as method (method.id)}
+                  <NativeSelect.Option value={method.id}>{method.name}</NativeSelect.Option>
+                {/each}
+              </NativeSelect.Root>
+            </Field.Field>
+            <Button variant="outline" size="sm" onclick={clearFilters}>条件をクリア</Button>
+          </Field.FieldGroup>
           <div class="max-h-[38rem] overflow-auto">
             <table class="w-full min-w-[800px] text-sm">
               <thead class="sticky top-0 bg-background">
@@ -145,7 +199,9 @@
               </tbody>
             </table>
             {#if !ledger.length}<p class="py-12 text-center text-sm text-muted-foreground">
-                この月の支出明細はありません。
+                {expenses.length
+                  ? '条件に一致する明細がありません。'
+                  : 'この月の支出明細はありません。'}
               </p>{/if}
           </div>
         </section>
