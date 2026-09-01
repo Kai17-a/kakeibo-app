@@ -79,11 +79,13 @@ export interface WebhookUrl extends BaseResource {
   url: string;
   description: string | null;
   is_active: boolean;
+  events: string[];
 }
 export interface WebhookUrlInput {
   url: string;
   description: string | null;
   is_active: boolean;
+  events: string[];
 }
 export interface Budget extends BaseResource {
   category_id: string;

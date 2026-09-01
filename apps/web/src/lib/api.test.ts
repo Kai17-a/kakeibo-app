@@ -249,6 +249,7 @@ describe('ky API client', () => {
         url: 'https://example.com/hook',
         description: null,
         is_active: true,
+        events: ['expense.created'],
       });
       return Response.json({ id: 'wu-1', url: 'https://example.com/hook' });
     });
@@ -258,6 +259,7 @@ describe('ky API client', () => {
       url: 'https://example.com/hook',
       description: null,
       is_active: true,
+      events: ['expense.created'],
     });
 
     expect(fetchMock).toHaveBeenCalledOnce();
@@ -276,6 +278,7 @@ describe('ky API client', () => {
       url: 'https://example.com/hook',
       description: null,
       is_active: false,
+      events: ['income.created'],
     });
 
     expect(fetchMock).toHaveBeenCalledOnce();

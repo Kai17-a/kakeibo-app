@@ -1050,7 +1050,7 @@
         <Badge variant="secondary">{webhookUrls.length}件</Badge>
       </Card.Title>
       <Card.Description>
-        支出・収入の登録時に通知を送信するWebhook URLを管理します。
+        支出・収入の登録時や予算超過時に通知を送信するWebhook URLを管理します。
       </Card.Description>
       <Card.Action>
         <Button onclick={openWebhookForm}>
@@ -1085,6 +1085,7 @@
             <Table.Row>
               <Table.Head class="w-1/3">URL</Table.Head>
               <Table.Head>説明</Table.Head>
+              <Table.Head>通知イベント</Table.Head>
               <Table.Head>状態</Table.Head>
               <Table.Head class="w-36 text-right">操作</Table.Head>
             </Table.Row>
@@ -1095,6 +1096,19 @@
                 <Table.Cell class="max-w-0 truncate font-medium">{item.url}</Table.Cell>
                 <Table.Cell class="text-muted-foreground">
                   {item.description || '説明はありません'}
+                </Table.Cell>
+                <Table.Cell>
+                  <div class="flex flex-wrap gap-1">
+                    {#each item.events as event (event)}
+                      <Badge variant="secondary">
+                        {{
+                          'expense.created': '支出登録',
+                          'income.created': '収入登録',
+                          'budget.exceeded': '予算超過',
+                        }[event] ?? event}
+                      </Badge>
+                    {/each}
+                  </div>
                 </Table.Cell>
                 <Table.Cell>
                   {#if item.is_active}<Badge variant="outline">有効</Badge>{:else}<Badge

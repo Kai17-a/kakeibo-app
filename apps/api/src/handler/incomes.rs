@@ -6,6 +6,7 @@ use axum::{
 
 use crate::{
     model::incomes::{Income, IncomeListResponse, IncomeQuery, IncomeUpsertRequest},
+    model::webhook_urls::WebhookEvent,
     service::{incomes::IncomeService, webhook_urls::WebhookUrlService},
     utils::error::AppResult,
 };
@@ -46,7 +47,7 @@ pub async fn create(
     state
         .webhook_urls
         .notify(
-            "income.created",
+            WebhookEvent::IncomeCreated,
             serde_json::to_value(&income).unwrap_or_default(),
         )
         .await;

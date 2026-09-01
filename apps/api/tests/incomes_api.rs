@@ -307,6 +307,8 @@ async fn recurring_auto_post_does_not_notify_income_created_webhook() {
     let pool = pool().await;
     sqlx::query("CREATE TABLE webhook_urls(id TEXT PRIMARY KEY,created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,url TEXT NOT NULL,description TEXT,is_active INTEGER NOT NULL DEFAULT 1)")
         .execute(&pool).await.unwrap();
+    sqlx::query("CREATE TABLE webhook_url_events(webhook_url_id TEXT NOT NULL REFERENCES webhook_urls(id) ON DELETE CASCADE,event TEXT NOT NULL,PRIMARY KEY(webhook_url_id,event))")
+        .execute(&pool).await.unwrap();
     let logs = Arc::new(Mutex::new(Vec::new()));
     let writer_logs = logs.clone();
     let subscriber = tracing_subscriber::fmt()
@@ -320,6 +322,12 @@ async fn recurring_auto_post_does_not_notify_income_created_webhook() {
         .execute(&pool)
         .await
         .unwrap();
+    sqlx::query(
+        "INSERT INTO webhook_url_events(webhook_url_id,event) VALUES('hook','income.created')",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
     let month: String = sqlx::query_scalar("SELECT strftime('%Y-%m','now','localtime')")
         .fetch_one(&pool)
         .await

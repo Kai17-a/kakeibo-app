@@ -30,7 +30,7 @@ use crate::{
     },
     model::recurring_expenses::{RecurringExpense, RecurringExpenseUpsertRequest},
     model::recurring_incomes::{RecurringIncome, RecurringIncomeUpsertRequest},
-    model::webhook_urls::{WebhookUrl, WebhookUrlUpsertRequest},
+    model::webhook_urls::{WebhookEvent, WebhookUrl, WebhookUrlUpsertRequest},
 };
 
 #[derive(OpenApi)]
@@ -124,6 +124,7 @@ use crate::{
         SortOrder,
         WebhookUrl,
         WebhookUrlUpsertRequest,
+        WebhookEvent,
         Health
     )),
     modifiers(&Documentation),

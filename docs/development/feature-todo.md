@@ -95,20 +95,34 @@ CREATE TABLE budgets (
 
 ## TODO 4: Webhookイベント種別フィルタ
 
-**DB移行**: `apps/api/migrations/0008__webhook_urls_events.up.sql`
+既知のイベント名は `"expense.created"`, `"income.created"`, `"budget.exceeded"`（TODO3で実装済み、コミット`c9d13e4`）の3種。この3値は複数箇所への直書きを避け、バックエンド内の単一箇所（例: `src/model/webhook_urls.rs`の定数配列）に集約し、フィルタのホワイトリスト・通知呼び出し・APIスキーマのすべてがそこを参照する。
+
+**設計変更（TODO3実装後の分析で確定）**: 当初案（`webhook_urls.events`にカンマ区切りTEXTを格納、NULL=全購読）は不採用とし、**正規化テーブル＋既知イベントのホワイトリスト＋常に明示的なイベント一覧**を採用する。理由: このアプリの既存スキーマは`recurring_expense_id`・カテゴリの`parent_category_id`・予算のFK+UNIQUEなど、一対多/多対多の関係を一貫してFKで正規化しており、CSV1列に複数値を詰める前例がない。またCSV案は「全選択時はNULL送信＝将来イベントへの無条件自動購読」という直感に反する挙動を招くため、常に選択した値をそのまま明示的に保存する方式に変える。
+
+**DB移行**: `apps/api/migrations/0008__webhook_url_events.up.sql`（`.down.sql`と対で作成）
 ```sql
-ALTER TABLE webhook_urls ADD COLUMN events TEXT;
+CREATE TABLE webhook_url_events (
+  webhook_url_id TEXT NOT NULL REFERENCES webhook_urls(id) ON DELETE CASCADE,
+  event TEXT NOT NULL,
+  PRIMARY KEY (webhook_url_id, event)
+);
+-- 既存のwebhook_urls行は移行前は「常に全イベント通知」だったため、後方互換のため3イベント全てを購読済みとして投入する
+INSERT INTO webhook_url_events (webhook_url_id, event)
+SELECT id, 'expense.created' FROM webhook_urls
+UNION ALL SELECT id, 'income.created' FROM webhook_urls
+UNION ALL SELECT id, 'budget.exceeded' FROM webhook_urls;
 ```
-（NULL = 全イベント購読、既存行は自動的にNULLで後方互換）
 
 **バックエンド**:
-- `src/database/models/webhook_urls.rs` / `src/model/webhook_urls.rs`: `events: Option<String>`（カンマ区切り）を `WebhookUrl`/`WebhookUrlRow`/`WebhookUrlUpsertRequest` に追加
-- `queries/webhook_urls/{find_all,find_active,find_by_id,insert,update}.sql`: カラム追加
-- `src/service/webhook_urls.rs::notify()`: `find_active()` で取得した行を、`row.events` が `None` または空文字なら常に通知、`Some(csv)` なら `csv.split(',').map(str::trim).any(|e| e == event)` で通知対象を絞り込む
-- 既知のイベント名は `"expense.created"`, `"income.created"`, TODO3で追加する `"budget.exceeded"` の3種。`service/webhook_urls.rs::validate()` でこの3種以外を拒否するかは、将来のイベント追加のしやすさとのトレードオフで判断する
+- `src/model/webhook_urls.rs`: `WebhookUrl`に`events: Vec<String>`を追加（保存形式のCSVではなく配列としてAPI公開する）。`WebhookUrlUpsertRequest`にも`events: Vec<String>`を追加（必須、1件以上）
+- `src/repository/webhook_urls.rs`: `find_all`/`find_by_id`は`webhook_url_events`をJOINまたは別クエリで取得して`events`配列を組み立てる。`insert`/`update`は`webhook_urls`本体の更新とセットで、`webhook_url_events`へ対象行を`DELETE`（updateの場合）してから`events`の各要素をINSERTする（1トランザクション内で行う）
+- `src/service/webhook_urls.rs::validate()`: `events`が空配列なら400。各要素がホワイトリスト（`"expense.created"`, `"income.created"`, `"budget.exceeded"`）に含まれない場合も400。重複要素は正規化して除去する
+- `src/service/webhook_urls.rs::notify()`: `find_active()`で取得した各Webhookの`events`に対象イベントが含まれるものだけへ送信する（CSVパースは不要になる）
+- `apps/api/tests/webhook_urls_api.rs`: 既存テストは手書きDDLでスキーマを構築しているため、新テーブルへの追従が必要。既知/未知イベント名・重複・空配列・部分選択・全選択のケースを追加する
 
 **フロントエンド**:
-- `routes/settings/+page.svelte` のwebhookパネル: フォームに3つのチェックボックス（支出登録・収入登録・予算超過）を追加。全選択時は `events: null` として送信（将来イベントも自動購読される設計を保つ）、一部のみ選択時はカンマ区切りで送信、1つも選択されていない場合はクライアント側バリデーションで送信不可にする
+- `routes/settings/+page.svelte` のwebhookパネル: フォームに3つのチェックボックス（支出登録・収入登録・予算超過）を追加。選択された値をそのまま`events`配列として送信する（NULL送信・自動購読の概念は廃止）。1つも選択されていない場合はクライアント側バリデーションで送信不可にする
+- Webhook一覧テーブルに、そのWebhookが購読中のイベントを表示する列またはバッジを追加する
 
 ---
 

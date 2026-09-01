@@ -1,5 +1,6 @@
 use crate::{
     model::expenses::{Expense, ExpenseUpsertRequest},
+    model::webhook_urls::WebhookEvent,
     service::{expenses::ExpenseService, webhook_urls::WebhookUrlService},
     utils::error::AppResult,
 };
@@ -29,12 +30,12 @@ pub async fn create(
     let (expense, crossing) = s.expenses.create(&v).await?;
     s.webhook_urls
         .notify(
-            "expense.created",
+            WebhookEvent::ExpenseCreated,
             serde_json::to_value(&expense).unwrap_or_default(),
         )
         .await;
     if let Some(crossing) = crossing {
-        s.webhook_urls.notify("budget.exceeded", serde_json::json!({
+        s.webhook_urls.notify(WebhookEvent::BudgetExceeded, serde_json::json!({
             "category_id": crossing.category_id, "category_name": crossing.category_name,
             "budget_amount": crossing.budget_amount, "actual_amount": crossing.actual_amount.to_string(),
             "target_month": crossing.target_month
@@ -50,7 +51,7 @@ pub async fn update(
 ) -> AppResult<Json<Expense>> {
     let (expense, crossing) = s.expenses.update(&id, &v).await?;
     if let Some(crossing) = crossing {
-        s.webhook_urls.notify("budget.exceeded", serde_json::json!({
+        s.webhook_urls.notify(WebhookEvent::BudgetExceeded, serde_json::json!({
             "category_id": crossing.category_id, "category_name": crossing.category_name,
             "budget_amount": crossing.budget_amount, "actual_amount": crossing.actual_amount.to_string(),
             "target_month": crossing.target_month

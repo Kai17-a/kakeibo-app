@@ -1,5 +1,5 @@
 use crate::{
-    model::webhook_urls::{WebhookUrl, WebhookUrlUpsertRequest},
+    model::webhook_urls::{WebhookEvent, WebhookUrl, WebhookUrlUpsertRequest},
     repository::webhook_urls::WebhookUrlRepository,
     utils::error::{AppError, AppResult},
 };
@@ -12,31 +12,23 @@ impl WebhookUrlService {
         Self { repository }
     }
     pub async fn list(&self) -> AppResult<Vec<WebhookUrl>> {
-        Ok(self
-            .repository
-            .find_all()
-            .await?
-            .into_iter()
-            .map(Into::into)
-            .collect())
+        self.repository.find_all().await
     }
     pub async fn get(&self, id: &str) -> AppResult<WebhookUrl> {
         self.repository
             .find_by_id(id)
             .await?
-            .map(Into::into)
             .ok_or_else(|| AppError::not_found("webhook url", id))
     }
     pub async fn create(&self, v: &WebhookUrlUpsertRequest) -> AppResult<WebhookUrl> {
-        validate(v)?;
-        self.repository.insert(v).await.map(Into::into)
+        let v = validate(v)?;
+        self.repository.insert(&v).await
     }
     pub async fn update(&self, id: &str, v: &WebhookUrlUpsertRequest) -> AppResult<WebhookUrl> {
-        validate(v)?;
+        let v = validate(v)?;
         self.repository
-            .update(id, v)
+            .update(id, &v)
             .await?
-            .map(Into::into)
             .ok_or_else(|| AppError::not_found("webhook url", id))
     }
     pub async fn delete(&self, id: &str) -> AppResult<()> {
@@ -48,7 +40,7 @@ impl WebhookUrlService {
     }
     /// 有効なすべてのWebhook URLへイベントを非同期で通知する。
     /// 通知の失敗はログに記録するだけで、呼び出し元の処理には影響させない。
-    pub async fn notify(&self, event: &str, data: serde_json::Value) {
+    pub async fn notify(&self, event: WebhookEvent, data: serde_json::Value) {
         let urls = match self.repository.find_active().await {
             Ok(urls) => urls,
             Err(error) => {
@@ -62,6 +54,9 @@ impl WebhookUrlService {
         let client = reqwest::Client::new();
         let payload = serde_json::json!({ "event": event, "data": data });
         for row in urls {
+            if !row.events.contains(&event) {
+                continue;
+            }
             let client = client.clone();
             let payload = payload.clone();
             let url = row.url.clone();
@@ -83,7 +78,7 @@ impl WebhookUrlService {
         }
     }
 }
-fn validate(v: &WebhookUrlUpsertRequest) -> AppResult<()> {
+fn validate(v: &WebhookUrlUpsertRequest) -> AppResult<WebhookUrlUpsertRequest> {
     let url = v.url.trim();
     if url.is_empty() {
         return Err(AppError::bad_request("url must not be empty"));
@@ -93,5 +88,17 @@ fn validate(v: &WebhookUrlUpsertRequest) -> AppResult<()> {
             "url must start with http:// or https://",
         ));
     }
-    Ok(())
+    if v.events.is_empty() {
+        return Err(AppError::bad_request("events must not be empty"));
+    }
+    let mut events = Vec::with_capacity(v.events.len());
+    for event in &v.events {
+        if !events.contains(event) {
+            events.push(*event);
+        }
+    }
+    let mut normalized = v.clone();
+    normalized.url = url.to_string();
+    normalized.events = events;
+    Ok(normalized)
 }
