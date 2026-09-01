@@ -54,8 +54,8 @@ Codexレビューで「マージ前に修正が必要」の指摘（income_categ
 
 | 単位 | 内容 | 状態 |
 | --- | --- | --- |
-| 1 | 資産・口座残高管理（`payment_methods.initial_balance`、`incomes.payment_method_id`） | 実装・検証済み（未コミット） |
-| 2 | 収入明細一覧UI・収入明細フィルタ | 未着手 |
+| 1 | 資産・口座残高管理（`payment_methods.initial_balance`、`incomes.payment_method_id`） | 完了 |
+| 2 | 収入明細一覧UI・収入明細フィルタ | 完了 |
 | 3 | 予算管理（`budgets`テーブル、`budget.exceeded` Webhook） | 未着手 |
 | 4 | Webhookイベント種別フィルタ（`webhook_urls.events`） | 未着手 |
 | 5 | グラフ分析の強化 + 資産推移グラフ | 未着手 |
@@ -72,4 +72,12 @@ Codexレビューで「マージ前に修正が必要」の指摘（income_categ
 - フロントエンドの型定義（`initial_balance`/`balance`/`payment_method_id`）が実際のAPI契約（常にキーは存在しnull許容）とズレていた → レスポンス型を修正（入力型は引き続きoptional）
 - 収入の `payment_method_id` に空文字列を送るとFK制約エラーになる問題 → 空文字列は400を返すよう検証を追加
 
-`cargo test`/`clippy`/`mise run web-ci` グリーン確認済み。コミットは未実施（対象ファイルのみをステージして次回コミットする）。
+`cargo test`/`clippy`/`mise run web-ci` グリーン確認済み。コミット `58b491f`。
+
+## 単位2: 収入明細一覧UI・収入明細フィルタ（完了）
+
+フロントエンドのみ、バックエンド変更なし。`LedgerSheet.svelte`に「収入明細」タブを追加し、支出明細タブと対称のキーワード・カテゴリ・支払方法フィルタ（`lib/domain/income-filters.ts::filterIncomes`）を実装。`routes/+page.svelte`に収入の編集・削除を新規配線（`TransactionForm`は`initialIncome`propで既に編集をサポート済みだったため、フォーム自体の変更は不要だった）。`deleteTarget`は`Expense | null`から`{type:'expense',item}|{type:'income',item}`のdiscriminated unionに変更し、`settings/+page.svelte`の既存パターンに合わせた。
+
+Codexレビューで1件指摘（収入明細タブの列見出しが仕様書（`feature-todo.md`）の「カテゴリ」ではなく既存の支出明細タブと同じ「摘要」になっている）があったが、これは実装依頼時に既存タブとの表記統一を意図的に指示した結果であり、バグではないため対応不要と判断した。`mise run web-ci`グリーン確認済み（Vitest 37件成功、svelte-check 0 errors）。コミット `6c8a6f8`。
+
+このコンテナにヘッドレスブラウザ操作ツールがないため、実ブラウザでの目視確認は未実施（APIサーバーの起動・疎通確認のみ実施）。
