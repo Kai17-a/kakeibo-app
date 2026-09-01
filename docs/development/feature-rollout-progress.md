@@ -57,7 +57,7 @@ Codexレビューで「マージ前に修正が必要」の指摘（income_categ
 | 1 | 資産・口座残高管理（`payment_methods.initial_balance`、`incomes.payment_method_id`） | 完了 |
 | 2 | 収入明細一覧UI・収入明細フィルタ | 完了 |
 | 3 | 予算管理（`budgets`テーブル、`budget.exceeded` Webhook） | 完了 |
-| 4 | Webhookイベント種別フィルタ（`webhook_urls.events`） | 未着手 |
+| 4 | Webhookイベント種別フィルタ（`webhook_url_events`） | 完了 |
 | 5 | グラフ分析の強化 + 資産推移グラフ | 未着手 |
 | 6 | DBバックアップ（ダウンロードのみ） | 未着手 |
 
@@ -91,3 +91,11 @@ Codexレビューで1件指摘（収入明細タブの列見出しが仕様書�
 フロントエンドは設定画面に「予算」タブ（ダイアログ式CRUD、既予算設定済みカテゴリを新規作成時のセレクトから除外）、月次画面に「予算実績」カード（進捗バーは100%でクランプ、パーセント表示はクランプなし、実績0円のカテゴリも表示）を追加。
 
 Codexレビューで1件のブロッキング指摘（支出金額はu64全域を許容する一方、予算判定はi64でパースし失敗時に`unwrap_or_default()`で無言に0へフォールバックしていたため、`i64::MAX`超の金額で判定を誤り得た）があり対応済み。支出・収入双方の金額バリデーションに、既存の非負整数チェックに加えて`i64`範囲チェックを追加し（unit1の`initial_balance`検証と同じ規約）、フォールバックは`.expect()`に変更してテストを追加した。`cargo test`/`clippy`/`mise run web-ci`グリーン確認済み。コミット `c9d13e4`。
+
+## 単位4: Webhookイベント種別フィルタ（完了）
+
+Codexの独立分析により、当初案（`webhook_urls.events`にカンマ区切りTEXT、NULL=全購読）から設計を変更し、正規化した`webhook_url_events`テーブル（`webhook_url_id`+`event`の複合PK、`ON DELETE CASCADE`）を採用した。このアプリの既存スキーマが一貫してFKで関係を正規化している（CSV1列に複数値を詰める前例がない）ことと、「全選択時はNULL送信＝将来イベントへの無条件自動購読」というCSV案の直感に反する挙動を避けるため。既存Webhookは移行時に`expense.created`/`income.created`/`budget.exceeded`全てを購読済みとして投入し、後方互換を保つ。
+
+イベント名は`WebhookEvent` enum（`Serialize`/`Deserialize`/`ToSchema`）に一元化し、API・DB境界・Redocスキーマすべてがこれを参照する。未知イベント名はデシリアライズ時に422で拒否。`events`が空配列の場合は400。Webhook本体と購読イベント行の書き込みは同一トランザクションで行う（更新は削除→再挿入）。フロントエンドは3つのチェックボックスでイベントを選択し、配列をそのまま送信（NULL送信・自動購読の概念は廃止）、Webhook一覧に購読中イベントのバッジを表示。
+
+Codexレビューで3件の指摘（`notify()`のフィルタリング動作を検証するテストがない、作成・更新後のGET再取得で永続化を検証するテストがない、APIスキーマが共有のイベント定数を参照していない）があり、いずれも対応済み（相互誤配信がないことを検証するテスト追加、GET readbackテスト追加、`WebhookEvent` enum化）。`cargo test`/`clippy`/`mise run web-ci`グリーン確認済み。コミット `1eb775e`。
