@@ -85,6 +85,14 @@ export interface WebhookUrlInput {
   description: string | null;
   is_active: boolean;
 }
+export interface Budget extends BaseResource {
+  category_id: string;
+  amount: string;
+}
+export interface BudgetInput {
+  category_id: string;
+  amount: string;
+}
 export interface ExpenseInput {
   transaction_date: string;
   amount: string;

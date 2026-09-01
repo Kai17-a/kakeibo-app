@@ -88,4 +88,8 @@ impl ExpenseCategoryRepository {
         .rows_affected()
             > 0)
     }
+    pub async fn is_used(&self, id: &str) -> AppResult<bool> {
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM expenses WHERE category_id = ?1 UNION ALL SELECT 1 FROM budgets WHERE category_id = ?1)")
+            .bind(id).fetch_one(&self.pool).await.map_err(Into::into)
+    }
 }

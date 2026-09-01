@@ -2,7 +2,10 @@ use axum::{
     body::{Body, to_bytes},
     http::{Request, StatusCode},
 };
-use kakeibo_app::{repository::expenses::ExpenseRepository, router::expenses};
+use kakeibo_app::{
+    model::expenses::ExpenseUpsertRequest, repository::expenses::ExpenseRepository,
+    router::expenses,
+};
 use serde_json::{Value, json};
 use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
 use tower::ServiceExt;
@@ -29,14 +32,82 @@ async fn call(
     )
 }
 const SCHEMA: &str = concat!(
-    "CREATE TABLE expense_categories(id TEXT PRIMARY KEY);",
+    "CREATE TABLE expense_categories(id TEXT PRIMARY KEY,name TEXT NOT NULL);",
     "CREATE TABLE payment_methods(id TEXT PRIMARY KEY);",
     "CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-'||'4'||substr(hex(randomblob(2)),2)||'-'||substr('AB89',1+(abs(random())%4),1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,amount TEXT NOT NULL,payment_day INTEGER NOT NULL,start_date TEXT NOT NULL,end_date TEXT,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),is_active INTEGER NOT NULL,is_variable INTEGER NOT NULL DEFAULT 0,description TEXT);",
     "CREATE TABLE expenses(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-'||'4'||substr(hex(randomblob(2)),2)||'-'||substr('AB89',1+(abs(random())%4),1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,transaction_date TEXT NOT NULL,amount TEXT NOT NULL,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),recurring_expense_id TEXT REFERENCES recurring_expenses(id),description TEXT);",
-    "INSERT INTO expense_categories VALUES('ec');",
+    "INSERT INTO expense_categories VALUES('ec','食費'),('ec2','娯楽費');",
     "INSERT INTO payment_methods VALUES('pm');",
     "CREATE TABLE webhook_urls(id TEXT PRIMARY KEY,url TEXT NOT NULL,description TEXT,is_active INTEGER NOT NULL DEFAULT 1);",
+    "CREATE TABLE budgets(id TEXT PRIMARY KEY,category_id TEXT NOT NULL UNIQUE,amount TEXT NOT NULL);",
 );
+
+fn expense(date: &str, amount: &str, category: &str) -> ExpenseUpsertRequest {
+    ExpenseUpsertRequest {
+        transaction_date: date.into(),
+        amount: amount.into(),
+        category_id: category.into(),
+        payment_method_id: "pm".into(),
+        recurring_expense_id: None,
+        description: None,
+    }
+}
+
+#[tokio::test]
+async fn budget_crossing_on_create_fires_only_when_crossing_and_not_at_equal() {
+    let pool = setup_pool().await;
+    sqlx::query("INSERT INTO budgets VALUES('b','ec','1000')")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let repo = ExpenseRepository::new(pool);
+    assert!(
+        repo.insert_with_budget_check(&expense("2026-07-01", "1000", "ec"))
+            .await
+            .unwrap()
+            .budget_crossing
+            .is_none()
+    );
+    assert!(
+        repo.insert_with_budget_check(&expense("2026-07-02", "1", "ec"))
+            .await
+            .unwrap()
+            .budget_crossing
+            .is_some()
+    );
+    assert!(
+        repo.insert_with_budget_check(&expense("2026-07-03", "1", "ec"))
+            .await
+            .unwrap()
+            .budget_crossing
+            .is_none()
+    );
+}
+
+#[tokio::test]
+async fn budget_crossing_on_update_evaluates_only_the_new_category_and_month_bucket() {
+    let pool = setup_pool().await;
+    sqlx::query("INSERT INTO budgets VALUES('b','ec','1000'),('b2','ec2','500'); INSERT INTO expenses(id,transaction_date,amount,category_id,payment_method_id) VALUES('existing','2026-08-01','500','ec2','pm')").execute(&pool).await.unwrap();
+    let repo = ExpenseRepository::new(pool);
+    let inserted = repo
+        .insert_with_budget_check(&expense("2026-07-01", "1000", "ec"))
+        .await
+        .unwrap();
+    let moved = repo
+        .update_with_budget_check(&inserted.expense.id, &expense("2026-08-02", "1", "ec2"))
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(moved.budget_crossing.is_some());
+    assert!(
+        repo.update_with_budget_check(&moved.expense.id, &expense("2026-08-02", "2", "ec2"))
+            .await
+            .unwrap()
+            .unwrap()
+            .budget_crossing
+            .is_none()
+    );
+}
 async fn setup_pool() -> SqlitePool {
     let p = SqlitePoolOptions::new()
         .max_connections(1)
@@ -66,6 +137,16 @@ async fn expense_crud() {
     assert_eq!(b.unwrap()[0]["amount"], "1200");
     let (s, _) = call(&app, "DELETE", &format!("/api/expenses/{id}"), None).await;
     assert_eq!(s, StatusCode::NO_CONTENT)
+}
+#[tokio::test]
+async fn create_rejects_amount_above_i64_max() {
+    let p = setup_pool().await;
+    let app = expenses::create(p);
+    let v = json!({"transaction_date":"2026-07-22","amount":"9223372036854775808","category_id":"ec","payment_method_id":"pm","recurring_expense_id":null,"description":null});
+
+    let (s, _) = call(&app, "POST", "/api/expenses", Some(v)).await;
+
+    assert_eq!(s, StatusCode::BAD_REQUEST);
 }
 #[tokio::test]
 async fn list_posts_recurring_expenses_for_current_month() {

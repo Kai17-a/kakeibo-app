@@ -29,6 +29,7 @@
     RecurringExpenseInput,
     RecurringIncome,
     RecurringIncomeInput,
+    Budget,
   } from '$lib/types';
 
   let expenses = $state.raw<Expense[]>([]);
@@ -38,6 +39,7 @@
   let paymentMethods = $state.raw<PaymentMethod[]>([]);
   let recurringExpenses = $state.raw<RecurringExpense[]>([]);
   let recurringIncomes = $state.raw<RecurringIncome[]>([]);
+  let budgets = $state.raw<Budget[]>([]);
   let selectedMonth = $state(currentMonth());
   let selectedYear = $state(currentMonth().slice(0, 4));
   let view = $state<SummaryView>('monthly');
@@ -85,6 +87,7 @@
         paymentData,
         recurringData,
         recurringIncomeData,
+        budgetData,
       ] = await Promise.all([
         api.expenses(),
         api.incomes(),
@@ -93,6 +96,7 @@
         api.paymentMethods(),
         api.recurringExpenses(),
         api.recurringIncomes(),
+        api.budgets(),
       ]);
       expenses = expenseData;
       incomes = incomeData.items;
@@ -101,6 +105,7 @@
       paymentMethods = paymentData.items;
       recurringExpenses = recurringData;
       recurringIncomes = recurringIncomeData;
+      budgets = budgetData;
     } catch (caught) {
       error = message(caught, 'データを読み込めませんでした。');
     } finally {
@@ -352,6 +357,7 @@
         ondeleteincome={askDeleteIncome}
       />
     {:else}<MonthlySummary
+        {budgets}
         {monthLabel}
         expenses={monthExpenses}
         incomes={monthIncomes}

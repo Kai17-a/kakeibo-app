@@ -20,7 +20,7 @@ async fn setup() -> (Router, SqlitePool) {
         .connect_with(options)
         .await
         .unwrap();
-    sqlx::query("CREATE TABLE expense_categories(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,parent_category_id TEXT REFERENCES expense_categories(id));CREATE TABLE payment_methods(id TEXT PRIMARY KEY);CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY);CREATE TABLE expenses(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,transaction_date TEXT NOT NULL,amount TEXT NOT NULL,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),recurring_expense_id TEXT REFERENCES recurring_expenses(id),description TEXT)").execute(&pool).await.unwrap();
+    sqlx::query("CREATE TABLE expense_categories(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,parent_category_id TEXT REFERENCES expense_categories(id));CREATE TABLE payment_methods(id TEXT PRIMARY KEY);CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY);CREATE TABLE expenses(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,transaction_date TEXT NOT NULL,amount TEXT NOT NULL,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),recurring_expense_id TEXT REFERENCES recurring_expenses(id),description TEXT);CREATE TABLE budgets(id TEXT PRIMARY KEY,category_id TEXT NOT NULL UNIQUE REFERENCES expense_categories(id),amount TEXT NOT NULL)").execute(&pool).await.unwrap();
     (expense_categories::create(pool.clone()), pool)
 }
 
@@ -216,6 +216,29 @@ async fn rejects_deleting_an_expense_category_referenced_by_an_expense() {
         )
         .await
         .0,
-        StatusCode::INTERNAL_SERVER_ERROR
+        StatusCode::BAD_REQUEST
+    );
+}
+
+#[tokio::test]
+async fn rejects_deleting_an_expense_category_referenced_by_a_budget() {
+    let (app, pool) = setup().await;
+    let category = create(&app, "Food", None).await;
+    let id = category["id"].as_str().unwrap();
+    sqlx::query("INSERT INTO budgets(id, category_id, amount) VALUES('b', ?1, '1000')")
+        .bind(id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        call(
+            &app,
+            "DELETE",
+            &format!("/api/expense-categories/{id}"),
+            None
+        )
+        .await
+        .0,
+        StatusCode::BAD_REQUEST
     );
 }

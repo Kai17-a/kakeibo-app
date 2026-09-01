@@ -58,6 +58,9 @@ impl ExpenseCategoryService {
             .ok_or_else(|| AppError::not_found("expense category", id))
     }
     pub async fn delete(&self, id: &str) -> AppResult<()> {
+        if self.repository.is_used(id).await? {
+            return Err(AppError::bad_request("expense category is in use"));
+        }
         if self.repository.delete(id).await? {
             Ok(())
         } else {

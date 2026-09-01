@@ -1,6 +1,6 @@
 use crate::{
     model::expenses::{Expense, ExpenseUpsertRequest},
-    repository::expenses::ExpenseRepository,
+    repository::expenses::{BudgetCrossing, ExpenseRepository},
     utils::error::{AppError, AppResult},
 };
 #[derive(Clone)]
@@ -31,16 +31,24 @@ impl ExpenseService {
             .map(Into::into)
             .ok_or_else(|| AppError::not_found("expense", id))
     }
-    pub async fn create(&self, v: &ExpenseUpsertRequest) -> AppResult<Expense> {
+    pub async fn create(
+        &self,
+        v: &ExpenseUpsertRequest,
+    ) -> AppResult<(Expense, Option<BudgetCrossing>)> {
         validate(v)?;
-        self.repository.insert(v).await.map(Into::into)
+        let result = self.repository.insert_with_budget_check(v).await?;
+        Ok((result.expense.into(), result.budget_crossing))
     }
-    pub async fn update(&self, id: &str, v: &ExpenseUpsertRequest) -> AppResult<Expense> {
+    pub async fn update(
+        &self,
+        id: &str,
+        v: &ExpenseUpsertRequest,
+    ) -> AppResult<(Expense, Option<BudgetCrossing>)> {
         validate(v)?;
         self.repository
-            .update(id, v)
+            .update_with_budget_check(id, v)
             .await?
-            .map(Into::into)
+            .map(|result| (result.expense.into(), result.budget_crossing))
             .ok_or_else(|| AppError::not_found("expense", id))
     }
     pub async fn delete(&self, id: &str) -> AppResult<()> {
@@ -62,6 +70,8 @@ fn validate(v: &ExpenseUpsertRequest) -> AppResult<()> {
         Err(AppError::bad_request(
             "amount must be a non-negative integer",
         ))
+    } else if v.amount.parse::<i64>().is_err() {
+        Err(AppError::bad_request("amount must be within i64 range"))
     } else {
         Ok(())
     }

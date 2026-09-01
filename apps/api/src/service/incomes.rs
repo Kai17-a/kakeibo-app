@@ -107,6 +107,9 @@ fn validate(input: &IncomeUpsertRequest) -> AppResult<()> {
             "amount must be a non-negative integer",
         ));
     }
+    if input.amount.parse::<i64>().is_err() {
+        return Err(AppError::bad_request("amount must be within i64 range"));
+    }
     if input
         .payment_method_id
         .as_deref()

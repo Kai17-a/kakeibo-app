@@ -33,6 +33,7 @@ async fn main() -> ExitCode {
     info!(address = %format_args!("0.0.0.0:{}", cli.port), "Application initialized successfully");
 
     let app = router::incomes::create(pool.clone())
+        .merge(router::budgets::create(pool.clone()))
         .merge(router::expense_categories::create(pool.clone()))
         .merge(router::income_categories::create(pool.clone()))
         .merge(router::payment_methods::create(pool.clone()))

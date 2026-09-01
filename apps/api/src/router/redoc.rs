@@ -5,9 +5,10 @@ use utoipa_redoc::{Redoc, Servable};
 
 use crate::{
     handler::{
-        expense_categories, expenses, export, health, import, income_categories, incomes,
+        budgets, expense_categories, expenses, export, health, import, income_categories, incomes,
         payment_methods, recurring_expenses, recurring_incomes, webhook_urls,
     },
+    model::budgets::{Budget, BudgetUpsertRequest},
     model::expense_categories::{
         ExpenseCategory, ExpenseCategoryListResponse, ExpenseCategoryPagination,
         ExpenseCategorySortBy, ExpenseCategorySortOrder, ExpenseCategoryUpsertRequest,
@@ -35,6 +36,11 @@ use crate::{
 #[derive(OpenApi)]
 #[openapi(
     paths(
+        budgets::list,
+        budgets::get,
+        budgets::create,
+        budgets::update,
+        budgets::delete,
         expense_categories::list,
         expense_categories::get,
         expense_categories::create,
@@ -82,6 +88,8 @@ use crate::{
         health::get
     ),
     components(schemas(
+        Budget,
+        BudgetUpsertRequest,
         ExpenseCategory,
         ExpenseCategoryUpsertRequest,
         ExpenseCategoryListResponse,
@@ -134,6 +142,7 @@ use crate::{
         (name = "定期支出", description = "定期支出の管理"),
         (name = "定期収入", description = "定期収入の管理"),
         (name = "Webhook", description = "Webhook通知先URLの管理"),
+        (name = "予算", description = "カテゴリ別月額予算の管理"),
         (name = "システム", description = "稼働状態の確認")
     )
 )]
@@ -172,6 +181,7 @@ fn tag_for_path(path: &str) -> &'static str {
         "/api/recurring-expenses" | "/api/recurring-expenses/{id}" => "定期支出",
         "/api/recurring-incomes" | "/api/recurring-incomes/{id}" => "定期収入",
         "/api/webhook-urls" | "/api/webhook-urls/{id}" => "Webhook",
+        "/api/budgets" | "/api/budgets/{id}" => "予算",
         _ => "システム",
     }
 }

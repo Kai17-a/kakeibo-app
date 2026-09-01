@@ -10,6 +10,7 @@
   import RepeatIcon from '@lucide/svelte/icons/repeat';
   import TagsIcon from '@lucide/svelte/icons/tags';
   import WebhookIcon from '@lucide/svelte/icons/webhook';
+  import WalletCardsIcon from '@lucide/svelte/icons/wallet-cards';
   import { toast } from 'svelte-sonner';
   import { SvelteMap } from 'svelte/reactivity';
   import * as Alert from '$lib/components/ui/alert';
@@ -24,6 +25,7 @@
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import CategoryForm from '$lib/features/settings/CategoryForm.svelte';
   import PaymentMethodForm from '$lib/features/settings/PaymentMethodForm.svelte';
+  import BudgetForm from '$lib/features/settings/BudgetForm.svelte';
   import RecurringExpenseForm from '$lib/features/forms/RecurringExpenseForm.svelte';
   import RecurringIncomeForm from '$lib/features/forms/RecurringIncomeForm.svelte';
   import WebhookUrlForm from '$lib/features/settings/WebhookUrlForm.svelte';
@@ -42,10 +44,13 @@
     RecurringIncomeInput,
     WebhookUrl,
     WebhookUrlInput,
+    Budget,
+    BudgetInput,
   } from '$lib/types';
 
   type CategoryKind = 'expense' | 'income';
-  type SettingsTab = CategoryKind | 'payment' | 'recurring' | 'recurring-income' | 'webhook';
+  type SettingsTab =
+    CategoryKind | 'payment' | 'budget' | 'recurring' | 'recurring-income' | 'webhook';
 
   let expenseCategories = $state.raw<ExpenseCategory[]>([]);
   let incomeCategories = $state.raw<IncomeCategory[]>([]);
@@ -53,6 +58,7 @@
   let recurringExpenses = $state.raw<RecurringExpense[]>([]);
   let recurringIncomes = $state.raw<RecurringIncome[]>([]);
   let webhookUrls = $state.raw<WebhookUrl[]>([]);
+  let budgets = $state.raw<Budget[]>([]);
   let activeKind = $state<SettingsTab>('expense');
   let formOpen = $state(false);
   let editingCategory = $state<ExpenseCategory | IncomeCategory | null>(null);
@@ -64,6 +70,8 @@
   let editingRecurringIncome = $state<RecurringIncome | null>(null);
   let webhookFormOpen = $state(false);
   let editingWebhookUrl = $state<WebhookUrl | null>(null);
+  let budgetFormOpen = $state(false);
+  let editingBudget = $state<Budget | null>(null);
   let loading = $state(true);
   let saving = $state(false);
   let error = $state('');
@@ -81,6 +89,7 @@
         recurringData,
         recurringIncomeData,
         webhookData,
+        budgetData,
       ] = await Promise.all([
         api.expenseCategories(),
         api.incomeCategories(),
@@ -88,6 +97,7 @@
         api.recurringExpenses(),
         api.recurringIncomes(),
         api.webhookUrls(),
+        api.budgets(),
       ]);
       expenseCategories = expenseData.items;
       incomeCategories = incomeData.items;
@@ -95,6 +105,7 @@
       recurringExpenses = recurringData;
       recurringIncomes = recurringIncomeData;
       webhookUrls = webhookData;
+      budgets = budgetData;
     } catch (caught) {
       error = message(caught, 'データを読み込めませんでした。');
     } finally {
@@ -382,12 +393,65 @@
     }
   }
 
+  const budgetCategories = $derived(
+    expenseCategories.filter(
+      (category) =>
+        category.id === editingBudget?.category_id ||
+        !budgets.some((budget) => budget.category_id === category.id),
+    ),
+  );
+  function openBudgetForm() {
+    editingBudget = null;
+    budgetFormOpen = true;
+  }
+  function editBudget(item: Budget) {
+    editingBudget = item;
+    budgetFormOpen = true;
+  }
+  function closeBudgetForm() {
+    budgetFormOpen = false;
+    editingBudget = null;
+  }
+  async function saveBudget(input: BudgetInput) {
+    saving = true;
+    error = '';
+    const editing = editingBudget;
+    try {
+      if (editing) {
+        const updated = await api.updateBudget(editing.id, input);
+        budgets = budgets.map((item) => (item.id === updated.id ? updated : item));
+        toast.success('予算を更新しました。');
+      } else {
+        budgets = [...budgets, await api.createBudget(input)];
+        toast.success('予算を追加しました。');
+      }
+      closeBudgetForm();
+    } catch (caught) {
+      error = message(
+        caught,
+        editing ? '予算を更新できませんでした。' : '予算を追加できませんでした。',
+      );
+    } finally {
+      saving = false;
+    }
+  }
+  async function removeBudget(item: Budget) {
+    try {
+      await api.deleteBudget(item.id);
+      budgets = budgets.filter((row) => row.id !== item.id);
+      toast.success('予算を削除しました。');
+    } catch {
+      error = '予算を削除できませんでした。';
+    }
+  }
+
   type DeleteTarget =
     | { type: 'category'; item: ExpenseCategory | IncomeCategory }
     | { type: 'payment'; item: PaymentMethod }
     | { type: 'recurring'; item: RecurringExpense }
     | { type: 'recurring-income'; item: RecurringIncome }
-    | { type: 'webhook'; item: WebhookUrl };
+    | { type: 'webhook'; item: WebhookUrl }
+    | { type: 'budget'; item: Budget };
 
   let deleteTarget = $state<DeleteTarget | null>(null);
 
@@ -399,6 +463,8 @@
     if (target.type === 'recurring') return `定期支出「${target.item.name}」を削除しますか？`;
     if (target.type === 'recurring-income')
       return `定期収入「${target.item.name}」を削除しますか？`;
+    if (target.type === 'budget')
+      return `「${expenseCategoryNames.get(target.item.category_id) ?? '名称なし'}」の予算を削除しますか？`;
     return `Webhook URL「${target.item.url}」を削除しますか？`;
   });
 
@@ -420,6 +486,9 @@
   function askDeleteWebhookUrl(item: WebhookUrl) {
     deleteTarget = { type: 'webhook', item };
   }
+  function askDeleteBudget(item: Budget) {
+    deleteTarget = { type: 'budget', item };
+  }
 
   function cancelDelete() {
     deleteTarget = null;
@@ -437,6 +506,8 @@
       await removeRecurringExpense(target.item);
     } else if (target.type === 'recurring-income') {
       await removeRecurringIncome(target.item);
+    } else if (target.type === 'budget') {
+      await removeBudget(target.item);
     } else {
       await removeWebhookUrl(target.item);
     }
@@ -503,6 +574,7 @@
         <Tabs.Trigger value="expense">支出カテゴリ</Tabs.Trigger>
         <Tabs.Trigger value="income">収入カテゴリ</Tabs.Trigger>
         <Tabs.Trigger value="payment">支払方法</Tabs.Trigger>
+        <Tabs.Trigger value="budget">予算</Tabs.Trigger>
         <Tabs.Trigger value="recurring">定期支出</Tabs.Trigger>
         <Tabs.Trigger value="recurring-income">定期収入</Tabs.Trigger>
         <Tabs.Trigger value="webhook">Webhook</Tabs.Trigger>
@@ -516,6 +588,7 @@
       <Tabs.Content value="payment">
         {@render paymentMethodPanel()}
       </Tabs.Content>
+      <Tabs.Content value="budget">{@render budgetPanel()}</Tabs.Content>
       <Tabs.Content value="recurring">
         {@render recurringPanel()}
       </Tabs.Content>
@@ -624,6 +697,64 @@
           </Table.Body>
         </Table.Root>
       {/if}
+    </Card.Content>
+  </Card.Root>
+{/snippet}
+{#snippet budgetPanel()}
+  <Card.Root>
+    <Card.Header>
+      <Card.Title class="flex items-center gap-2">
+        予算<Badge variant="secondary">{budgets.length}件</Badge>
+      </Card.Title><Card.Description>
+        カテゴリごとに毎月適用する予算を管理します。
+      </Card.Description><Card.Action>
+        <Button onclick={openBudgetForm} disabled={budgetCategories.length === 0}>
+          <PlusIcon data-icon="inline-start" />追加
+        </Button>
+      </Card.Action>
+    </Card.Header>
+    <Card.Content>
+      {#if loading}<Skeleton class="h-32 w-full" />{:else if budgets.length === 0}<Empty.Root
+          class="min-h-64 border"
+        >
+          <Empty.Media variant="icon"><WalletCardsIcon /></Empty.Media><Empty.Header>
+            <Empty.Title>予算がありません</Empty.Title><Empty.Description>
+              最初の月額予算を追加してください。
+            </Empty.Description>
+          </Empty.Header><Empty.Content>
+            <Button onclick={openBudgetForm} disabled={budgetCategories.length === 0}>
+              <PlusIcon data-icon="inline-start" />予算を追加
+            </Button>
+          </Empty.Content>
+        </Empty.Root>{:else}<Table.Root>
+          <Table.Caption>設定済みの月額予算一覧</Table.Caption><Table.Header>
+            <Table.Row>
+              <Table.Head>カテゴリ</Table.Head><Table.Head class="text-right">
+                月額予算
+              </Table.Head><Table.Head class="w-36 text-right">操作</Table.Head>
+            </Table.Row>
+          </Table.Header><Table.Body>
+            {#each budgets as budget (budget.id)}<Table.Row>
+                <Table.Cell class="font-medium">
+                  {expenseCategoryNames.get(budget.category_id) ?? '名称なし'}
+                </Table.Cell><Table.Cell class="text-right tabular-nums">
+                  {formatYen(budget.amount)}
+                </Table.Cell><Table.Cell>
+                  <div class="flex justify-end gap-2">
+                    <Button variant="ghost" size="sm" onclick={() => editBudget(budget)}>
+                      編集
+                    </Button><Button
+                      variant="destructive"
+                      size="sm"
+                      onclick={() => askDeleteBudget(budget)}
+                    >
+                      削除
+                    </Button>
+                  </div>
+                </Table.Cell>
+              </Table.Row>{/each}
+          </Table.Body>
+        </Table.Root>{/if}
     </Card.Content>
   </Card.Root>
 {/snippet}
@@ -1046,6 +1177,13 @@
     onsubmit={saveWebhookUrl}
   />
 {/if}
+{#if budgetFormOpen}<BudgetForm
+    {saving}
+    categories={budgetCategories}
+    initial={editingBudget ?? undefined}
+    onclose={closeBudgetForm}
+    onsubmit={saveBudget}
+  />{/if}
 <ConfirmDialog
   open={deleteTarget !== null}
   title="削除の確認"

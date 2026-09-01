@@ -17,6 +17,7 @@
     PaymentMethod,
     RecurringExpense,
     RecurringIncome,
+    Budget,
   } from '../../types';
   interface Props {
     monthLabel: string;
@@ -27,6 +28,7 @@
     paymentMethods: PaymentMethod[];
     recurringExpenses: RecurringExpense[];
     recurringIncomes: RecurringIncome[];
+    budgets: Budget[];
     onregistervariable(item: RecurringExpense): void;
     onregistervariableincome(item: RecurringIncome): void;
   }
@@ -39,6 +41,7 @@
     paymentMethods,
     recurringExpenses,
     recurringIncomes,
+    budgets,
     onregistervariable,
     onregistervariableincome,
   }: Props = $props();
@@ -67,6 +70,14 @@
     categoryTotals(expenses, expenseCategories)
       .filter((item) => item.total)
       .sort((a, b) => b.total - a.total),
+  );
+  const budgetActuals = $derived(
+    budgets.map((budget) => ({
+      ...budget,
+      name: expenseNames.get(budget.category_id) ?? '名称なし',
+      actual: spending.find((item) => item.id === budget.category_id)?.total ?? 0,
+      budget: Number(budget.amount),
+    })),
   );
   function label(item: ReturnType<typeof mergeTransactions>[number]) {
     return (
@@ -158,6 +169,37 @@
               value={expenseTotal ? (category.total / expenseTotal) * 100 : 0}
             />
           </div>{/each}
+      </Card.Content>
+    </Card.Root>
+    <Card.Root>
+      <Card.Header>
+        <Card.Title>予算実績</Card.Title><Card.Description>{monthLabel}</Card.Description>
+      </Card.Header>
+      <Card.Content class="grid gap-4">
+        {#if budgetActuals.length}
+          {#each budgetActuals as item (item.id)}
+            <div>
+              <div class="flex justify-between gap-3 text-sm">
+                <b>{item.name}</b>
+                <span>
+                  {formatYen(item.actual)} / {formatYen(item.budget)}（{item.budget
+                    ? Math.round((item.actual / item.budget) * 100)
+                    : item.actual
+                      ? '∞'
+                      : 0}%）
+                </span>
+              </div>
+              <Progress
+                class="mt-1"
+                value={item.budget
+                  ? Math.min(100, (item.actual / item.budget) * 100)
+                  : item.actual
+                    ? 100
+                    : 0}
+              />
+            </div>
+          {/each}
+        {:else}<p class="text-sm text-muted-foreground">設定済みの予算はありません。</p>{/if}
       </Card.Content>
     </Card.Root>
     <Card.Root>

@@ -17,6 +17,8 @@ import type {
   RecurringIncomeInput,
   WebhookUrl,
   WebhookUrlInput,
+  Budget,
+  BudgetInput,
 } from './types';
 
 export class ApiError extends Error {
@@ -53,6 +55,12 @@ async function request<T>(path: string, options?: Options): Promise<T> {
 }
 
 export const api = {
+  budgets: () => request<Budget[]>('/api/budgets'),
+  createBudget: (input: BudgetInput) =>
+    request<Budget>('/api/budgets', { method: 'post', json: input }),
+  updateBudget: (id: string, input: BudgetInput) =>
+    request<Budget>(`/api/budgets/${id}`, { method: 'put', json: input }),
+  deleteBudget: (id: string) => request<void>(`/api/budgets/${id}`, { method: 'delete' }),
   expenses: () => request<Expense[]>('/api/expenses'),
   incomes: async () => {
     const items: Income[] = [];

@@ -45,7 +45,7 @@
 
 ## TODO 3: 予算管理
 
-**DB移行**: `apps/api/migrations/0007__budgets.up.sql`
+**DB移行**: `apps/api/migrations/0007__budgets.up.sql`（`.down.sql`と対で作成する）
 ```sql
 CREATE TABLE budgets (
   id TEXT PRIMARY KEY DEFAULT (...),  -- 0001__initial.up.sql の他テーブルと同じUUID default句を複製
@@ -56,22 +56,38 @@ CREATE TABLE budgets (
 );
 ```
 
-**バックエンド**: `docs/development/api-implementation-order.md` の手順に厳密に従い、新規リソースとして実装する。`payment_methods`（ページングなしの単純CRUD）または `webhook_urls`（Query構造体なし）のどちらか近い方をテンプレートにする。
+これは**カテゴリごとに毎月繰り返し適用される恒久的な月額予算**であり、年月ごとの個別予算や履歴は持たない。カテゴリ階層（`parent_category_id`）は考慮せず、各カテゴリ個別に判定する（子カテゴリの支出を親カテゴリの予算にロールアップしない）。
+
+**バックエンド**: `docs/development/api-implementation-order.md` の手順に厳密に従い、新規リソースとして実装する。テンプレートは `webhook_urls`（Query構造体・ページングなしの単純CRUD）を使う（`payment_methods`はページング機構を持つため不適）。
 
 1. `queries/budgets/{find_all,find_by_id,insert,update,delete_by_id}.sql`
 2. `src/database/models/budgets.rs`: `BudgetRow`
 3. `src/model/budgets.rs`: `Budget`, `BudgetUpsertRequest { category_id, amount }`
 4. `src/repository/budgets.rs`
-5. `src/service/budgets.rs`: `validate()` で `category_id` の存在チェック（存在しないカテゴリは400）と `amount` の数値チェック。UNIQUE制約違反（同一カテゴリに2つ目の予算）はsqlxのconstraintエラーを400にマップする
+5. `src/service/budgets.rs`: `validate()` で `category_id` の存在チェック（存在しないカテゴリは400）と `amount` の数値チェック。`amount` は `service/incomes.rs`/`service/expenses.rs`と同じ `.parse::<u64>()` 規約に合わせ、`0`も許可する（「このカテゴリでの支出は即座に超過扱い」という意味で有効）。加えてunit1の`initial_balance`検証と同様に`i64`範囲に収まることも確認する。UNIQUE制約違反（同一カテゴリに2つ目の予算）は、`sqlx::Error::Database`の種別を確認して専用の400エラーへマップする（既存コードに前例がないため`repository/budgets.rs`のinsert/updateで個別に実装する）
 6. `src/handler/budgets.rs` / `src/router/budgets.rs`
-7. `src/router/redoc.rs` へ登録（タグ「予算」）
+7. `src/router/redoc.rs` へ登録: `paths`・`components(schemas(...))`・`tags`（タグ「予算」）・`tag_for_path()`の4箇所すべてに追加する
 8. `tests/budgets_api.rs`
+9. カテゴリ削除保護の拡張: `expense_categories`の削除は明細で使用中の場合に既にブロックされているが、`budgets`から参照されている場合もブロックするよう`service/expense_categories.rs`（または該当箇所）を拡張する（unit1で支払方法の削除保護を支出・収入の両方に拡張したのと同じ考え方）
 
-**`budget.exceeded` イベント**: 支出作成時（`src/handler/expenses.rs::create`、既存の `"expense.created"` 通知呼び出しの直後）に、対象カテゴリの予算を取得し、当月のカテゴリ別支出合計を**このexpense追加前後**で比較する。追加前が予算以下・追加後が予算超過のときだけイベントを発火する（「跨いだ瞬間」のみ、毎回は発火しない）。当月カテゴリ合計を取るための新規クエリ `queries/expenses/category_month_total.sql` が必要（`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)),0) FROM expenses WHERE category_id = ?1 AND strftime('%Y-%m', transaction_date) = ?2`）。挿入前合計は「挿入後合計 − 今回のamount」で算出すればクエリ1回で足りる。既存の通知の仕組みは `src/service/webhook_urls.rs::notify(event, data)` を呼び出すだけでよい。
+**`budget.exceeded` イベント**: 支出の**作成時・更新時**（削除・定期支出の自動計上は対象外）に、対象カテゴリ・対象月の支出合計が予算以下から超過へ「跨いだ瞬間」だけイベントを発火する。
+
+- **原子性が必須**: INSERT/UPDATEと当月カテゴリ合計の算出を同一トランザクションで行い、コミット後に`notify()`を呼ぶこと。ハンドラ層で「INSERT→（別接続扱いになりうる）SELECT」という現状の`expense.created`通知の呼び出し方をそのまま踏襲すると、SQLiteの単一コネクションプール上でも複数リクエストの文が挟まり得るため、`ExpenseRepository`に「挿入（または更新）とその時点の当月カテゴリ合計取得を1トランザクションで行うメソッド」を新設し、`ExpenseService`がそれを呼んでから`notify`する
+- **作成時**: `before_total = after_total - 今回のamount`（同一カテゴリ・同一月内で完結するため1回のトランザクションで足りる）
+- **更新時**: 更新前レコードの`category_id`・`transaction_date`・`amount`を取得し、カテゴリまたは月が変わらない場合は`before_total`=更新前合計、`after_total = before_total - 旧amount + 新amount`。カテゴリまたは月が変わる場合は、旧バケットからは判定を行わず（超過から予算内に戻る側は通知しない）、新バケットに対してのみ「跨いだ瞬間」を判定する
+- **削除・定期支出自動計上（`insert_recurring_for_month`経由の計上）は対象外**。将来的な課題として残す
+- **`budget.recovered`（超過から回復した通知）は対象外**。予算金額自体の変更でもイベントは発火しない（支出の作成・更新のみがトリガー）
+- 当月カテゴリ合計を取るための新規クエリが必要（`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)),0) FROM expenses WHERE category_id = ?1 AND strftime('%Y-%m', transaction_date) = ?2`、更新の場合は対象expenseを除外する必要がある点に注意）
+- 予算・合計の取得自体が失敗した場合は、支出の作成・更新は成功のまま扱い、警告ログのみ出して通知をスキップする（既存の`notify()`が失敗時にログのみ記録する方針と揃える）
+- Webhook payloadには少なくとも `category_id`・カテゴリ名・予算金額・実績金額（`after_total`）・対象年月（`YYYY-MM`）を含める
+- 既存の通知の仕組みは `src/service/webhook_urls.rs::notify(event, data)` を呼び出すだけでよい
+
+**関連する既知の未検証ギャップ**（このunitでは対応しない、将来の課題として記録）:
+- `service/expenses.rs::validate()`の`transaction_date`は非空チェックのみで、`%Y-%m-%d`形式であることまでは検証していない（`service/incomes.rs::parse_date`や`service/import.rs`と同じ`chrono::NaiveDate::parse_from_str`検証を追加すれば防げるが、budget機能のスコープを超えるため本unitでは対応しない。不正な日付形式のexpenseは月次集計から静かに除外され得る）
 
 **フロントエンド**:
-- `routes/settings/+page.svelte`: 新しい `SettingsTab` メンバー `'budget'`、`Tabs.Trigger`/`Tabs.Content`、`budgetPanel` スニペット（カテゴリセレクト＋金額入力のCRUD+テーブル、既存パネルと同じ形）
-- `lib/features/monthly/MonthlySummary.svelte`: 「支出の内訳」カードの近くに「予算実績」カードを追加。`budgets` propを受け取り、`categoryTotals(expenses, expenseCategories)` の結果と突き合わせて予算に対する進捗バー（超過時は強調表示）を表示
+- `routes/settings/+page.svelte`: 新しい `SettingsTab` メンバー `'budget'`、`Tabs.Trigger`/`Tabs.Content`、`budgetPanel` スニペット（カテゴリセレクト＋金額入力のダイアログ式フォーム＋テーブル、既存の`PaymentMethodForm`等と同じCRUD+テーブル+ConfirmDialogの形）。カテゴリセレクトは新規作成時、既に予算が設定済みのカテゴリを除外する（編集時は自分自身の現在のカテゴリは選択肢に残す）
+- `lib/features/monthly/MonthlySummary.svelte`: 「支出の内訳」カードの近くに「予算実績」カードを追加。`budgets` propを受け取り、`categoryTotals(expenses, expenseCategories)` の結果と突き合わせて予算に対する進捗バーを表示。進捗バーは100%でクランプし、パーセント表示自体はクランプしない（150%なら「150%」と表示）。予算はあるが当月実績が0円のカテゴリも表示する（0%のバー）。予算がないカテゴリはこのカードに表示しない
 - `lib/api.ts`: `budgets()`, `createBudget`, `updateBudget`, `deleteBudget` を追加
 - `routes/+page.svelte`: `budgets` 状態を追加し `loadAll()` に組み込む
 
