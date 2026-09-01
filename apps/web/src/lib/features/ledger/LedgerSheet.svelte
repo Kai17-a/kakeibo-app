@@ -7,6 +7,7 @@
   import * as NativeSelect from '$lib/components/ui/native-select';
   import * as Tabs from '$lib/components/ui/tabs';
   import { filterExpenses } from '../../domain/expense-filters';
+  import { filterIncomes } from '../../domain/income-filters';
   import { categoryTotals, sumAmounts } from '../../domain/summaries';
   import { formatDate, formatYen } from '../../format';
   import { cn } from '../../utils';
@@ -30,6 +31,8 @@
     recurringExpenses: RecurringExpense[];
     onedit(item: Expense): void;
     ondelete(item: Expense): void;
+    oneditincome(item: Income): void;
+    ondeleteincome(item: Income): void;
   }
   let {
     month,
@@ -42,16 +45,24 @@
     recurringExpenses,
     onedit,
     ondelete,
+    oneditincome,
+    ondeleteincome,
   }: Props = $props();
-  let tab = $state<'summary' | 'details' | 'categories'>('summary');
+  let tab = $state<'summary' | 'details' | 'income-details' | 'categories'>('summary');
   let keyword = $state('');
   let categoryId = $state('');
   let paymentMethodId = $state('');
+  let incomeKeyword = $state('');
+  let incomeCategoryId = $state('');
+  let incomePaymentMethodId = $state('');
   const incomeTotal = $derived(sumAmounts(incomes));
   const expenseTotal = $derived(sumAmounts(expenses));
   const paymentNames = $derived(new SvelteMap(paymentMethods.map((item) => [item.id, item.name])));
   const categoryNames = $derived(
     new SvelteMap(expenseCategories.map((item) => [item.id, item.name])),
+  );
+  const incomeCategoryNames = $derived(
+    new SvelteMap(incomeCategories.map((item) => [item.id, item.name])),
   );
   const incomeBreakdown = $derived(
     incomeCategories.map((category) => ({
@@ -82,10 +93,22 @@
       a.transaction_date.localeCompare(b.transaction_date),
     ),
   );
+  const incomeLedger = $derived(
+    filterIncomes(incomes, {
+      keyword: incomeKeyword,
+      categoryId: incomeCategoryId,
+      paymentMethodId: incomePaymentMethodId,
+    }).sort((a, b) => a.transaction_date.localeCompare(b.transaction_date)),
+  );
   function clearFilters() {
     keyword = '';
     categoryId = '';
     paymentMethodId = '';
+  }
+  function clearIncomeFilters() {
+    incomeKeyword = '';
+    incomeCategoryId = '';
+    incomePaymentMethodId = '';
   }
   function headClass(...extra: string[]) {
     return cn(
@@ -105,6 +128,7 @@
       <Tabs.List class="mx-4" aria-label="家計簿シート">
         <Tabs.Trigger value="summary">収支・明細</Tabs.Trigger>
         <Tabs.Trigger value="details">支出明細</Tabs.Trigger>
+        <Tabs.Trigger value="income-details">収入明細</Tabs.Trigger>
         <Tabs.Trigger value="categories">月ごとのカテゴリ別支出</Tabs.Trigger>
       </Tabs.List>
 
@@ -159,7 +183,7 @@
                 <tr class="border-b">
                   <th class={headClass('w-32 text-left whitespace-nowrap')}>日付</th>
                   <th class={headClass('min-w-28 text-left')}>摘要</th>
-                  <th class={headClass('min-w-28 text-left')}>支払種別</th>
+                  <th class={headClass('min-w-28 text-left')}>支払方法</th>
                   <th class={headClass('w-32 text-right whitespace-nowrap')}>金額</th>
                   <th class={headClass('min-w-40 text-left')}>備考</th>
                   <th class="w-36 px-3 py-2 text-right"><span class="sr-only">操作</span></th>
@@ -202,6 +226,105 @@
                 {expenses.length
                   ? '条件に一致する明細がありません。'
                   : 'この月の支出明細はありません。'}
+              </p>{/if}
+          </div>
+        </section>
+      {:else if tab === 'income-details'}
+        <section class="min-w-0 p-4">
+          <h3 class="bg-muted px-3 py-2 text-sm font-bold">収入明細</h3>
+          <Field.FieldGroup
+            class="grid gap-4 border-b py-4 sm:grid-cols-2 xl:grid-cols-[minmax(12rem,1fr)_12rem_12rem_auto] xl:items-end"
+          >
+            <Field.Field>
+              <Field.FieldLabel for="income-filter-keyword">備考を検索</Field.FieldLabel>
+              <Input
+                id="income-filter-keyword"
+                type="search"
+                placeholder="キーワードを入力"
+                bind:value={incomeKeyword}
+              />
+            </Field.Field>
+            <Field.Field>
+              <Field.FieldLabel for="income-filter-category">カテゴリ</Field.FieldLabel>
+              <NativeSelect.Root
+                id="income-filter-category"
+                class="w-full"
+                bind:value={incomeCategoryId}
+              >
+                <NativeSelect.Option value="">すべて</NativeSelect.Option>
+                {#each incomeCategories as category (category.id)}
+                  <NativeSelect.Option value={category.id}>{category.name}</NativeSelect.Option>
+                {/each}
+              </NativeSelect.Root>
+            </Field.Field>
+            <Field.Field>
+              <Field.FieldLabel for="income-filter-payment">支払方法</Field.FieldLabel>
+              <NativeSelect.Root
+                id="income-filter-payment"
+                class="w-full"
+                bind:value={incomePaymentMethodId}
+              >
+                <NativeSelect.Option value="">すべて</NativeSelect.Option>
+                {#each paymentMethods as method (method.id)}
+                  <NativeSelect.Option value={method.id}>{method.name}</NativeSelect.Option>
+                {/each}
+              </NativeSelect.Root>
+            </Field.Field>
+            <Button variant="outline" size="sm" onclick={clearIncomeFilters}>条件をクリア</Button>
+          </Field.FieldGroup>
+          <div class="max-h-[38rem] overflow-auto">
+            <table class="w-full min-w-[800px] text-sm">
+              <thead class="sticky top-0 bg-background">
+                <tr class="border-b">
+                  <th class={headClass('w-32 text-left whitespace-nowrap')}>日付</th>
+                  <th class={headClass('min-w-28 text-left')}>摘要</th>
+                  <th class={headClass('min-w-28 text-left')}>支払方法</th>
+                  <th class={headClass('w-32 text-right whitespace-nowrap')}>金額</th>
+                  <th class={headClass('min-w-40 text-left')}>備考</th>
+                  <th class="w-36 px-3 py-2 text-right"><span class="sr-only">操作</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each incomeLedger as item (item.id)}<tr
+                    class="border-t transition-colors hover:bg-muted/50"
+                  >
+                    <td class="px-3 py-2 whitespace-nowrap">{formatDate(item.transaction_date)}</td>
+                    <td class="px-3 py-2">{incomeCategoryNames.get(item.category_id)}</td>
+                    <td class="px-3 py-2">
+                      {item.payment_method_id
+                        ? (paymentNames.get(item.payment_method_id) ?? '—')
+                        : '—'}
+                    </td>
+                    <td class="px-3 py-2 text-right whitespace-nowrap">
+                      {Number(item.amount).toLocaleString('ja-JP')}
+                    </td>
+                    <td class="px-3 py-2">{item.description ?? ''}</td>
+                    <td class="px-3 py-2">
+                      <div class="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label={`${formatDate(item.transaction_date)} ${incomeCategoryNames.get(item.category_id) ?? ''}を編集`}
+                          onclick={() => oneditincome(item)}
+                        >
+                          編集
+                        </Button><Button
+                          variant="destructive"
+                          size="sm"
+                          aria-label={`${formatDate(item.transaction_date)} ${incomeCategoryNames.get(item.category_id) ?? ''}を削除`}
+                          onclick={() => ondeleteincome(item)}
+                        >
+                          削除
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>{/each}
+              </tbody>
+            </table>
+            {#if !incomeLedger.length}<p class="py-12 text-center text-sm text-muted-foreground">
+                {incomes.length
+                  ? '条件に一致する明細がありません。'
+                  : 'この月の収入明細はありません。'}
               </p>{/if}
           </div>
         </section>

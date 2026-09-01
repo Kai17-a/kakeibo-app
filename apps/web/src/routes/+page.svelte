@@ -43,6 +43,7 @@
   let view = $state<SummaryView>('monthly');
   let transactionFormOpen = $state(false);
   let editingExpense = $state<Expense | null>(null);
+  let editingIncome = $state<Income | null>(null);
   let transactionPreset = $state<RecurringExpense | null>(null);
   let incomeTransactionPreset = $state<RecurringIncome | null>(null);
   let recurringFormOpen = $state(false);
@@ -119,6 +120,10 @@
         const updated = await api.updateExpense(editingExpense.id, input as ExpenseInput);
         expenses = expenses.map((item) => (item.id === updated.id ? updated : item));
         toast.success('支出を更新しました。');
+      } else if (kind === 'income' && editingIncome) {
+        const updated = await api.updateIncome(editingIncome.id, input as IncomeInput);
+        incomes = incomes.map((item) => (item.id === updated.id ? updated : item));
+        toast.success('収入を更新しました。');
       } else if (kind === 'expense') {
         expenses = [await api.createExpense(input as ExpenseInput), ...expenses];
         toast.success('支出を登録しました。');
@@ -129,6 +134,7 @@
       if (!keepOpen) {
         transactionFormOpen = false;
         editingExpense = null;
+        editingIncome = null;
         transactionPreset = null;
         incomeTransactionPreset = null;
       }
@@ -143,6 +149,7 @@
 
   function openTransaction() {
     editingExpense = null;
+    editingIncome = null;
     transactionPreset = null;
     incomeTransactionPreset = null;
     transactionFormOpen = true;
@@ -150,12 +157,15 @@
 
   function registerVariableRecurring(item: RecurringExpense) {
     editingExpense = null;
+    editingIncome = null;
+    incomeTransactionPreset = null;
     transactionPreset = item;
     transactionFormOpen = true;
   }
 
   function registerVariableRecurringIncome(item: RecurringIncome) {
     editingExpense = null;
+    editingIncome = null;
     transactionPreset = null;
     incomeTransactionPreset = item;
     transactionFormOpen = true;
@@ -163,12 +173,24 @@
 
   function editExpense(expense: Expense) {
     editingExpense = expense;
+    editingIncome = null;
+    transactionPreset = null;
+    incomeTransactionPreset = null;
+    transactionFormOpen = true;
+  }
+
+  function editIncome(income: Income) {
+    editingExpense = null;
+    editingIncome = income;
+    transactionPreset = null;
+    incomeTransactionPreset = null;
     transactionFormOpen = true;
   }
 
   function closeTransaction() {
     transactionFormOpen = false;
     editingExpense = null;
+    editingIncome = null;
     transactionPreset = null;
     incomeTransactionPreset = null;
   }
@@ -226,10 +248,32 @@
     }
   }
 
-  let deleteTarget = $state<Expense | null>(null);
+  async function removeIncome(item: Income) {
+    try {
+      await api.deleteIncome(item.id);
+      incomes = incomes.filter((row) => row.id !== item.id);
+      toast.success('明細を削除しました。');
+    } catch (caught) {
+      error = message(caught, '削除できませんでした。');
+    }
+  }
+
+  type DeleteTarget = { type: 'expense'; item: Expense } | { type: 'income'; item: Income };
+
+  let deleteTarget = $state<DeleteTarget | null>(null);
+
+  const deleteDescription = $derived(
+    deleteTarget
+      ? `この${deleteTarget.type === 'expense' ? '支出' : '収入'}明細を削除しますか？`
+      : '',
+  );
 
   function askDeleteExpense(item: Expense) {
-    deleteTarget = item;
+    deleteTarget = { type: 'expense', item };
+  }
+
+  function askDeleteIncome(item: Income) {
+    deleteTarget = { type: 'income', item };
   }
 
   function cancelDelete() {
@@ -239,7 +283,12 @@
   async function confirmDelete() {
     const target = deleteTarget;
     deleteTarget = null;
-    if (target) await removeExpense(target);
+    if (!target) return;
+    if (target.type === 'expense') {
+      await removeExpense(target.item);
+    } else {
+      await removeIncome(target.item);
+    }
   }
 
   function message(caught: unknown, fallback: string) {
@@ -299,6 +348,8 @@
         {recurringExpenses}
         onedit={editExpense}
         ondelete={askDeleteExpense}
+        oneditincome={editIncome}
+        ondeleteincome={askDeleteIncome}
       />
     {:else}<MonthlySummary
         {monthLabel}
@@ -321,6 +372,7 @@
     {paymentMethods}
     {saving}
     initialExpense={editingExpense ?? undefined}
+    initialIncome={editingIncome ?? undefined}
     initialRecurring={transactionPreset ?? undefined}
     initialRecurringIncome={incomeTransactionPreset ?? undefined}
     initialDate={`${selectedMonth}-${String(Math.min(new Date().getDate(), 28)).padStart(2, '0')}`}
@@ -343,7 +395,7 @@
 <ConfirmDialog
   open={deleteTarget !== null}
   title="削除の確認"
-  description="この明細を削除しますか？"
+  description={deleteDescription}
   onconfirm={confirmDelete}
   oncancel={cancelDelete}
 />
