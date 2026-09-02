@@ -341,6 +341,8 @@
         {expenses}
         {incomes}
         categories={expenseCategories}
+        {budgets}
+        {paymentMethods}
       />
     {:else if view === 'daily'}<LedgerSheet
         month={selectedMonth}
@@ -358,6 +360,7 @@
       />
     {:else}<MonthlySummary
         {budgets}
+        month={selectedMonth}
         {monthLabel}
         expenses={monthExpenses}
         incomes={monthIncomes}

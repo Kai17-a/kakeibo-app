@@ -7,7 +7,12 @@
   import * as Card from '$lib/components/ui/card';
   import * as Empty from '$lib/components/ui/empty';
   import { Progress } from '$lib/components/ui/progress';
-  import { categoryTotals, mergeTransactions, sumAmounts } from '../../domain/summaries';
+  import {
+    budgetActuals,
+    categoryTotals,
+    mergeTransactions,
+    sumAmounts,
+  } from '../../domain/summaries';
   import { formatDate, formatYen } from '../../format';
   import type {
     Expense,
@@ -20,6 +25,7 @@
     Budget,
   } from '../../types';
   interface Props {
+    month: string;
     monthLabel: string;
     expenses: Expense[];
     incomes: Income[];
@@ -34,6 +40,7 @@
   }
   let {
     monthLabel,
+    month,
     expenses,
     incomes,
     expenseCategories,
@@ -71,14 +78,7 @@
       .filter((item) => item.total)
       .sort((a, b) => b.total - a.total),
   );
-  const budgetActuals = $derived(
-    budgets.map((budget) => ({
-      ...budget,
-      name: expenseNames.get(budget.category_id) ?? '名称なし',
-      actual: spending.find((item) => item.id === budget.category_id)?.total ?? 0,
-      budget: Number(budget.amount),
-    })),
-  );
+  const actuals = $derived(budgetActuals(expenses, expenseCategories, budgets, month));
   function label(item: ReturnType<typeof mergeTransactions>[number]) {
     return (
       item.description ||
@@ -176,26 +176,21 @@
         <Card.Title>予算実績</Card.Title><Card.Description>{monthLabel}</Card.Description>
       </Card.Header>
       <Card.Content class="grid gap-4">
-        {#if budgetActuals.length}
-          {#each budgetActuals as item (item.id)}
+        {#if actuals.length}
+          {#each actuals as item (item.id)}
             <div>
               <div class="flex justify-between gap-3 text-sm">
                 <b>{item.name}</b>
                 <span>
-                  {formatYen(item.actual)} / {formatYen(item.budget)}（{item.budget
-                    ? Math.round((item.actual / item.budget) * 100)
-                    : item.actual
-                      ? '∞'
-                      : 0}%）
+                  {formatYen(item.actual)} / {formatYen(item.budget)}（{item.achievementRate ===
+                  null
+                    ? '—'
+                    : `${Math.round(item.achievementRate)}%`}）
                 </span>
               </div>
               <Progress
                 class="mt-1"
-                value={item.budget
-                  ? Math.min(100, (item.actual / item.budget) * 100)
-                  : item.actual
-                    ? 100
-                    : 0}
+                value={item.achievementRate === null ? 0 : Math.min(100, item.achievementRate)}
               />
             </div>
           {/each}

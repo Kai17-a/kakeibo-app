@@ -1,6 +1,8 @@
 <script lang="ts">
   import * as Card from '$lib/components/ui/card';
   import * as Table from '$lib/components/ui/table';
+  import CategoryMonthlyChart from './CategoryMonthlyChart.svelte';
+  import PaymentMethodBalanceChart from './PaymentMethodBalanceChart.svelte';
   import {
     annualMonthlyTotals,
     categoryTotals,
@@ -8,14 +10,16 @@
     sumAmounts,
   } from '../../domain/summaries';
   import { formatYen } from '../../format';
-  import type { Expense, ExpenseCategory, Income } from '../../types';
+  import type { Budget, Expense, ExpenseCategory, Income, PaymentMethod } from '../../types';
   interface Props {
     year: string;
     expenses: Expense[];
     incomes: Income[];
     categories: ExpenseCategory[];
+    budgets: Budget[];
+    paymentMethods: PaymentMethod[];
   }
-  let { year, expenses, incomes, categories }: Props = $props();
+  let { year, expenses, incomes, categories, budgets, paymentMethods }: Props = $props();
   const annualExpenses = $derived(inPeriod(expenses, year));
   const annualIncomes = $derived(inPeriod(incomes, year));
   const expenseTotal = $derived(sumAmounts(annualExpenses));
@@ -83,6 +87,10 @@
         </div>{/each}
     </Card.Content>
   </Card.Root>
+</div>
+<div class="mt-6 grid gap-6 xl:grid-cols-2">
+  <CategoryMonthlyChart {expenses} {categories} {year} />
+  <PaymentMethodBalanceChart {incomes} {expenses} {paymentMethods} {year} />
 </div>
 <Card.Root class="mt-6 overflow-hidden">
   <Card.Header><Card.Title>月ごとの収支</Card.Title></Card.Header>

@@ -130,17 +130,21 @@ UNION ALL SELECT id, 'budget.exceeded' FROM webhook_urls;
 
 新規ライブラリは導入しない。`lib/features/annual/AnnualSummary.svelte` の既存の手書きCSSバー方式（`chartMax` を分母にした `style:height` のパーセンテージ指定）を踏襲して以下を追加する。
 
+**設計変更（実装前の分析で確定）**: 当初案は3関数すべてを`AnnualSummary.svelte`に配置する想定だったが、`budgetActuals`は単月関数であり年間画面には「選択月」の概念がない一方、`MonthlySummary.svelte`には単位3で実装済みの予算実績カード（インライン計算）が既に存在する。**`budgetActuals`は`MonthlySummary.svelte`の既存インライン計算をテスト可能な純粋関数へ抽出するリファクタリングとして扱い、年間画面には配置しない。** `AnnualSummary.svelte`へ追加するのは「カテゴリ別月次推移」と「資産残高推移」の2セクションのみ。
+
 **`lib/domain/summaries.ts` に純粋関数を追加**（`annualMonthlyTotals` と同じ形）:
-- `categoryMonthlyTotals(expenses, categories, year)`: 月×カテゴリのマトリクスを返す。カテゴリ別月次推移の積み上げ棒グラフに使う
-- `budgetActuals(expenses, categories, budgets, month)`: カテゴリごとの予算・実績・達成率を返す（TODO3の `budgets` を使用）
-- `paymentMethodBalanceTrend(incomes, expenses, paymentMethods, year)`: 各支払方法の月末時点残高推移を返す。`initial_balance` が設定されている支払方法のみ対象（`balance = initial_balance + Σ(その月末までの収入) − Σ(その月末までの支出)`）。バックエンドの残高計算（TODO1）とロジックを重複させず、フロントエンドは生の `incomes`/`expenses`/`paymentMethods.initial_balance` から独立に計算する（月次スナップショットAPIは新設しない）。これが「貯蓄目標可視化」の実装範囲であり、目標金額を登録する機能は作らない
+- `categoryMonthlyTotals(expenses, categories, year)`: `{month, values: [{id, name, total}], total}[]`（12要素）を返す。年間合計が0のカテゴリは除外する（月ごとではなく年間合計で判定）。カテゴリ別月次推移の積み上げ棒グラフに使う
+- `budgetActuals(expenses, categories, budgets, month)`: `{id, categoryId, name, budget, actual, achievementRate: number | null, exceeded: boolean}[]`を返す。予算0円のカテゴリは`achievementRate`を`null`にする（0除算回避）。`MonthlySummary.svelte`の既存インライン計算をこの関数の呼び出しに置き換える
+- `paymentMethodBalanceTrend(incomes, expenses, paymentMethods, year)`: `{month, values: [{id, name, balance}], total}[]`（12要素）を返す。`initial_balance`が設定されている支払方法のみ対象。**重要**: 月末残高は「選択年内の収支だけの累積」ではなく、`initial_balance + (選択年より前の全期間の収入-支出の累積) + (選択年1月から対象月までの収入-支出の累積)`で算出する（初期残高設定より前の年から取引がある支払方法の場合、年内データだけでは残高が不正確になるため）。残高は負値になり得る点に注意（グラフ側はゼロ基準の発散型で表現する）。バックエンドの残高計算（TODO1）とロジックを重複させず、フロントエンドは生の`incomes`/`expenses`/`paymentMethods.initial_balance`から独立に計算する（月次スナップショットAPIは新設しない）。これが「貯蓄目標可視化」の実装範囲であり、目標金額を登録する機能は作らない
 
-**`AnnualSummary.svelte` に3つのセクションを追加**（既存の月別収支バーグラフの下に配置）:
-- カテゴリ別月次推移（積み上げ棒、既存のカラートークンを使い回す）
-- 予算実績比較（予算のあるカテゴリのみ、達成率バー + 数値）
-- 資産（支払方法別）残高推移グラフ（`paymentMethodBalanceTrend` の結果を棒グラフで表現）
+**コンポーネント分割**: `AnnualSummary.svelte`（113行）へ2セクション分をそのまま追加すると肥大化するため、以下のサブコンポーネントへ分割する:
+- `lib/features/annual/AnnualSummary.svelte`: props受領・年間KPI・既存の月別収支バーグラフ・既存テーブル・新規2コンポーネントの配置のみ
+- `lib/features/annual/CategoryMonthlyChart.svelte`（新規）: カテゴリ別月次推移の積み上げ棒グラフ
+- `lib/features/annual/PaymentMethodBalanceChart.svelte`（新規）: 資産残高推移グラフ。残高が負値になり得るため、ゼロ基準線から上下に伸びる発散型バー（0%地点を中央またはグラフ下端ではなく実際のゼロ値に固定し、正の残高は上、負の残高は下に伸ばす）で表現する
 
-**テスト**: `summaries.test.ts` に3関数分のケースを追加
+**`routes/+page.svelte`**: 既に読み込み済みの`budgets`・`paymentMethods`状態を`AnnualSummary`へ新たにpropsとして渡す（現状は渡されていない）
+
+**テスト**: `summaries.test.ts`に3関数分のケースを追加。`paymentMethodBalanceTrend`は年またぎの取引がある場合のケースを含める
 
 ---
 
