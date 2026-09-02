@@ -1,7 +1,7 @@
 use crate::{
     model::income_categories::{
         IncomeCategory, IncomeCategoryListResponse, IncomeCategoryPagination, IncomeCategoryQuery,
-        IncomeCategoryUpsertRequest,
+        IncomeCategoryReorderRequest, IncomeCategoryUpsertRequest,
     },
     repository::income_categories::IncomeCategoryRepository,
     utils::error::{AppError, AppResult},
@@ -71,6 +71,11 @@ impl IncomeCategoryService {
         } else {
             Err(AppError::not_found("income category", id))
         }
+    }
+    pub async fn reorder(&self, request: &IncomeCategoryReorderRequest) -> AppResult<()> {
+        self.repository
+            .reorder(request.parent_category_id.as_deref(), &request.category_ids)
+            .await
     }
 
     async fn validate_parent(&self, id: Option<&str>, parent_id: Option<&str>) -> AppResult<()> {

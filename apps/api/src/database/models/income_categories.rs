@@ -10,4 +10,5 @@ pub struct IncomeCategoryRow {
     pub name: String,
     pub description: Option<String>,
     pub parent_category_id: Option<String>,
+    pub display_order: i64,
 }

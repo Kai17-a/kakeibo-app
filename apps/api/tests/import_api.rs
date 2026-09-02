@@ -42,6 +42,12 @@ const EXPENSE_SCHEMA: &str = "CREATE TABLE expense_categories(id TEXT PRIMARY KE
 #[tokio::test]
 async fn import_expenses_csv() {
     let p = pool(EXPENSE_SCHEMA).await;
+    sqlx::query(
+        "ALTER TABLE expense_categories ADD COLUMN display_order INTEGER NOT NULL DEFAULT 0",
+    )
+    .execute(&p)
+    .await
+    .unwrap();
     let app = import::create(p.clone());
     let csv = "\u{feff}日付,金額,カテゴリ,支払方法,メモ\r\n2026-07-22,1200,食費,現金,\"ランチ, 友人と\"\r\n2026-07-23,800,医療費,電子マネー,\r\n";
     let (s, b) = call(&app, "/api/import/expenses", csv).await;
@@ -54,6 +60,14 @@ async fn import_expenses_csv() {
         count(
             &p,
             "SELECT COUNT(*) FROM expense_categories WHERE name='医療費'"
+        )
+        .await,
+        1
+    );
+    assert_eq!(
+        count(
+            &p,
+            "SELECT display_order FROM expense_categories WHERE name='医療費'"
         )
         .await,
         1
@@ -82,6 +96,12 @@ async fn import_expenses_csv() {
 #[tokio::test]
 async fn import_incomes_csv() {
     let p = pool("CREATE TABLE income_categories(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,parent_category_id TEXT REFERENCES income_categories(id));CREATE TABLE incomes(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,category_id TEXT NOT NULL REFERENCES income_categories(id),transaction_date TEXT NOT NULL,amount TEXT NOT NULL,payment_method_id TEXT,recurring_income_id TEXT,description TEXT);INSERT INTO income_categories(name,description) VALUES('給与',NULL)").await;
+    sqlx::query(
+        "ALTER TABLE income_categories ADD COLUMN display_order INTEGER NOT NULL DEFAULT 0",
+    )
+    .execute(&p)
+    .await
+    .unwrap();
     let app = import::create(p.clone());
     let csv = "日付,金額,カテゴリ,メモ\n2026-07-25,300000,給与,7月分\n2026-07-10,20000,賞与,\n";
     let (s, b) = call(&app, "/api/import/incomes", csv).await;
@@ -89,6 +109,14 @@ async fn import_incomes_csv() {
     assert_eq!(b["imported"], 2);
     assert_eq!(b["created_categories"], json!(["賞与"]));
     assert_eq!(b["created_payment_methods"], json!([]));
+    assert_eq!(
+        count(
+            &p,
+            "SELECT display_order FROM income_categories WHERE name='賞与'"
+        )
+        .await,
+        1
+    );
     assert_eq!(count(&p, "SELECT COUNT(*) FROM incomes").await, 2);
     assert_eq!(
         count(

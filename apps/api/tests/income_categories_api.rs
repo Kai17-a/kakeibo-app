@@ -20,7 +20,7 @@ async fn setup() -> (Router, SqlitePool) {
         .connect_with(options)
         .await
         .unwrap();
-    sqlx::query("CREATE TABLE income_categories(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,parent_category_id TEXT REFERENCES income_categories(id));CREATE TABLE recurring_incomes(id TEXT PRIMARY KEY);CREATE TABLE incomes(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,category_id TEXT NOT NULL REFERENCES income_categories(id),transaction_date TEXT NOT NULL,amount TEXT NOT NULL,recurring_income_id TEXT REFERENCES recurring_incomes(id),description TEXT)").execute(&pool).await.unwrap();
+    sqlx::query("CREATE TABLE income_categories(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,parent_category_id TEXT REFERENCES income_categories(id),display_order INTEGER NOT NULL DEFAULT 0);CREATE TABLE recurring_incomes(id TEXT PRIMARY KEY);CREATE TABLE incomes(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,category_id TEXT NOT NULL REFERENCES income_categories(id),transaction_date TEXT NOT NULL,amount TEXT NOT NULL,recurring_income_id TEXT REFERENCES recurring_incomes(id),description TEXT)").execute(&pool).await.unwrap();
     (income_categories::create(pool.clone()), pool)
 }
 
@@ -257,4 +257,88 @@ async fn rejects_deleting_an_income_category_referenced_by_an_income() {
         .0,
         StatusCode::INTERNAL_SERVER_ERROR
     );
+}
+
+#[tokio::test]
+async fn reorders_and_sorts_income_category_sibling_scopes() {
+    let app = app().await;
+    let first = create(&app, "First", None).await;
+    let second = create(&app, "Second", None).await;
+    assert_eq!(first["display_order"], 0);
+    assert_eq!(second["display_order"], 1);
+    let first_id = first["id"].as_str().unwrap();
+    let second_id = second["id"].as_str().unwrap();
+    let child_a = create(&app, "A", Some(first_id)).await;
+    let child_b = create(&app, "B", Some(first_id)).await;
+    let child_c = create(&app, "C", Some(second_id)).await;
+    assert_eq!(
+        call(
+            &app,
+            "PUT",
+            "/api/income-categories/order",
+            Some(json!({"parent_category_id":null,"category_ids":[second_id,first_id]}))
+        )
+        .await
+        .0,
+        StatusCode::NO_CONTENT
+    );
+    assert_eq!(
+        call(
+            &app,
+            "PUT",
+            "/api/income-categories/order",
+            Some(
+                json!({"parent_category_id":first_id,"category_ids":[child_b["id"],child_a["id"]]})
+            )
+        )
+        .await
+        .0,
+        StatusCode::NO_CONTENT
+    );
+    assert_eq!(
+        call(
+            &app,
+            "PUT",
+            "/api/income-categories/order",
+            Some(
+                json!({"parent_category_id":first_id,"category_ids":[child_a["id"],child_c["id"]]})
+            )
+        )
+        .await
+        .0,
+        StatusCode::BAD_REQUEST
+    );
+    let list = call(
+        &app,
+        "GET",
+        "/api/income-categories?sort_by=display_order&per_page=100",
+        None,
+    )
+    .await
+    .1
+    .unwrap();
+    let names: Vec<_> = list["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|item| item["name"].as_str().unwrap())
+        .collect();
+    assert_eq!(names, ["Second", "C", "First", "B", "A"]);
+
+    let descending = call(
+        &app,
+        "GET",
+        "/api/income-categories?sort_by=display_order&sort_order=desc&per_page=100",
+        None,
+    )
+    .await
+    .1
+    .unwrap();
+    let names: Vec<_> = descending["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|item| item["name"].as_str().unwrap())
+        .collect();
+    assert_eq!(names, ["First", "A", "B", "Second", "C"]);
 }

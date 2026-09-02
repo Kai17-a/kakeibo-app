@@ -140,6 +140,7 @@ async fn insert_named(
     Ok(sqlx::query(query)
         .bind(name)
         .bind(None::<String>)
+        .bind(None::<String>)
         .fetch_one(&mut **tx)
         .await?
         .get("id"))

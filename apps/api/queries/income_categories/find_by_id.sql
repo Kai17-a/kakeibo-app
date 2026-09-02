@@ -5,6 +5,7 @@ SELECT
   , name
   , description
   , parent_category_id
+  , display_order
 FROM
   income_categories
 WHERE

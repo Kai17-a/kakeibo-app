@@ -1,7 +1,7 @@
 use crate::{
     model::expense_categories::{
         ExpenseCategory, ExpenseCategoryListResponse, ExpenseCategoryPagination,
-        ExpenseCategoryQuery, ExpenseCategoryUpsertRequest,
+        ExpenseCategoryQuery, ExpenseCategoryReorderRequest, ExpenseCategoryUpsertRequest,
     },
     repository::expense_categories::ExpenseCategoryRepository,
     utils::error::{AppError, AppResult},
@@ -66,6 +66,11 @@ impl ExpenseCategoryService {
         } else {
             Err(AppError::not_found("expense category", id))
         }
+    }
+    pub async fn reorder(&self, request: &ExpenseCategoryReorderRequest) -> AppResult<()> {
+        self.repository
+            .reorder(request.parent_category_id.as_deref(), &request.category_ids)
+            .await
     }
 
     async fn validate_parent(&self, id: Option<&str>, parent_id: Option<&str>) -> AppResult<()> {

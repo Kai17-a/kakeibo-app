@@ -11,6 +11,7 @@ pub struct IncomeCategory {
     pub name: String,
     pub description: Option<String>,
     pub parent_category_id: Option<String>,
+    pub display_order: i64,
 }
 
 impl From<IncomeCategoryRow> for IncomeCategory {
@@ -22,6 +23,7 @@ impl From<IncomeCategoryRow> for IncomeCategory {
             name: row.name,
             description: row.description,
             parent_category_id: row.parent_category_id,
+            display_order: row.display_order,
         }
     }
 }
@@ -31,6 +33,11 @@ pub struct IncomeCategoryUpsertRequest {
     pub name: String,
     pub description: Option<String>,
     pub parent_category_id: Option<String>,
+}
+#[derive(Debug, Clone, Deserialize, ToSchema)]
+pub struct IncomeCategoryReorderRequest {
+    pub parent_category_id: Option<String>,
+    pub category_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, ToSchema)]
@@ -75,6 +82,7 @@ pub enum IncomeCategorySortBy {
     Name,
     CreatedAt,
     UpdatedAt,
+    DisplayOrder,
 }
 
 impl IncomeCategorySortBy {
@@ -84,6 +92,7 @@ impl IncomeCategorySortBy {
             Self::Name => "name",
             Self::CreatedAt => "created_at",
             Self::UpdatedAt => "updated_at",
+            Self::DisplayOrder => "display_order",
         }
     }
 }

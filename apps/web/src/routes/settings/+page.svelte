@@ -7,6 +7,8 @@
   import CreditCardIcon from '@lucide/svelte/icons/credit-card';
   import DatabaseIcon from '@lucide/svelte/icons/database';
   import PlusIcon from '@lucide/svelte/icons/plus';
+  import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
+  import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
   import RepeatIcon from '@lucide/svelte/icons/repeat';
   import TagsIcon from '@lucide/svelte/icons/tags';
   import WebhookIcon from '@lucide/svelte/icons/webhook';
@@ -121,23 +123,23 @@
       if (editing) {
         if (activeKind === 'income') {
           const category = await api.updateIncomeCategory(editing.id, input);
-          incomeCategories = incomeCategories
-            .map((item) => (item.id === category.id ? category : item))
-            .sort(compareByName);
+          incomeCategories = incomeCategories.map((item) =>
+            item.id === category.id ? category : item,
+          );
         } else {
           const category = await api.updateExpenseCategory(editing.id, input);
-          expenseCategories = expenseCategories
-            .map((item) => (item.id === category.id ? category : item))
-            .sort(compareByName);
+          expenseCategories = expenseCategories.map((item) =>
+            item.id === category.id ? category : item,
+          );
         }
         toast.success(`${activeKind === 'income' ? '収入' : '支出'}カテゴリを更新しました。`);
       } else if (activeKind === 'income') {
         const category = await api.createIncomeCategory(input);
-        incomeCategories = [...incomeCategories, category].sort(compareByName);
+        incomeCategories = [...incomeCategories, category];
         toast.success('収入カテゴリを追加しました。');
       } else {
         const category = await api.createExpenseCategory(input);
-        expenseCategories = [...expenseCategories, category].sort(compareByName);
+        expenseCategories = [...expenseCategories, category];
         toast.success('支出カテゴリを追加しました。');
       }
       closeCategoryForm();
@@ -513,21 +515,66 @@
     }
   }
 
-  function compareByName(a: NamedResource, b: NamedResource) {
-    return a.name.localeCompare(b.name, 'ja');
-  }
-
   function groupCategories<T extends ExpenseCategory | IncomeCategory>(categories: T[]): T[] {
     const children = new SvelteMap<string, T[]>();
     for (const category of categories) {
       if (!category.parent_category_id) continue;
       const siblings = children.get(category.parent_category_id) ?? [];
       siblings.push(category);
+      siblings.sort((a, b) => a.display_order - b.display_order);
       children.set(category.parent_category_id, siblings);
     }
     return categories
       .filter((category) => category.parent_category_id === null)
+      .sort((a, b) => a.display_order - b.display_order)
       .flatMap((parent) => [parent, ...(children.get(parent.id) ?? [])]);
+  }
+
+  function compareByName(a: NamedResource, b: NamedResource) {
+    return a.name.localeCompare(b.name, 'ja');
+  }
+
+  function siblingPosition(
+    category: ExpenseCategory | IncomeCategory,
+    categories: (ExpenseCategory | IncomeCategory)[],
+  ) {
+    const siblings = categories.filter(
+      (item) => item.parent_category_id === category.parent_category_id,
+    );
+    return { index: siblings.findIndex((item) => item.id === category.id), count: siblings.length };
+  }
+
+  async function moveCategory(category: ExpenseCategory | IncomeCategory, direction: -1 | 1) {
+    const kind = activeKind;
+    const source = kind === 'income' ? incomeCategories : expenseCategories;
+    const sorted = groupCategories(source);
+    const siblings = sorted.filter(
+      (item) => item.parent_category_id === category.parent_category_id,
+    );
+    const index = siblings.findIndex((item) => item.id === category.id);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= siblings.length) return;
+    [siblings[index], siblings[target]] = [siblings[target], siblings[index]];
+    const positions = new SvelteMap(siblings.map((item, order) => [item.id, order]));
+    const updated = source.map((item) => ({
+      ...item,
+      display_order: positions.get(item.id) ?? item.display_order,
+    }));
+    if (kind === 'income') incomeCategories = updated as IncomeCategory[];
+    else expenseCategories = updated as ExpenseCategory[];
+    try {
+      const input = {
+        parent_category_id: category.parent_category_id,
+        category_ids: siblings.map((item) => item.id),
+      };
+      if (kind === 'income') await api.reorderIncomeCategories(input);
+      else await api.reorderExpenseCategories(input);
+      toast.success('カテゴリの表示順を更新しました。');
+    } catch (caught) {
+      if (kind === 'income') incomeCategories = source as IncomeCategory[];
+      else expenseCategories = source as ExpenseCategory[];
+      error = message(caught, 'カテゴリの表示順を更新できませんでした。');
+    }
   }
 
   function message(caught: unknown, fallback: string) {
@@ -651,17 +698,19 @@
           </Empty.Content>
         </Empty.Root>
       {:else}
+        {@const sortedCategories = groupCategories(categories)}
         <Table.Root>
           <Table.Caption>登録済みの{title}一覧</Table.Caption>
           <Table.Header>
             <Table.Row>
               <Table.Head class="w-1/3">カテゴリ名</Table.Head>
               <Table.Head>説明</Table.Head>
-              <Table.Head class="w-36 text-right">操作</Table.Head>
+              <Table.Head class="w-56 text-right">操作</Table.Head>
             </Table.Row>
           </Table.Header>
           <Table.Body>
-            {#each groupCategories(categories) as category (category.id)}
+            {#each sortedCategories as category (category.id)}
+              {@const position = siblingPosition(category, sortedCategories)}
               <Table.Row>
                 <Table.Cell class={category.parent_category_id ? 'pl-8' : ''}>
                   <span class="font-medium">{category.name}</span>
@@ -674,6 +723,24 @@
                 </Table.Cell>
                 <Table.Cell class="text-right">
                   <div class="flex justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`${category.name}を上へ移動`}
+                      disabled={position.index === 0}
+                      onclick={() => moveCategory(category, -1)}
+                    >
+                      <ArrowUpIcon />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`${category.name}を下へ移動`}
+                      disabled={position.index === position.count - 1}
+                      onclick={() => moveCategory(category, 1)}
+                    >
+                      <ArrowDownIcon />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"

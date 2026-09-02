@@ -10,6 +10,7 @@ pub struct ExpenseCategory {
     pub name: String,
     pub description: Option<String>,
     pub parent_category_id: Option<String>,
+    pub display_order: i64,
 }
 impl From<ExpenseCategoryRow> for ExpenseCategory {
     fn from(v: ExpenseCategoryRow) -> Self {
@@ -20,6 +21,7 @@ impl From<ExpenseCategoryRow> for ExpenseCategory {
             name: v.name,
             description: v.description,
             parent_category_id: v.parent_category_id,
+            display_order: v.display_order,
         }
     }
 }
@@ -28,6 +30,11 @@ pub struct ExpenseCategoryUpsertRequest {
     pub name: String,
     pub description: Option<String>,
     pub parent_category_id: Option<String>,
+}
+#[derive(Debug, Clone, Deserialize, ToSchema)]
+pub struct ExpenseCategoryReorderRequest {
+    pub parent_category_id: Option<String>,
+    pub category_ids: Vec<String>,
 }
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct ExpenseCategoryListResponse {
@@ -66,6 +73,7 @@ pub enum ExpenseCategorySortBy {
     Name,
     CreatedAt,
     UpdatedAt,
+    DisplayOrder,
 }
 impl ExpenseCategorySortBy {
     pub(crate) fn sql(self) -> &'static str {
@@ -74,6 +82,7 @@ impl ExpenseCategorySortBy {
             Self::Name => "name",
             Self::CreatedAt => "created_at",
             Self::UpdatedAt => "updated_at",
+            Self::DisplayOrder => "display_order",
         }
     }
 }

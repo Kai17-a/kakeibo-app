@@ -11,6 +11,10 @@ pub fn create(pool: SqlitePool) -> Router {
     };
     Router::new()
         .route(
+            "/api/expense-categories/order",
+            axum::routing::put(handler::reorder),
+        )
+        .route(
             "/api/expense-categories",
             get(handler::list).post(handler::create),
         )

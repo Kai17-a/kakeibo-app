@@ -58,6 +58,7 @@ function category(id: string, name: string): ExpenseCategory {
     name,
     description: null,
     parent_category_id: null,
+    display_order: 0,
   };
 }
 

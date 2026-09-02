@@ -1,6 +1,7 @@
 import ky, { isHTTPError, type Options } from 'ky';
 import type {
   CategoryInput,
+  CategoryReorderInput,
   Expense,
   ExpenseCategory,
   ExpenseInput,
@@ -76,11 +77,11 @@ export const api = {
   },
   expenseCategories: () =>
     request<ListResponse<ExpenseCategory>>(
-      '/api/expense-categories?sort_by=name&sort_order=asc&per_page=100',
+      '/api/expense-categories?sort_by=display_order&sort_order=asc&per_page=100',
     ),
   incomeCategories: () =>
     request<ListResponse<IncomeCategory>>(
-      '/api/income-categories?sort_by=name&sort_order=asc&per_page=100',
+      '/api/income-categories?sort_by=display_order&sort_order=asc&per_page=100',
     ),
   createExpenseCategory: (input: CategoryInput) =>
     request<ExpenseCategory>('/api/expense-categories', { method: 'post', json: input }),
@@ -90,6 +91,10 @@ export const api = {
     request<ExpenseCategory>(`/api/expense-categories/${id}`, { method: 'put', json: input }),
   updateIncomeCategory: (id: string, input: CategoryInput) =>
     request<IncomeCategory>(`/api/income-categories/${id}`, { method: 'put', json: input }),
+  reorderExpenseCategories: (input: CategoryReorderInput) =>
+    request<void>('/api/expense-categories/order', { method: 'put', json: input }),
+  reorderIncomeCategories: (input: CategoryReorderInput) =>
+    request<void>('/api/income-categories/order', { method: 'put', json: input }),
   deleteExpenseCategory: (id: string) =>
     request<void>(`/api/expense-categories/${id}`, { method: 'delete' }),
   deleteIncomeCategory: (id: string) =>

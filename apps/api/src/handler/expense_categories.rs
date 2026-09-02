@@ -1,7 +1,7 @@
 use crate::{
     model::expense_categories::{
         ExpenseCategory, ExpenseCategoryListResponse, ExpenseCategoryQuery,
-        ExpenseCategoryUpsertRequest,
+        ExpenseCategoryReorderRequest, ExpenseCategoryUpsertRequest,
     },
     service::expense_categories::ExpenseCategoryService,
     utils::error::{AppError, AppResult},
@@ -52,5 +52,13 @@ pub async fn update(
 #[utoipa::path(delete,path="/api/expense-categories/{id}",params(("id"=String,Path)),responses((status=204),(status=404)))]
 pub async fn delete(State(s): State<AppState>, Path(id): Path<String>) -> AppResult<StatusCode> {
     s.expense_categories.delete(&id).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+#[utoipa::path(put,path="/api/expense-categories/order",request_body=ExpenseCategoryReorderRequest,responses((status=204),(status=400)),tag="支出カテゴリ")]
+pub async fn reorder(
+    State(s): State<AppState>,
+    Json(v): Json<ExpenseCategoryReorderRequest>,
+) -> AppResult<StatusCode> {
+    s.expense_categories.reorder(&v).await?;
     Ok(StatusCode::NO_CONTENT)
 }

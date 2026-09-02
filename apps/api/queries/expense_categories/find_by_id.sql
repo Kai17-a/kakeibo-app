@@ -5,6 +5,7 @@ SELECT
   , name
   , description
   , parent_category_id
+  , display_order
 FROM
   expense_categories
 WHERE

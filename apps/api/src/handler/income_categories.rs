@@ -7,7 +7,7 @@ use axum::{
 use crate::{
     model::income_categories::{
         IncomeCategory, IncomeCategoryListResponse, IncomeCategoryQuery,
-        IncomeCategoryUpsertRequest,
+        IncomeCategoryReorderRequest, IncomeCategoryUpsertRequest,
     },
     service::income_categories::IncomeCategoryService,
     utils::error::{AppError, AppResult},
@@ -67,5 +67,13 @@ pub async fn delete(
     Path(id): Path<String>,
 ) -> AppResult<StatusCode> {
     state.income_categories.delete(&id).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+#[utoipa::path(put, path = "/api/income-categories/order", request_body = IncomeCategoryReorderRequest, responses((status = 204), (status = 400)), tag = "収入カテゴリ")]
+pub async fn reorder(
+    State(state): State<AppState>,
+    Json(input): Json<IncomeCategoryReorderRequest>,
+) -> AppResult<StatusCode> {
+    state.income_categories.reorder(&input).await?;
     Ok(StatusCode::NO_CONTENT)
 }

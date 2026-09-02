@@ -9,9 +9,15 @@ export interface NamedResource extends BaseResource {
 }
 export interface ExpenseCategory extends NamedResource {
   parent_category_id: string | null;
+  display_order: number;
 }
 export interface IncomeCategory extends NamedResource {
   parent_category_id: string | null;
+  display_order: number;
+}
+export interface CategoryReorderInput {
+  parent_category_id: string | null;
+  category_ids: string[];
 }
 export interface CategoryInput {
   name: string;
