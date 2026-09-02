@@ -2,7 +2,7 @@
 
 `docs/development/feature-rollout-progress.md` の仕様棚卸しから出た8機能のうち、未実装分の設計と実装手順をまとめる。担当者・使用ツールを問わず着手できるよう、汎用的な開発タスクとして記述する。
 
-対象外（実装しない）: レシート画像添付、定期支出の支払日リマインド、認証・マルチユーザー対応、DB復元のアプリ内実装（理由は「TODO 6」参照）、貯蓄目標金額を登録する専用機能（残高推移グラフのみ実装、詳細は「TODO 5」参照）。
+対象外（実装しない）: レシート画像添付、定期支出の支払日リマインド、認証・マルチユーザー対応、DB復元のアプリ内実装（運用手順はREADME参照）、貯蓄目標金額を登録する専用機能（残高推移グラフのみ実装、詳細は「TODO 5」参照）。
 
 ## 進め方
 
@@ -145,23 +145,6 @@ UNION ALL SELECT id, 'budget.exceeded' FROM webhook_urls;
 **`routes/+page.svelte`**: 既に読み込み済みの`budgets`・`paymentMethods`状態を`AnnualSummary`へ新たにpropsとして渡す（現状は渡されていない）
 
 **テスト**: `summaries.test.ts`に3関数分のケースを追加。`paymentMethodBalanceTrend`は年またぎの取引がある場合のケースを含める
-
----
-
-## TODO 6: DBバックアップ（ダウンロードのみ）
-
-**スコープ制約**: 復元（リストア）はアプリ内実装しない。理由: `apps/api/src/database/migration.rs` の `SqlitePool` は `max_connections(1)` で `main.rs` の全ルーターに `.clone()` で直接配線されており、稼働中のプールを安全に入れ替える仕組みが存在しない。復元は「コンテナ停止→ボリューム内の `.db` ファイルを差し替え→起動」という手順（README参照）で運用する。
-
-**バックエンド**:
-- `src/router/backup.rs` / `src/handler/backup.rs`: `GET /api/backup`
-- `src/service/backup.rs`（新規）: `sqlx::query("VACUUM INTO ?1").bind(&tmp_path).execute(&pool)` で一時ファイルへ整合性のあるスナップショットを書き出し、ファイルバイト列を読み込んでレスポンスボディにし、一時ファイルを削除する。`tmp_path` は `std::env::temp_dir()` 配下にUUID等でユニーク化する
-- レスポンスヘッダ: `Content-Type: application/octet-stream`、`Content-Disposition: attachment; filename="kakeibo-backup-{YYYYMMDD}.db"`（`src/handler/export.rs` のヘッダ設定パターンを参考にする。中身はバイナリ）
-- `src/router/redoc.rs` へ登録
-
-**フロントエンド**:
-- `routes/settings/data/+page.svelte`: 既存の「データのエクスポート」Cardの並びに「フルバックアップ」Cardを追加。`<Button variant="outline" href="/api/backup">` のプレーンリンク（CSVエクスポートと同じ、JS fetchなし）
-
-**README.md**: 「データの永続化」節の後に「バックアップとリストア」節を追加。ダウンロード方法（上記UI）と、復元手順（`docker compose down` → ダウンロード済み `.db` を `docker volume` 内の `kakeibo.db` にコピー → `docker compose up -d`）を明記する。
 
 ---
 

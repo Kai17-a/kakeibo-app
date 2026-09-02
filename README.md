@@ -44,6 +44,18 @@ docker compose up -d
 
 SQLiteデータベースはコンテナ内の `/data/kakeibo.db` に保存されます。上記のコマンドと設定では、Dockerボリューム `kakeibo-data` にデータを永続化します。
 
+### バックアップとリストア
+
+設定画面の「データ管理」にある「フルバックアップ」から、SQLiteデータベースをダウンロードできます。
+
+上記のDocker Compose named volume構成へリストアする場合は、次の手順でコンテナを停止してからデータベースを差し替えます。
+
+1. `docker compose down` を実行する
+2. Dockerボリューム `kakeibo-data` 内の `kakeibo.db` を、ダウンロードしたバックアップファイルで置き換える
+3. `docker compose up -d` を実行する
+
+差し替え時は、`kakeibo.db-wal` や `kakeibo.db-shm` などのsidecarファイルが残っていないことも確認してください。
+
 ## 開発
 
 開発環境のセットアップ、開発サーバーの起動、テストやタスクの実行方法は [DEVELOPMENTS.md](./DEVELOPMENTS.md) を参照してください。

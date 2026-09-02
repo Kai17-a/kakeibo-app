@@ -50,6 +50,22 @@
     <Card.Root>
       <Card.Header>
         <Card.Title class="flex items-center gap-2">
+          <DownloadIcon />フルバックアップ
+        </Card.Title>
+        <Card.Description>
+          カテゴリや設定を含むすべてのデータをSQLiteデータベースとしてダウンロードできます。
+        </Card.Description>
+      </Card.Header>
+      <Card.Content>
+        <Button variant="outline" href="/api/backup">
+          <DownloadIcon data-icon="inline-start" />バックアップをダウンロード
+        </Button>
+      </Card.Content>
+    </Card.Root>
+
+    <Card.Root>
+      <Card.Header>
+        <Card.Title class="flex items-center gap-2">
           <UploadIcon />データのインポート
         </Card.Title>
         <Card.Description>

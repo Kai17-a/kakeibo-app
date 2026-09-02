@@ -5,8 +5,8 @@ use utoipa_redoc::{Redoc, Servable};
 
 use crate::{
     handler::{
-        budgets, expense_categories, expenses, export, health, import, income_categories, incomes,
-        payment_methods, recurring_expenses, recurring_incomes, webhook_urls,
+        backup, budgets, expense_categories, expenses, export, health, import, income_categories,
+        incomes, payment_methods, recurring_expenses, recurring_incomes, webhook_urls,
     },
     model::budgets::{Budget, BudgetUpsertRequest},
     model::expense_categories::{
@@ -36,6 +36,7 @@ use crate::{
 #[derive(OpenApi)]
 #[openapi(
     paths(
+        backup::get,
         budgets::list,
         budgets::get,
         budgets::create,
@@ -133,6 +134,7 @@ use crate::{
         version = "0.1.0"
     ),
     tags(
+        (name = "バックアップ", description = "SQLiteデータベースのバックアップ"),
         (name = "収入", description = "収入の登録・参照・更新・削除"),
         (name = "収入カテゴリ", description = "収入カテゴリの管理"),
         (name = "支出", description = "支出の登録・参照・更新・削除"),
@@ -172,6 +174,7 @@ fn set_operation(operation: &mut Option<Operation>, tag: &str, summary: &str) {
 
 fn tag_for_path(path: &str) -> &'static str {
     match path {
+        "/api/backup" => "バックアップ",
         "/api/incomes" | "/api/incomes/{id}" => "収入",
         "/api/income-categories" | "/api/income-categories/{id}" => "収入カテゴリ",
         "/api/expenses" | "/api/expenses/{id}" => "支出",
@@ -189,6 +192,7 @@ fn tag_for_path(path: &str) -> &'static str {
 
 fn operation_summary(method: &str, path: &str) -> &'static str {
     match (method, path.ends_with("{id}")) {
+        ("GET", false) if path == "/api/backup" => "DBをバックアップ",
         ("GET", false) if path == "/health" => "稼働状態を確認",
         ("GET", false) if path.starts_with("/api/export/") => "CSVをエクスポート",
         ("GET", false) => "一覧を取得",
