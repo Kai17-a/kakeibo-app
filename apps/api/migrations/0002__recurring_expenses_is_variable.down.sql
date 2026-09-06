@@ -1,2 +1,2 @@
 ALTER TABLE recurring_expenses
-  DROP COLUMN is_variable;
+DROP COLUMN is_variable;

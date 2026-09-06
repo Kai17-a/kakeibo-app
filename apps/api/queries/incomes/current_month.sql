@@ -1,1 +1,2 @@
-SELECT strftime('%Y-%m', 'now', 'localtime') AS month;
+SELECT
+  strftime('%Y-%m', 'now', 'localtime') AS month;

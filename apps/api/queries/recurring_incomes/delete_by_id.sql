@@ -1,1 +1,5 @@
-DELETE FROM recurring_incomes WHERE id = ?;
+DELETE
+FROM
+  recurring_incomes
+WHERE
+  id = ?;

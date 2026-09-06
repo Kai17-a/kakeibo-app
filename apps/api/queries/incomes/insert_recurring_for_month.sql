@@ -8,9 +8,9 @@ SELECT
   date(
     ?1 || '-01'
     , '+' || (
-      MIN(
+      min(
         r.payment_day
-        , CAST(strftime('%d', date(?1 || '-01', '+1 month', '-1 day')) AS INTEGER)
+        , cast(strftime('%d', date(?1 || '-01', '+1 month', '-1 day')) AS INTEGER)
       ) - 1
     ) || ' days'
   ) AS transaction_date
@@ -18,13 +18,19 @@ SELECT
   , r.category_id
   , r.id AS recurring_income_id
   , r.description
-FROM recurring_incomes r
-WHERE r.is_active = 1
+FROM
+  recurring_incomes AS r
+WHERE
+  r.is_active = 1
   AND r.is_variable = 0
   AND r.start_date <= date(?1 || '-01', '+1 month', '-1 day')
   AND (r.end_date IS NULL OR r.end_date >= ?1 || '-01')
   AND NOT EXISTS (
-    SELECT 1 FROM incomes i
-    WHERE i.recurring_income_id = r.id
+    SELECT
+      1
+    FROM
+      incomes AS i
+    WHERE
+      i.recurring_income_id = r.id
       AND strftime('%Y-%m', i.transaction_date) = ?1
   );

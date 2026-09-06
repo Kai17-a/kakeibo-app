@@ -13,9 +13,9 @@ SELECT
   date(
     ?1 || '-01'
     , '+' || (
-      MIN(
+      min(
         r.payment_day
-        , CAST(
+        , cast(
           strftime('%d', date(?1 || '-01', '+1 month', '-1 day')) AS INTEGER
         )
       ) - 1
@@ -27,7 +27,7 @@ SELECT
   , r.id AS recurring_expense_id
   , r.description
 FROM
-  recurring_expenses r
+  recurring_expenses AS r
 WHERE
   r.is_active = 1
   AND r.is_variable = 0
@@ -37,7 +37,7 @@ WHERE
     SELECT
       1
     FROM
-      expenses e
+      expenses AS e
     WHERE
       e.recurring_expense_id = r.id
       AND strftime('%Y-%m', e.transaction_date) = ?1

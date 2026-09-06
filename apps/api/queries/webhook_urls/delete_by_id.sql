@@ -1,3 +1,5 @@
-DELETE FROM webhook_urls
+DELETE
+FROM
+  webhook_urls
 WHERE
   id = ?;

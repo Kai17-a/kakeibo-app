@@ -1,9 +1,11 @@
 CREATE TABLE recurring_incomes (
   id TEXT NOT NULL PRIMARY KEY DEFAULT (
-    lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4'
+    lower(
+      hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4'
       || substr(hex(randomblob(2)), 2) || '-'
       || substr('AB89', 1 + (abs(random()) % 4), 1)
-      || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6)))
+      || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6))
+    )
   )
   , created_at TEXT NOT NULL DEFAULT current_timestamp
   , updated_at TEXT NOT NULL DEFAULT current_timestamp
@@ -19,4 +21,4 @@ CREATE TABLE recurring_incomes (
 );
 
 ALTER TABLE incomes
-  ADD COLUMN recurring_income_id TEXT REFERENCES recurring_incomes (id);
+ADD COLUMN recurring_income_id TEXT REFERENCES recurring_incomes (id);
