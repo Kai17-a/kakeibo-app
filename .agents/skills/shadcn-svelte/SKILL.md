@@ -214,7 +214,7 @@ npx shadcn-svelte@latest update --all --yes
 npx shadcn-svelte@latest registry build
 ```
 
-**Registry:** default `https://shadcn-svelte.com/registry` — override in `components.json` if needed.
+**Registry:** default `https://shadcn-svelte.com/registry` — override in `components.json` if needed.  
 **Docs:** [shadcn-svelte.com](https://shadcn-svelte.com)
 
 ## Detailed References
