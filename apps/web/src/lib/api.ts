@@ -55,6 +55,11 @@ async function request<T>(path: string, options?: Options): Promise<T> {
   return response.json<T>();
 }
 
+export const importSampleUrls = {
+  expense: '/api/import/expenses/sample',
+  income: '/api/import/incomes/sample',
+} as const;
+
 export const api = {
   budgets: () => request<Budget[]>('/api/budgets'),
   createBudget: (input: BudgetInput) =>

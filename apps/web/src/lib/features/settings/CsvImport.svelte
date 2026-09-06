@@ -2,7 +2,7 @@
   import UploadIcon from '@lucide/svelte/icons/upload';
   import { toast } from 'svelte-sonner';
   import { buttonVariants } from '$lib/components/ui/button';
-  import { api } from '$lib/api';
+  import { api, importSampleUrls } from '$lib/api';
   import type { ImportResult } from '$lib/types';
   import { cn } from '$lib/utils';
 
@@ -16,6 +16,7 @@
   let error = $state('');
 
   const label = $derived(kind === 'expense' ? '支出' : '収入');
+  const sampleUrl = $derived(importSampleUrls[kind]);
 
   async function importFile(event: Event) {
     const input = event.currentTarget as HTMLInputElement;
@@ -48,22 +49,27 @@
 </script>
 
 <div class="flex flex-col gap-2">
-  <label
-    class={cn(
-      buttonVariants({ variant: 'outline' }),
-      importing && 'pointer-events-none opacity-50',
-    )}
-  >
-    <UploadIcon data-icon="inline-start" />
-    {label}データ（CSV）を{importing ? '取り込み中…' : '選択'}
-    <input
-      type="file"
-      accept=".csv,text/csv"
-      class="hidden"
-      disabled={importing}
-      onchange={importFile}
-    />
-  </label>
+  <div class="flex flex-wrap items-center gap-2">
+    <label
+      class={cn(
+        buttonVariants({ variant: 'outline' }),
+        importing && 'pointer-events-none opacity-50',
+      )}
+    >
+      <UploadIcon data-icon="inline-start" />
+      {label}データ（CSV）を{importing ? '取り込み中…' : '選択'}
+      <input
+        type="file"
+        accept=".csv,text/csv"
+        class="hidden"
+        disabled={importing}
+        onchange={importFile}
+      />
+    </label>
+    <a class={buttonVariants({ variant: 'link', size: 'sm' })} href={sampleUrl} download>
+      テンプレートをダウンロード
+    </a>
+  </div>
   {#if error}
     <p class="text-sm whitespace-pre-line text-destructive">{error}</p>
   {/if}

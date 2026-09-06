@@ -9,8 +9,11 @@ use crate::{
 };
 use chrono::NaiveDate;
 use serde::de::DeserializeOwned;
-const EXPENSE_HEADERS: &str = "日付,金額,カテゴリ,支払方法,メモ";
-const INCOME_HEADERS: &str = "日付,金額,カテゴリ,メモ";
+const UTF8_BOM: &str = "\u{feff}";
+const EXPENSE_HEADERS: &[&str] = &["日付", "金額", "カテゴリ", "支払方法", "メモ"];
+const INCOME_HEADERS: &[&str] = &["日付", "金額", "カテゴリ", "メモ"];
+const EXPENSE_SAMPLE_ROW: &[&str] = &["2026-01-15", "1200", "食費", "現金", "昼食"];
+const INCOME_SAMPLE_ROW: &[&str] = &["2026-01-15", "300000", "給与", "1月分"];
 const MAX_REPORTED_ERRORS: usize = 3;
 #[derive(Clone)]
 pub struct ImportService {
@@ -20,6 +23,15 @@ impl ImportService {
     pub fn new(repository: ImportRepository) -> Self {
         Self { repository }
     }
+
+    pub fn expense_sample_csv() -> String {
+        sample_csv(EXPENSE_HEADERS, EXPENSE_SAMPLE_ROW)
+    }
+
+    pub fn income_sample_csv() -> String {
+        sample_csv(INCOME_HEADERS, INCOME_SAMPLE_ROW)
+    }
+
     pub async fn import_expenses(&self, csv_text: &str) -> AppResult<ImportResult> {
         let rows = parse_csv::<ExpenseCsvRow>(csv_text, EXPENSE_HEADERS)?;
         validate_all(rows.iter().enumerate().map(|(index, row)| {
@@ -147,11 +159,20 @@ impl ImportService {
         })
     }
 }
-fn parse_csv<T: DeserializeOwned>(text: &str, expected_headers: &str) -> AppResult<Vec<T>> {
+fn sample_csv(headers: &[&str], example_row: &[&str]) -> String {
+    format!(
+        "{UTF8_BOM}{}\n{}\n",
+        headers.join(","),
+        example_row.join(",")
+    )
+}
+
+fn parse_csv<T: DeserializeOwned>(text: &str, expected_headers: &[&str]) -> AppResult<Vec<T>> {
     let text = text.strip_prefix('\u{feff}').unwrap_or(text);
+    let expected_headers_text = expected_headers.join(",");
     if text.trim().is_empty() {
         return Err(AppError::bad_request(&format!(
-            "CSVファイルが空です。ヘッダー「{expected_headers}」に続けてデータ行を記述してください"
+            "CSVファイルが空です。ヘッダー「{expected_headers_text}」に続けてデータ行を記述してください"
         )));
     }
     let mut reader = csv::Reader::from_reader(text.as_bytes());
@@ -159,9 +180,9 @@ fn parse_csv<T: DeserializeOwned>(text: &str, expected_headers: &str) -> AppResu
         .headers()
         .map_err(|e| AppError::context("Failed to read CSV", e))?
         .clone();
-    if headers.iter().collect::<Vec<_>>() != expected_headers.split(',').collect::<Vec<_>>() {
+    if headers.iter().collect::<Vec<_>>() != expected_headers {
         return Err(AppError::bad_request(&format!(
-            "CSVのヘッダーが正しくありません。「{expected_headers}」の形式のファイルを選択してください"
+            "CSVのヘッダーが正しくありません。「{expected_headers_text}」の形式のファイルを選択してください"
         )));
     }
     let mut rows = Vec::new();

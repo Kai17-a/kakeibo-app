@@ -1,5 +1,10 @@
 use crate::{model::import::ImportResult, service::import::ImportService, utils::error::AppResult};
-use axum::{Json, extract::State, http::StatusCode};
+use axum::{
+    Json,
+    extract::State,
+    http::{StatusCode, header},
+    response::IntoResponse,
+};
 #[derive(Clone)]
 pub struct AppState {
     pub import: ImportService,
@@ -23,4 +28,31 @@ pub async fn incomes(
         StatusCode::CREATED,
         Json(s.import.import_incomes(&body).await?),
     ))
+}
+
+pub async fn expense_sample() -> impl IntoResponse {
+    csv_response(
+        "expense_import_sample.csv",
+        ImportService::expense_sample_csv(),
+    )
+}
+
+pub async fn income_sample() -> impl IntoResponse {
+    csv_response(
+        "income_import_sample.csv",
+        ImportService::income_sample_csv(),
+    )
+}
+
+fn csv_response(filename: &str, body: String) -> impl IntoResponse {
+    (
+        [
+            (header::CONTENT_TYPE, "text/csv; charset=utf-8".to_owned()),
+            (
+                header::CONTENT_DISPOSITION,
+                format!("attachment; filename=\"{filename}\""),
+            ),
+        ],
+        body,
+    )
 }
