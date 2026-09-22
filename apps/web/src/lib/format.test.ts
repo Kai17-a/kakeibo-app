@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { currentDate, currentMonth, formatDate, formatYen } from './format';
+import { currentDate, currentMonth, formatDate, formatYen, shiftMonth } from './format';
 
 describe('format helpers', () => {
   it('formats a yen amount', () => expect(formatYen('12800')).toContain('12,800'));
@@ -14,5 +14,9 @@ describe('format helpers', () => {
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     expect(currentDate()).toBe(`${now.getFullYear()}-${month}-${day}`);
+  });
+  it('shifts months across year boundaries', () => {
+    expect(shiftMonth('2026-12', 1)).toBe('2027-01');
+    expect(shiftMonth('2026-01', -1)).toBe('2025-12');
   });
 });
