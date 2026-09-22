@@ -12,6 +12,9 @@ SELECT
   , is_active
   , is_variable
   , description
+  , foreign_amount
+  , currency_code
+  , exchange_rate
 FROM
   recurring_expenses
 ORDER BY start_date DESC, id ASC;

@@ -16,6 +16,9 @@ pub struct RecurringExpense {
     pub is_active: bool,
     pub is_variable: bool,
     pub description: Option<String>,
+    pub foreign_amount: Option<String>,
+    pub currency_code: Option<String>,
+    pub exchange_rate: Option<String>,
 }
 impl From<RecurringExpenseRow> for RecurringExpense {
     fn from(v: RecurringExpenseRow) -> Self {
@@ -33,6 +36,9 @@ impl From<RecurringExpenseRow> for RecurringExpense {
             is_active: v.is_active,
             is_variable: v.is_variable,
             description: v.description,
+            foreign_amount: v.foreign_amount,
+            currency_code: v.currency_code,
+            exchange_rate: v.exchange_rate,
         }
     }
 }
@@ -48,4 +54,12 @@ pub struct RecurringExpenseUpsertRequest {
     pub is_active: bool,
     pub is_variable: bool,
     pub description: Option<String>,
+    #[serde(default)]
+    pub foreign_amount: Option<String>,
+    #[serde(default)]
+    pub currency_code: Option<String>,
+    #[serde(default)]
+    pub exchange_rate: Option<String>,
+    #[serde(default)]
+    pub sync_future_transactions: bool,
 }

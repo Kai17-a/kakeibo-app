@@ -60,6 +60,9 @@ export interface RecurringExpense extends BaseResource {
   is_active: boolean;
   is_variable: boolean;
   description: string | null;
+  foreign_amount: string | null;
+  currency_code: string | null;
+  exchange_rate: string | null;
 }
 export interface RecurringIncome extends BaseResource {
   name: string;
@@ -128,6 +131,10 @@ export interface RecurringExpenseInput {
   is_active: boolean;
   is_variable: boolean;
   description: string | null;
+  foreign_amount?: string | null;
+  currency_code?: string | null;
+  exchange_rate?: string | null;
+  sync_future_transactions?: boolean;
 }
 export interface RecurringIncomeInput {
   name: string;

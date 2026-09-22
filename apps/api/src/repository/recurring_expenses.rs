@@ -45,14 +45,26 @@ impl RecurringExpenseRepository {
         id: &str,
         v: &RecurringExpenseUpsertRequest,
     ) -> AppResult<Option<RecurringExpenseRow>> {
-        bind(
+        let updated = bind(
             sqlx::query_as(include_str!("../../queries/recurring_expenses/update.sql")),
             v,
         )
         .bind(id)
         .fetch_optional(&self.pool)
-        .await
-        .map_err(Into::into)
+        .await?;
+        if updated.is_some() && v.sync_future_transactions {
+            sqlx::query(
+                "UPDATE expenses SET amount = ?, category_id = ?, payment_method_id = ?, description = ?, updated_at = current_timestamp WHERE recurring_expense_id = ? AND transaction_date >= date('now', 'localtime', 'start of month')",
+            )
+            .bind(&v.amount)
+            .bind(&v.category_id)
+            .bind(&v.payment_method_id)
+            .bind(&v.description)
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        }
+        Ok(updated)
     }
     pub async fn delete(&self, id: &str) -> AppResult<bool> {
         Ok(sqlx::query(include_str!(
@@ -79,4 +91,7 @@ fn bind<'q>(
         .bind(v.is_active)
         .bind(v.is_variable)
         .bind(&v.description)
+        .bind(&v.foreign_amount)
+        .bind(&v.currency_code)
+        .bind(&v.exchange_rate)
 }

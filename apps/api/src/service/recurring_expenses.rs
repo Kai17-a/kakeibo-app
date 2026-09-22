@@ -65,5 +65,19 @@ fn validate(v: &RecurringExpenseUpsertRequest) -> AppResult<()> {
             "payment_day must be between 1 and 31",
         ));
     }
+    let foreign = (&v.foreign_amount, &v.currency_code, &v.exchange_rate);
+    if let (Some(amount), Some(code), Some(rate)) = foreign {
+        let valid_amount = amount.parse::<f64>().is_ok_and(|value| value > 0.0);
+        let valid_rate = rate.parse::<f64>().is_ok_and(|value| value > 0.0);
+        if !valid_amount || !valid_rate || code.trim().len() != 3 {
+            return Err(AppError::bad_request(
+                "foreign_amount and exchange_rate must be positive and currency_code must be 3 characters",
+            ));
+        }
+    } else if v.foreign_amount.is_some() || v.currency_code.is_some() || v.exchange_rate.is_some() {
+        return Err(AppError::bad_request(
+            "foreign_amount, currency_code and exchange_rate must be provided together",
+        ));
+    }
     Ok(())
 }
