@@ -12,6 +12,7 @@
     categoryTotals,
     mergeTransactions,
     sumAmounts,
+    recurringForecast,
   } from '../../domain/summaries';
   import { formatDate, formatYen } from '../../format';
   import type {
@@ -54,7 +55,12 @@
   }: Props = $props();
   const expenseTotal = $derived(sumAmounts(expenses));
   const incomeTotal = $derived(sumAmounts(incomes));
-  const balance = $derived(incomeTotal - expenseTotal);
+  const forecast = $derived(
+    recurringForecast(expenses, incomes, recurringExpenses, recurringIncomes, month),
+  );
+  const projectedExpenseTotal = $derived(expenseTotal + forecast.expense);
+  const projectedIncomeTotal = $derived(incomeTotal + forecast.income);
+  const balance = $derived(projectedIncomeTotal - projectedExpenseTotal);
   const transactions = $derived(mergeTransactions(expenses, incomes));
   const fixedRecurring = $derived(
     recurringExpenses.filter((item) => item.is_active && !item.is_variable),
@@ -93,13 +99,17 @@
 <section class="grid gap-4 md:grid-cols-3" aria-label={`${monthLabel}の収支概要`}>
   <Card.Root>
     <Card.Header>
-      <Card.Description>収入</Card.Description><Card.Title>{formatYen(incomeTotal)}</Card.Title>
+      <Card.Description>収入（予測込み）</Card.Description><Card.Title>
+        {formatYen(projectedIncomeTotal)}
+      </Card.Title>
     </Card.Header>
     <Card.Content><Badge variant="secondary">{incomes.length} 件の入金</Badge></Card.Content>
   </Card.Root>
   <Card.Root>
     <Card.Header>
-      <Card.Description>支出</Card.Description><Card.Title>{formatYen(expenseTotal)}</Card.Title>
+      <Card.Description>支出（予測込み）</Card.Description><Card.Title>
+        {formatYen(projectedExpenseTotal)}
+      </Card.Title>
     </Card.Header>
     <Card.Content><Badge variant="secondary">{expenses.length} 件の支払い</Badge></Card.Content>
   </Card.Root>
@@ -109,8 +119,17 @@
     </Card.Header>
     <Card.Content>
       <Progress
-        value={incomeTotal ? Math.min(100, Math.max(0, (balance / incomeTotal) * 100)) : 0}
+        value={projectedIncomeTotal
+          ? Math.min(100, Math.max(0, (balance / projectedIncomeTotal) * 100))
+          : 0}
       />
+      {#if forecast.expense || forecast.income}
+        <p class="mt-2 text-xs text-muted-foreground">
+          未計上の定期収支（収入 {formatYen(forecast.income)}・支出 {formatYen(
+            forecast.expense,
+          )}）を含みます。
+        </p>
+      {/if}
     </Card.Content>
   </Card.Root>
 </section>

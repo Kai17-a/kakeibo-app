@@ -7,10 +7,19 @@
     annualMonthlyTotals,
     categoryTotals,
     inPeriod,
+    recurringForecast,
     sumAmounts,
   } from '../../domain/summaries';
   import { formatYen } from '../../format';
-  import type { Budget, Expense, ExpenseCategory, Income, PaymentMethod } from '../../types';
+  import type {
+    Budget,
+    Expense,
+    ExpenseCategory,
+    Income,
+    PaymentMethod,
+    RecurringExpense,
+    RecurringIncome,
+  } from '../../types';
   interface Props {
     year: string;
     expenses: Expense[];
@@ -18,15 +27,68 @@
     categories: ExpenseCategory[];
     budgets: Budget[];
     paymentMethods: PaymentMethod[];
+    recurringExpenses: RecurringExpense[];
+    recurringIncomes: RecurringIncome[];
   }
-  let { year, expenses, incomes, categories, budgets, paymentMethods }: Props = $props();
+  let {
+    year,
+    expenses,
+    incomes,
+    categories,
+    budgets,
+    paymentMethods,
+    recurringExpenses,
+    recurringIncomes,
+  }: Props = $props();
   const annualExpenses = $derived(inPeriod(expenses, year));
   const annualIncomes = $derived(inPeriod(incomes, year));
-  const expenseTotal = $derived(sumAmounts(annualExpenses));
-  const incomeTotal = $derived(sumAmounts(annualIncomes));
-  const balance = $derived(incomeTotal - expenseTotal);
   const months = $derived(annualMonthlyTotals(expenses, incomes, year));
-  const chartMax = $derived(Math.max(1, ...months.flatMap((item) => [item.income, item.expense])));
+  const projectedMonths = $derived(
+    months.map((item) => {
+      const month = `${year}-${String(item.month).padStart(2, '0')}`;
+      const forecast = recurringForecast(
+        expenses,
+        incomes,
+        recurringExpenses,
+        recurringIncomes,
+        month,
+      );
+      return {
+        ...item,
+        income: item.income + forecast.income,
+        expense: item.expense + forecast.expense,
+        balance: item.balance + forecast.income - forecast.expense,
+        forecast,
+      };
+    }),
+  );
+  const expenseTotal = $derived(projectedMonths.reduce((sum, item) => sum + item.expense, 0));
+  const incomeTotal = $derived(projectedMonths.reduce((sum, item) => sum + item.income, 0));
+  const balance = $derived(incomeTotal - expenseTotal);
+  const categoryRows = $derived(
+    categories.map((category) => {
+      const values = projectedMonths.map((item) => {
+        const month = `${year}-${String(item.month).padStart(2, '0')}`;
+        return (
+          sumAmounts(
+            expenses.filter(
+              (expense) =>
+                expense.category_id === category.id && expense.transaction_date.startsWith(month),
+            ),
+          ) + (item.forecast.expensesByCategory.get(category.id) ?? 0)
+        );
+      });
+      return {
+        id: category.id,
+        name: category.name,
+        values,
+        total: values.reduce((a, b) => a + b, 0),
+      };
+    }),
+  );
+  const chartMax = $derived(
+    Math.max(1, ...projectedMonths.flatMap((item) => [item.income, item.expense])),
+  );
   const spending = $derived(
     categoryTotals(annualExpenses, categories)
       .filter((item) => item.total)
@@ -60,7 +122,9 @@
     <Card.Header><Card.Title>月別の収支推移</Card.Title></Card.Header>
     <Card.Content>
       <div class="flex h-72 items-end gap-2 border-b">
-        {#each months as item (item.month)}<div class="flex h-full flex-1 flex-col justify-end">
+        {#each projectedMonths as item (item.month)}<div
+            class="flex h-full flex-1 flex-col justify-end"
+          >
             <div class="flex h-[calc(100%_-_2rem)] items-end justify-center gap-1">
               <div
                 class="w-3 bg-chart-1"
@@ -106,13 +170,45 @@
         </Table.Row>
       </Table.Header>
       <Table.Body>
-        {#each months as item (item.month)}<Table.Row>
+        {#each projectedMonths as item (item.month)}<Table.Row>
             <Table.Head>{item.month}月</Table.Head><Table.Cell class="text-right">
               {formatYen(item.income)}
             </Table.Cell><Table.Cell class="text-right">
               {formatYen(item.expense)}
             </Table.Cell><Table.Cell class="text-right font-bold">
               {formatYen(item.balance)}
+            </Table.Cell>
+          </Table.Row>{/each}
+      </Table.Body>
+    </Table.Root>
+  </Card.Content>
+</Card.Root>
+<Card.Root class="mt-6 overflow-hidden">
+  <Card.Header>
+    <Card.Title>カテゴリ別年間集計</Card.Title>
+    <Card.Description>未計上の固定定期支出を予測額として含みます。</Card.Description>
+  </Card.Header>
+  <Card.Content class="overflow-x-auto px-0">
+    <Table.Root>
+      <Table.Header>
+        <Table.Row>
+          <Table.Head>カテゴリ</Table.Head>
+          {#each projectedMonths as item (item.month)}<Table.Head class="text-right">
+              {item.month}月
+            </Table.Head>{/each}
+          <Table.Head class="text-right">年間合計</Table.Head>
+        </Table.Row>
+      </Table.Header>
+      <Table.Body>
+        {#each categoryRows as row (row.id)}<Table.Row>
+            <Table.Head class="whitespace-nowrap">{row.name}</Table.Head>
+            {#each row.values as value, month (`${row.id}-${month}`)}<Table.Cell
+                class="text-right whitespace-nowrap"
+              >
+                {formatYen(value)}
+              </Table.Cell>{/each}
+            <Table.Cell class="text-right font-bold whitespace-nowrap">
+              {formatYen(row.total)}
             </Table.Cell>
           </Table.Row>{/each}
       </Table.Body>

@@ -343,6 +343,8 @@
         categories={expenseCategories}
         {budgets}
         {paymentMethods}
+        {recurringExpenses}
+        {recurringIncomes}
       />
     {:else if view === 'daily'}<LedgerSheet
         month={selectedMonth}
