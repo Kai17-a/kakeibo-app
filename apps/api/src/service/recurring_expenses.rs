@@ -29,7 +29,8 @@ impl RecurringExpenseService {
     }
     pub async fn create(&self, v: &RecurringExpenseUpsertRequest) -> AppResult<RecurringExpense> {
         validate(v)?;
-        self.repository.insert(v).await.map(Into::into)
+        let v = normalized(v);
+        self.repository.insert(&v).await.map(Into::into)
     }
     pub async fn update(
         &self,
@@ -37,8 +38,9 @@ impl RecurringExpenseService {
         v: &RecurringExpenseUpsertRequest,
     ) -> AppResult<RecurringExpense> {
         validate(v)?;
+        let v = normalized(v);
         self.repository
-            .update(id, v)
+            .update(id, &v)
             .await?
             .map(Into::into)
             .ok_or_else(|| AppError::not_found("recurring expense", id))
@@ -65,13 +67,15 @@ fn validate(v: &RecurringExpenseUpsertRequest) -> AppResult<()> {
             "payment_day must be between 1 and 31",
         ));
     }
-    let foreign = (&v.foreign_amount, &v.currency_code, &v.exchange_rate);
-    if let (Some(amount), Some(code), Some(rate)) = foreign {
+    if let (Some(amount), Some(code)) = (&v.foreign_amount, &v.currency_code) {
         let valid_amount = amount.parse::<f64>().is_ok_and(|value| value > 0.0);
-        let valid_rate = rate.parse::<f64>().is_ok_and(|value| value > 0.0);
-        if !valid_amount || !valid_rate || code.trim().len() != 3 {
+        let valid_rate = v
+            .exchange_rate
+            .as_ref()
+            .is_none_or(|rate| rate.parse::<f64>().is_ok_and(|value| value > 0.0));
+        if !valid_amount || !valid_rate || !code.eq_ignore_ascii_case("USD") {
             return Err(AppError::bad_request(
-                "foreign_amount and exchange_rate must be positive and currency_code must be 3 characters",
+                "foreign_amount must be positive, currency_code must be USD, and exchange_rate must be positive when provided",
             ));
         }
     } else if v.foreign_amount.is_some() || v.currency_code.is_some() || v.exchange_rate.is_some() {
@@ -80,4 +84,13 @@ fn validate(v: &RecurringExpenseUpsertRequest) -> AppResult<()> {
         ));
     }
     Ok(())
+}
+
+fn normalized(v: &RecurringExpenseUpsertRequest) -> RecurringExpenseUpsertRequest {
+    let mut normalized = v.clone();
+    normalized.currency_code = v
+        .currency_code
+        .as_ref()
+        .map(|code| code.trim().to_ascii_uppercase());
+    normalized
 }

@@ -6,11 +6,14 @@ use kakeibo_app::{
     model::expenses::ExpenseUpsertRequest,
     repository::expenses::ExpenseRepository,
     router::{expenses, incomes},
+    service::exchange_rate::{ExchangeRateError, ExchangeRateProvider, RateQuote},
 };
 use serde_json::{Value, json};
 use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
 use std::{
+    future::Future,
     io::Write,
+    pin::Pin,
     sync::{Arc, Mutex},
     time::Duration,
 };
@@ -40,8 +43,9 @@ async fn call(
 const SCHEMA: &str = concat!(
     "CREATE TABLE expense_categories(id TEXT PRIMARY KEY,name TEXT NOT NULL);",
     "CREATE TABLE payment_methods(id TEXT PRIMARY KEY);",
-    "CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-'||'4'||substr(hex(randomblob(2)),2)||'-'||substr('AB89',1+(abs(random())%4),1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,amount TEXT NOT NULL,payment_day INTEGER NOT NULL,start_date TEXT NOT NULL,end_date TEXT,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),is_active INTEGER NOT NULL,is_variable INTEGER NOT NULL DEFAULT 0,description TEXT);",
-    "CREATE TABLE expenses(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-'||'4'||substr(hex(randomblob(2)),2)||'-'||substr('AB89',1+(abs(random())%4),1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,transaction_date TEXT NOT NULL,amount TEXT NOT NULL,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),recurring_expense_id TEXT REFERENCES recurring_expenses(id),description TEXT);",
+    "CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-'||'4'||substr(hex(randomblob(2)),2)||'-'||substr('AB89',1+(abs(random())%4),1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,amount TEXT NOT NULL,payment_day INTEGER NOT NULL,start_date TEXT NOT NULL,end_date TEXT,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),is_active INTEGER NOT NULL,is_variable INTEGER NOT NULL DEFAULT 0,description TEXT,foreign_amount TEXT,currency_code TEXT,exchange_rate TEXT);",
+    "CREATE TABLE expenses(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-'||'4'||substr(hex(randomblob(2)),2)||'-'||substr('AB89',1+(abs(random())%4),1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,transaction_date TEXT NOT NULL,amount TEXT NOT NULL,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),recurring_expense_id TEXT REFERENCES recurring_expenses(id),description TEXT,foreign_amount TEXT,currency_code TEXT,exchange_rate TEXT,exchange_rate_date TEXT);",
+    "CREATE TABLE exchange_rates(target_date TEXT NOT NULL,base_currency TEXT NOT NULL,quote_currency TEXT NOT NULL,rate TEXT NOT NULL,effective_date TEXT NOT NULL,source TEXT NOT NULL,fetched_at TEXT NOT NULL DEFAULT current_timestamp,PRIMARY KEY(target_date,base_currency,quote_currency));",
     "INSERT INTO expense_categories VALUES('ec','食費'),('ec2','娯楽費');",
     "INSERT INTO payment_methods VALUES('pm');",
     "CREATE TABLE webhook_urls(id TEXT PRIMARY KEY,created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,url TEXT NOT NULL,description TEXT,is_active INTEGER NOT NULL DEFAULT 1);",
@@ -176,6 +180,49 @@ async fn list_posts_recurring_expenses_for_current_month() {
     let (s, b) = call(&app, "GET", "/api/expenses", None).await;
     assert_eq!(s, StatusCode::OK);
     assert_eq!(b.unwrap().as_array().unwrap().len(), 1);
+}
+
+struct FixedRateProvider;
+impl ExchangeRateProvider for FixedRateProvider {
+    fn fetch<'a>(
+        &'a self,
+        _date: &'a str,
+    ) -> Pin<Box<dyn Future<Output = Result<Option<RateQuote>, ExchangeRateError>> + Send + 'a>>
+    {
+        Box::pin(async {
+            Ok(Some(RateQuote {
+                rate: 150.5,
+                effective_date: "2026-08-31".into(),
+            }))
+        })
+    }
+}
+
+#[tokio::test]
+async fn list_generates_usd_recurring_expense_with_cached_rate_data() {
+    let p = setup_pool().await;
+    let month = current_month(&p).await;
+    sqlx::query("INSERT INTO recurring_expenses(name,amount,payment_day,start_date,category_id,payment_method_id,is_active,is_variable,foreign_amount,currency_code) VALUES('Cloud','0',1,?1,'ec','pm',1,0,'10','USD')")
+        .bind(format!("{month}-01"))
+        .execute(&p)
+        .await
+        .unwrap();
+    let app = expenses::create_with_exchange_rate_provider(p.clone(), Arc::new(FixedRateProvider));
+
+    let (status, body) = call(&app, "GET", "/api/expenses", None).await;
+    assert_eq!(status, StatusCode::OK);
+    let item = &body.unwrap()[0];
+    assert_eq!(item["amount"], "1505");
+    assert_eq!(item["foreign_amount"], "10");
+    assert_eq!(item["currency_code"], "USD");
+    assert_eq!(item["exchange_rate"], "150.5");
+    assert_eq!(item["exchange_rate_date"], "2026-08-31");
+
+    let count: (i64,) = sqlx::query_as("SELECT count(*) FROM expenses")
+        .fetch_one(&p)
+        .await
+        .unwrap();
+    assert_eq!(count.0, 1);
 }
 #[tokio::test]
 async fn insert_recurring_for_month_clamps_payment_day_to_month_end() {
@@ -312,4 +359,61 @@ async fn wait_until_logged(logs: &Arc<Mutex<Vec<u8>>>, needle: &str) {
         "webhook notification was not attempted for {needle}: {}",
         String::from_utf8_lossy(&logs.lock().unwrap())
     );
+}
+
+struct FailingRateProvider;
+impl ExchangeRateProvider for FailingRateProvider {
+    fn fetch<'a>(
+        &'a self,
+        _date: &'a str,
+    ) -> Pin<Box<dyn Future<Output = Result<Option<RateQuote>, ExchangeRateError>> + Send + 'a>>
+    {
+        Box::pin(async { Err(ExchangeRateError::Provider("network down".into())) })
+    }
+}
+
+#[tokio::test]
+async fn list_skips_usd_recurring_expense_when_exchange_rate_resolution_fails() {
+    let p = setup_pool().await;
+    let month = current_month(&p).await;
+    sqlx::query("INSERT INTO recurring_expenses(name,amount,payment_day,start_date,category_id,payment_method_id,is_active,is_variable,foreign_amount,currency_code) VALUES('Cloud','999999',1,?1,'ec','pm',1,0,'10','USD')")
+        .bind(format!("{month}-01"))
+        .execute(&p)
+        .await
+        .unwrap();
+    let app =
+        expenses::create_with_exchange_rate_provider(p.clone(), Arc::new(FailingRateProvider));
+
+    let (status, _body) = call(&app, "GET", "/api/expenses", None).await;
+    assert_eq!(status, StatusCode::OK);
+
+    let count: (i64,) = sqlx::query_as("SELECT count(*) FROM expenses")
+        .fetch_one(&p)
+        .await
+        .unwrap();
+    assert_eq!(
+        count.0, 0,
+        "USD recurring expense must NOT be materialized when the exchange rate lookup fails"
+    );
+}
+
+#[tokio::test]
+async fn list_skips_usd_recurring_expenses_with_invalid_foreign_amounts() {
+    let p = setup_pool().await;
+    let month = current_month(&p).await;
+    sqlx::query("INSERT INTO recurring_expenses(name,amount,payment_day,start_date,category_id,payment_method_id,is_active,is_variable,foreign_amount,currency_code) VALUES('Empty','999999',1,?1,'ec','pm',1,0,'','USD'),('Invalid','999999',1,?1,'ec','pm',1,0,'not-a-number','USD')")
+        .bind(format!("{month}-01"))
+        .execute(&p)
+        .await
+        .unwrap();
+    let app = expenses::create_with_exchange_rate_provider(p.clone(), Arc::new(FixedRateProvider));
+
+    let (status, _body) = call(&app, "GET", "/api/expenses", None).await;
+    assert_eq!(status, StatusCode::OK);
+
+    let count: (i64,) = sqlx::query_as("SELECT count(*) FROM expenses")
+        .fetch_one(&p)
+        .await
+        .unwrap();
+    assert_eq!(count.0, 0);
 }

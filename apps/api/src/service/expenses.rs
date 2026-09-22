@@ -1,21 +1,81 @@
 use crate::{
     model::expenses::{Expense, ExpenseUpsertRequest},
     repository::expenses::{BudgetCrossing, ExpenseRepository},
+    service::exchange_rate::ExchangeRateService,
     utils::error::{AppError, AppResult},
 };
 #[derive(Clone)]
 pub struct ExpenseService {
     repository: ExpenseRepository,
+    exchange_rate: ExchangeRateService,
 }
 impl ExpenseService {
-    pub fn new(repository: ExpenseRepository) -> Self {
-        Self { repository }
+    pub fn new(repository: ExpenseRepository, exchange_rate: ExchangeRateService) -> Self {
+        Self {
+            repository,
+            exchange_rate,
+        }
     }
     pub async fn list(&self) -> AppResult<Vec<Expense>> {
         // バッチ基盤がないため、一覧取得のタイミングで当月分の定期支出を明細へ計上する。
-        // insert_recurring_for_month は同月分が既にある場合は何もしない（冪等）。
+        // 同月分が既にある定期支出は何もしない（冪等）。
         let month = self.repository.current_month().await?;
-        self.repository.insert_recurring_for_month(&month).await?;
+        for recurring in self.repository.find_recurring_for_month(&month).await? {
+            let conversion = if recurring.currency_code.as_deref() == Some("USD") {
+                match self.exchange_rate.resolve(&month).await {
+                    Ok(quote) => match recurring
+                        .foreign_amount
+                        .as_deref()
+                        .unwrap_or_default()
+                        .parse::<f64>()
+                    {
+                        Ok(foreign)
+                            if foreign.is_finite()
+                                && foreign > 0.0
+                                && quote.rate.is_finite()
+                                && quote.rate > 0.0 =>
+                        {
+                            let converted = foreign * quote.rate;
+                            if converted.is_finite() && converted > 0.0 {
+                                Some((
+                                    converted.round().to_string(),
+                                    recurring.foreign_amount.clone().unwrap_or_default(),
+                                    quote.rate.to_string(),
+                                    quote.effective_date,
+                                ))
+                            } else {
+                                tracing::error!(recurring_expense_id = %recurring.id, "Skipping recurring expense because converted USD amount overflowed");
+                                None
+                            }
+                        }
+                        _ => {
+                            tracing::error!(recurring_expense_id = %recurring.id, "Skipping recurring expense with invalid USD amount");
+                            None
+                        }
+                    },
+                    Err(error) => {
+                        tracing::error!(recurring_expense_id = %recurring.id, %error, "Skipping recurring USD expense because exchange rate resolution failed");
+                        None
+                    }
+                }
+            } else {
+                None
+            };
+            if recurring.currency_code.as_deref() == Some("USD") && conversion.is_none() {
+                continue;
+            }
+            let conversion_refs = conversion.as_ref().map(|(amount, foreign, rate, date)| {
+                (
+                    amount.as_str(),
+                    foreign.as_str(),
+                    rate.as_str(),
+                    date.as_str(),
+                )
+            });
+            self.repository
+                .insert_recurring(&month, &recurring, conversion_refs)
+                .await?;
+        }
         Ok(self
             .repository
             .find_all()

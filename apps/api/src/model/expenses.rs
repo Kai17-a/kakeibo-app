@@ -12,6 +12,10 @@ pub struct Expense {
     pub payment_method_id: String,
     pub recurring_expense_id: Option<String>,
     pub description: Option<String>,
+    pub foreign_amount: Option<String>,
+    pub currency_code: Option<String>,
+    pub exchange_rate: Option<String>,
+    pub exchange_rate_date: Option<String>,
 }
 impl From<ExpenseRow> for Expense {
     fn from(v: ExpenseRow) -> Self {
@@ -25,6 +29,10 @@ impl From<ExpenseRow> for Expense {
             payment_method_id: v.payment_method_id,
             recurring_expense_id: v.recurring_expense_id,
             description: v.description,
+            foreign_amount: v.foreign_amount,
+            currency_code: v.currency_code,
+            exchange_rate: v.exchange_rate,
+            exchange_rate_date: v.exchange_rate_date,
         }
     }
 }

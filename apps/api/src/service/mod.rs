@@ -1,5 +1,6 @@
 pub mod backup;
 pub mod budgets;
+pub mod exchange_rate;
 pub mod expense_categories;
 pub mod expenses;
 pub mod export;
