@@ -42,9 +42,9 @@
       <ToggleGroup.Item value="annual">年間</ToggleGroup.Item>
     </ToggleGroup.Root>
     {#if view === 'annual'}
-      <Field.Field>
+      <Field.Field class="w-auto">
         <Field.FieldLabel for="display-year">表示する年</Field.FieldLabel>
-        <div class="flex items-center gap-2">
+        <div class="flex w-fit items-center gap-2">
           <Button
             variant="outline"
             size="icon-sm"
