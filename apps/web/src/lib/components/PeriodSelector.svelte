@@ -73,9 +73,9 @@
         </div>
       </Field.Field>
     {:else}
-      <Field.Field>
+      <Field.Field class="w-auto">
         <Field.FieldLabel for="display-month">表示する月</Field.FieldLabel>
-        <div class="flex items-center gap-2">
+        <div class="flex w-fit items-center gap-2">
           <Button
             variant="outline"
             size="icon-sm"
@@ -89,6 +89,7 @@
             type="month"
             value={month}
             onchange={(event) => onmonth(event.currentTarget.value)}
+            class="w-44"
           />
           <Button
             variant="outline"
