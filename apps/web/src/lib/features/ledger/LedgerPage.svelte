@@ -1,0 +1,445 @@
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { page } from '$app/state';
+  import { goto } from '$app/navigation';
+  import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
+  import { toast } from 'svelte-sonner';
+  import * as Alert from '$lib/components/ui/alert';
+  import { Button } from '$lib/components/ui/button';
+  import { Skeleton } from '$lib/components/ui/skeleton';
+  import Header from '$lib/components/Header.svelte';
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+  import PeriodSelector, { type SummaryView } from '$lib/components/PeriodSelector.svelte';
+  import { inPeriod } from '$lib/domain/summaries';
+  import AnnualSummary from '$lib/features/annual/AnnualSummary.svelte';
+  import RecurringExpenseForm from '$lib/features/forms/RecurringExpenseForm.svelte';
+  import RecurringIncomeForm from '$lib/features/forms/RecurringIncomeForm.svelte';
+  import TransactionForm from '$lib/features/forms/TransactionForm.svelte';
+  import LedgerSheet from '$lib/features/ledger/LedgerSheet.svelte';
+  import MonthlySummary from '$lib/features/monthly/MonthlySummary.svelte';
+  import { api } from '$lib/api';
+  import { ledgerUrl, parseLedgerRoute, type LedgerView } from '$lib/routing/ledger-route';
+  import type {
+    Expense,
+    ExpenseCategory,
+    ExpenseInput,
+    Income,
+    IncomeCategory,
+    IncomeInput,
+    PaymentMethod,
+    RecurringExpense,
+    RecurringExpenseInput,
+    RecurringIncome,
+    RecurringIncomeInput,
+    Budget,
+  } from '$lib/types';
+
+  let expenses = $state.raw<Expense[]>([]);
+  let incomes = $state.raw<Income[]>([]);
+  let expenseCategories = $state.raw<ExpenseCategory[]>([]);
+  let incomeCategories = $state.raw<IncomeCategory[]>([]);
+  let paymentMethods = $state.raw<PaymentMethod[]>([]);
+  let recurringExpenses = $state.raw<RecurringExpense[]>([]);
+  let recurringIncomes = $state.raw<RecurringIncome[]>([]);
+  let budgets = $state.raw<Budget[]>([]);
+  const routeState = $derived(parseLedgerRoute(page.url));
+  const selectedMonth = $derived(routeState.month);
+  const selectedYear = $derived(routeState.year);
+  const view = $derived(routeState.view as SummaryView);
+  let transactionFormOpen = $state(false);
+  let editingExpense = $state<Expense | null>(null);
+  let editingIncome = $state<Income | null>(null);
+  let transactionPreset = $state<RecurringExpense | null>(null);
+  let incomeTransactionPreset = $state<RecurringIncome | null>(null);
+  let recurringFormOpen = $state(false);
+  let recurringIncomeFormOpen = $state(false);
+  let loading = $state(true);
+  let saving = $state(false);
+  let error = $state('');
+
+  const monthExpenses = $derived(inPeriod(expenses, selectedMonth));
+  const monthIncomes = $derived(inPeriod(incomes, selectedMonth));
+  const monthLabel = $derived(
+    new Intl.DateTimeFormat('ja-JP', { year: 'numeric', month: 'long' }).format(
+      new Date(`${selectedMonth}-01T00:00:00`),
+    ),
+  );
+  const availableYears = $derived(
+    [
+      ...new Set(
+        [...expenses, ...incomes]
+          .map((item) => item.transaction_date.slice(0, 4))
+          .concat(routeState.year),
+      ),
+    ]
+      .sort()
+      .reverse(),
+  );
+
+  onMount(loadAll);
+
+  function updateView(nextView: LedgerView) {
+    void goto(
+      ledgerUrl(
+        {
+          view: nextView,
+          month: routeState.month,
+          year: routeState.year,
+        },
+        page.url,
+      ),
+      { keepFocus: true, noScroll: true },
+    );
+  }
+
+  function updatePeriod(next: Partial<{ month: string; year: string }>) {
+    void goto(
+      ledgerUrl(
+        {
+          view: routeState.view,
+          month: next.month ?? routeState.month,
+          year: next.year ?? routeState.year,
+        },
+        page.url,
+      ),
+      { keepFocus: true, noScroll: true, replaceState: true },
+    );
+  }
+
+  async function loadAll() {
+    loading = true;
+    error = '';
+    try {
+      const [
+        expenseData,
+        incomeData,
+        expenseCategoryData,
+        incomeCategoryData,
+        paymentData,
+        recurringData,
+        recurringIncomeData,
+        budgetData,
+      ] = await Promise.all([
+        api.expenses(),
+        api.incomes(),
+        api.expenseCategories(),
+        api.incomeCategories(),
+        api.paymentMethods(),
+        api.recurringExpenses(),
+        api.recurringIncomes(),
+        api.budgets(),
+      ]);
+      expenses = expenseData;
+      incomes = incomeData.items;
+      expenseCategories = expenseCategoryData.items;
+      incomeCategories = incomeCategoryData.items;
+      paymentMethods = paymentData.items;
+      recurringExpenses = recurringData;
+      recurringIncomes = recurringIncomeData;
+      budgets = budgetData;
+    } catch (caught) {
+      error = message(caught, 'データを読み込めませんでした。');
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function saveTransaction(
+    kind: 'expense' | 'income',
+    input: ExpenseInput | IncomeInput,
+    keepOpen = false,
+  ) {
+    saving = true;
+    error = '';
+    try {
+      if (kind === 'expense' && editingExpense) {
+        const updated = await api.updateExpense(editingExpense.id, input as ExpenseInput);
+        expenses = expenses.map((item) => (item.id === updated.id ? updated : item));
+        toast.success('支出を更新しました。');
+      } else if (kind === 'income' && editingIncome) {
+        const updated = await api.updateIncome(editingIncome.id, input as IncomeInput);
+        incomes = incomes.map((item) => (item.id === updated.id ? updated : item));
+        toast.success('収入を更新しました。');
+      } else if (kind === 'expense') {
+        expenses = [await api.createExpense(input as ExpenseInput), ...expenses];
+        toast.success('支出を登録しました。');
+      } else {
+        incomes = [await api.createIncome(input as IncomeInput), ...incomes];
+        toast.success('収入を登録しました。');
+      }
+      if (!keepOpen) {
+        transactionFormOpen = false;
+        editingExpense = null;
+        editingIncome = null;
+        transactionPreset = null;
+        incomeTransactionPreset = null;
+      }
+      return true;
+    } catch (caught) {
+      error = message(caught, '登録できませんでした。');
+      return false;
+    } finally {
+      saving = false;
+    }
+  }
+
+  function openTransaction() {
+    editingExpense = null;
+    editingIncome = null;
+    transactionPreset = null;
+    incomeTransactionPreset = null;
+    transactionFormOpen = true;
+  }
+
+  function registerVariableRecurring(item: RecurringExpense) {
+    editingExpense = null;
+    editingIncome = null;
+    incomeTransactionPreset = null;
+    transactionPreset = item;
+    transactionFormOpen = true;
+  }
+
+  function registerVariableRecurringIncome(item: RecurringIncome) {
+    editingExpense = null;
+    editingIncome = null;
+    transactionPreset = null;
+    incomeTransactionPreset = item;
+    transactionFormOpen = true;
+  }
+
+  function editExpense(expense: Expense) {
+    editingExpense = expense;
+    editingIncome = null;
+    transactionPreset = null;
+    incomeTransactionPreset = null;
+    transactionFormOpen = true;
+  }
+
+  function editIncome(income: Income) {
+    editingExpense = null;
+    editingIncome = income;
+    transactionPreset = null;
+    incomeTransactionPreset = null;
+    transactionFormOpen = true;
+  }
+
+  function closeTransaction() {
+    transactionFormOpen = false;
+    editingExpense = null;
+    editingIncome = null;
+    transactionPreset = null;
+    incomeTransactionPreset = null;
+  }
+
+  async function saveRecurring(input: RecurringExpenseInput) {
+    saving = true;
+    error = '';
+    try {
+      recurringExpenses = [await api.createRecurringExpense(input), ...recurringExpenses];
+      recurringFormOpen = false;
+      toast.success('固定費を登録しました。');
+    } catch (caught) {
+      error = message(caught, '固定費を登録できませんでした。');
+    } finally {
+      saving = false;
+    }
+  }
+
+  function openRecurringForm() {
+    recurringFormOpen = true;
+  }
+
+  function closeRecurringForm() {
+    recurringFormOpen = false;
+  }
+
+  async function saveRecurringIncome(input: RecurringIncomeInput) {
+    saving = true;
+    error = '';
+    try {
+      recurringIncomes = [await api.createRecurringIncome(input), ...recurringIncomes];
+      recurringIncomeFormOpen = false;
+      toast.success('定期収入を登録しました。');
+    } catch (caught) {
+      error = message(caught, '定期収入を登録できませんでした。');
+    } finally {
+      saving = false;
+    }
+  }
+
+  function openRecurringIncomeForm() {
+    recurringIncomeFormOpen = true;
+  }
+  function closeRecurringIncomeForm() {
+    recurringIncomeFormOpen = false;
+  }
+
+  async function removeExpense(item: Expense) {
+    try {
+      await api.deleteExpense(item.id);
+      expenses = expenses.filter((row) => row.id !== item.id);
+      toast.success('明細を削除しました。');
+    } catch (caught) {
+      error = message(caught, '削除できませんでした。');
+    }
+  }
+
+  async function removeIncome(item: Income) {
+    try {
+      await api.deleteIncome(item.id);
+      incomes = incomes.filter((row) => row.id !== item.id);
+      toast.success('明細を削除しました。');
+    } catch (caught) {
+      error = message(caught, '削除できませんでした。');
+    }
+  }
+
+  type DeleteTarget = { type: 'expense'; item: Expense } | { type: 'income'; item: Income };
+
+  let deleteTarget = $state<DeleteTarget | null>(null);
+
+  const deleteDescription = $derived(
+    deleteTarget
+      ? `この${deleteTarget.type === 'expense' ? '支出' : '収入'}明細を削除しますか？`
+      : '',
+  );
+
+  function askDeleteExpense(item: Expense) {
+    deleteTarget = { type: 'expense', item };
+  }
+
+  function askDeleteIncome(item: Income) {
+    deleteTarget = { type: 'income', item };
+  }
+
+  function cancelDelete() {
+    deleteTarget = null;
+  }
+
+  async function confirmDelete() {
+    const target = deleteTarget;
+    deleteTarget = null;
+    if (!target) return;
+    if (target.type === 'expense') {
+      await removeExpense(target.item);
+    } else {
+      await removeIncome(target.item);
+    }
+  }
+
+  function message(caught: unknown, fallback: string) {
+    return caught instanceof Error ? caught.message : fallback;
+  }
+</script>
+
+<svelte:head>
+  <title>
+    {view === 'annual' ? '年間集計' : view === 'daily' ? '日別集計' : '月間集計'} | Kakeibo
+  </title>
+  <meta name="description" content="毎日の収支をシンプルに管理する家計簿" />
+</svelte:head>
+
+<div class="min-h-screen bg-background">
+  <Header
+    onTransaction={openTransaction}
+    onRecurring={openRecurringForm}
+    onRecurringIncome={openRecurringIncomeForm}
+  />
+  <main class="mx-auto max-w-7xl px-5 py-8 lg:px-10 lg:py-12">
+    <PeriodSelector
+      {view}
+      month={selectedMonth}
+      year={selectedYear}
+      years={availableYears}
+      onchange={updateView}
+      onmonth={(value) => updatePeriod({ month: value })}
+      onyear={(value) => updatePeriod({ year: value })}
+    />
+    {#if error}
+      <Alert.Root variant="destructive" class="mb-6">
+        <CircleAlertIcon />
+        <Alert.Title>読み込みエラー</Alert.Title>
+        <Alert.Description>{error}</Alert.Description>
+        <Alert.Action>
+          <Button variant="outline" size="sm" onclick={loadAll}>再試行</Button>
+        </Alert.Action>
+      </Alert.Root>
+    {/if}
+    {#if loading}<div class="grid min-h-72 gap-4 py-12">
+        <Skeleton class="h-28 w-full" />
+        <Skeleton class="h-28 w-full" />
+      </div>
+    {:else if view === 'annual'}<AnnualSummary
+        year={selectedYear}
+        {expenses}
+        {incomes}
+        categories={expenseCategories}
+        {budgets}
+        {paymentMethods}
+        {recurringExpenses}
+        {recurringIncomes}
+      />
+    {:else if view === 'daily'}<LedgerSheet
+        month={selectedMonth}
+        {monthLabel}
+        expenses={monthExpenses}
+        incomes={monthIncomes}
+        {expenseCategories}
+        {incomeCategories}
+        {paymentMethods}
+        {recurringExpenses}
+        onedit={editExpense}
+        ondelete={askDeleteExpense}
+        oneditincome={editIncome}
+        ondeleteincome={askDeleteIncome}
+      />
+    {:else}<MonthlySummary
+        {budgets}
+        month={selectedMonth}
+        {monthLabel}
+        expenses={monthExpenses}
+        incomes={monthIncomes}
+        {expenseCategories}
+        {incomeCategories}
+        {paymentMethods}
+        {recurringExpenses}
+        {recurringIncomes}
+        onregistervariable={registerVariableRecurring}
+        onregistervariableincome={registerVariableRecurringIncome}
+      />{/if}
+  </main>
+</div>
+
+{#if transactionFormOpen}<TransactionForm
+    {expenseCategories}
+    {incomeCategories}
+    {paymentMethods}
+    {saving}
+    initialExpense={editingExpense ?? undefined}
+    initialIncome={editingIncome ?? undefined}
+    initialRecurring={transactionPreset ?? undefined}
+    initialRecurringIncome={incomeTransactionPreset ?? undefined}
+    initialDate={`${selectedMonth}-${String(Math.min(new Date().getDate(), 28)).padStart(2, '0')}`}
+    onclose={closeTransaction}
+    onsubmit={saveTransaction}
+  />{/if}
+{#if recurringIncomeFormOpen}<RecurringIncomeForm
+    categories={incomeCategories}
+    {saving}
+    onclose={closeRecurringIncomeForm}
+    onsubmit={saveRecurringIncome}
+  />{/if}
+{#if recurringFormOpen}<RecurringExpenseForm
+    categories={expenseCategories}
+    {paymentMethods}
+    {saving}
+    onclose={closeRecurringForm}
+    onsubmit={saveRecurring}
+  />{/if}
+<ConfirmDialog
+  open={deleteTarget !== null}
+  title="削除の確認"
+  description={deleteDescription}
+  onconfirm={confirmDelete}
+  oncancel={cancelDelete}
+/>

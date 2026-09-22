@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { resolve } from '$app/paths';
+  import { page } from '$app/state';
+  import { goto } from '$app/navigation';
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
   import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
@@ -33,6 +35,12 @@
   import WebhookUrlForm from '$lib/features/settings/WebhookUrlForm.svelte';
   import { api } from '$lib/api';
   import { formatYen } from '$lib/format';
+  import {
+    parseSettingsTab,
+    settingsTabs,
+    settingsUrl,
+    type SettingsTab,
+  } from '$lib/routing/settings-route';
   import type {
     CategoryInput,
     ExpenseCategory,
@@ -50,10 +58,6 @@
     BudgetInput,
   } from '$lib/types';
 
-  type CategoryKind = 'expense' | 'income';
-  type SettingsTab =
-    CategoryKind | 'payment' | 'budget' | 'recurring' | 'recurring-income' | 'webhook';
-
   let expenseCategories = $state.raw<ExpenseCategory[]>([]);
   let incomeCategories = $state.raw<IncomeCategory[]>([]);
   let paymentMethods = $state.raw<PaymentMethod[]>([]);
@@ -61,7 +65,7 @@
   let recurringIncomes = $state.raw<RecurringIncome[]>([]);
   let webhookUrls = $state.raw<WebhookUrl[]>([]);
   let budgets = $state.raw<Budget[]>([]);
-  let activeKind = $state<SettingsTab>('expense');
+  const activeKind = $derived(parseSettingsTab(page.url));
   let formOpen = $state(false);
   let editingCategory = $state<ExpenseCategory | IncomeCategory | null>(null);
   let paymentFormOpen = $state(false);
@@ -79,6 +83,11 @@
   let error = $state('');
 
   onMount(loadAll);
+
+  function updateSettingsTab(value: string) {
+    if (!settingsTabs.includes(value as SettingsTab)) return;
+    void goto(settingsUrl(value as SettingsTab, page.url), { keepFocus: true, noScroll: true });
+  }
 
   async function loadAll() {
     loading = true;
@@ -591,7 +600,7 @@
   <Header />
   <main class="mx-auto flex max-w-5xl flex-col gap-6 px-5 py-8 lg:px-10 lg:py-12">
     <div>
-      <Button variant="ghost" size="sm" href="/">
+      <Button variant="ghost" size="sm" href={resolve('/monthly')}>
         <ArrowLeftIcon data-icon="inline-start" />ホームに戻る
       </Button>
     </div>
@@ -616,7 +625,7 @@
         {/if}
       </Alert.Root>
     {/if}
-    <Tabs.Root bind:value={activeKind} class="w-full">
+    <Tabs.Root value={activeKind} onValueChange={updateSettingsTab} class="w-full">
       <Tabs.List variant="line" class="w-full justify-start sm:w-fit">
         <Tabs.Trigger value="expense">支出カテゴリ</Tabs.Trigger>
         <Tabs.Trigger value="income">収入カテゴリ</Tabs.Trigger>

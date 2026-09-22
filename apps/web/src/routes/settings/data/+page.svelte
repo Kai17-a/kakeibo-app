@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths';
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import DownloadIcon from '@lucide/svelte/icons/download';
   import UploadIcon from '@lucide/svelte/icons/upload';
@@ -17,7 +18,7 @@
   <Header />
   <main class="mx-auto flex max-w-5xl flex-col gap-6 px-5 py-8 lg:px-10 lg:py-12">
     <div>
-      <Button variant="ghost" size="sm" href="/settings">
+      <Button variant="ghost" size="sm" href={resolve('/settings')}>
         <ArrowLeftIcon data-icon="inline-start" />設定に戻る
       </Button>
     </div>

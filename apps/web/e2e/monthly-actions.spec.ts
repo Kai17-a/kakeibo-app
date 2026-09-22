@@ -76,7 +76,7 @@ function now() {
 
 test('準固定費の今月分を登録する', async ({ page }) => {
   await mockMonthlyApi(page);
-  await page.goto('/');
+  await page.goto('/monthly');
 
   await expect(page.getByText('準固定費（金額変動）')).toBeVisible();
   await page.getByRole('button', { name: '電気代の今月分を登録' }).click();
@@ -88,4 +88,17 @@ test('準固定費の今月分を登録する', async ({ page }) => {
 
   await expect(page.getByText('支出を登録しました。')).toBeVisible();
   await expect(page.getByText(/−.*7,500/)).toBeVisible();
+});
+
+test('表示期間をURLに反映し、ブラウザ履歴で復元する', async ({ page }) => {
+  await mockMonthlyApi(page);
+  await page.goto('/daily?month=2026-07');
+
+  await expect(page.getByRole('radio', { name: '日別集計' })).toHaveAttribute('data-state', 'on');
+  await page.getByRole('radio', { name: '月間' }).click();
+  await expect(page).toHaveURL(/\/monthly\?month=2026-07$/);
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/daily\?month=2026-07$/);
+  await expect(page.getByRole('radio', { name: '日別集計' })).toHaveAttribute('data-state', 'on');
 });

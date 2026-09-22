@@ -71,7 +71,7 @@ async function mockLedgerApi(page: Page) {
 }
 
 async function openExpenseDetails(page: Page) {
-  await page.goto('/');
+  await page.goto('/monthly');
   await page.getByRole('radio', { name: '日別集計' }).click();
   await page.getByRole('tab', { name: '支出明細' }).click();
 }
