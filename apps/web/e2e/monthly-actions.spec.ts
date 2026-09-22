@@ -59,6 +59,8 @@ async function mockMonthlyApi(page: Page) {
       '/api/income-categories': { items: [], pagination },
       '/api/payment-methods': { items: [paymentMethod], pagination },
       '/api/recurring-expenses': [variableRecurring],
+      '/api/recurring-incomes': [],
+      '/api/budgets': [],
     };
     await route.fulfill({
       status: responses[path] === undefined ? 404 : 200,
