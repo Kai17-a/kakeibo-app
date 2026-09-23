@@ -1,4 +1,10 @@
-use crate::{model::import::ImportResult, service::import::ImportService, utils::error::AppResult};
+use crate::{
+    model::import::{
+        ExpenseImportPreview, ImportResult, IncomeImportPreview, RecurringExpenseImportPreview,
+    },
+    service::import::ImportService,
+    utils::error::AppResult,
+};
 use axum::{
     Json,
     extract::State,
@@ -19,6 +25,13 @@ pub async fn expenses(
         Json(s.import.import_expenses(&body).await?),
     ))
 }
+#[utoipa::path(post,path="/api/import/expenses/preview",request_body(content=String,content_type="text/csv"),responses((status=200,body=ExpenseImportPreview),(status=400)))]
+pub async fn preview_expenses(
+    State(s): State<AppState>,
+    body: String,
+) -> AppResult<Json<ExpenseImportPreview>> {
+    Ok(Json(s.import.preview_expenses(&body).await?))
+}
 #[utoipa::path(post,path="/api/import/incomes",request_body(content=String,content_type="text/csv"),responses((status=201,body=ImportResult),(status=400)))]
 pub async fn incomes(
     State(s): State<AppState>,
@@ -28,6 +41,13 @@ pub async fn incomes(
         StatusCode::CREATED,
         Json(s.import.import_incomes(&body).await?),
     ))
+}
+#[utoipa::path(post,path="/api/import/incomes/preview",request_body(content=String,content_type="text/csv"),responses((status=200,body=IncomeImportPreview),(status=400)))]
+pub async fn preview_incomes(
+    State(s): State<AppState>,
+    body: String,
+) -> AppResult<Json<IncomeImportPreview>> {
+    Ok(Json(s.import.preview_incomes(&body).await?))
 }
 
 #[utoipa::path(post,path="/api/import/recurring-expenses",request_body(content=String,content_type="text/csv"),responses((status=201,body=ImportResult),(status=400)))]
@@ -39,6 +59,14 @@ pub async fn recurring_expenses(
         StatusCode::CREATED,
         Json(s.import.import_recurring_expenses(&body).await?),
     ))
+}
+
+#[utoipa::path(post,path="/api/import/recurring-expenses/preview",request_body(content=String,content_type="text/csv"),responses((status=200,body=RecurringExpenseImportPreview),(status=400)))]
+pub async fn preview_recurring_expenses(
+    State(s): State<AppState>,
+    body: String,
+) -> AppResult<Json<RecurringExpenseImportPreview>> {
+    Ok(Json(s.import.preview_recurring_expenses(&body).await?))
 }
 
 pub async fn expense_sample() -> impl IntoResponse {

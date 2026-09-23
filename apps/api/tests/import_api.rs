@@ -312,3 +312,143 @@ async fn import_recurring_expenses_rejects_invalid_currency_and_required_fields(
         0
     );
 }
+
+#[tokio::test]
+async fn preview_expenses_returns_rows_and_rolls_back_all_writes() {
+    let p = pool(EXPENSE_SCHEMA).await;
+    sqlx::query(
+        "ALTER TABLE expense_categories ADD COLUMN display_order INTEGER NOT NULL DEFAULT 0",
+    )
+    .execute(&p)
+    .await
+    .unwrap();
+    let app = import::create(p.clone());
+    let csv = "日付,金額,カテゴリ,支払方法,メモ\n2026-07-22,1200,食費,現金,既存\n2026-07-23,800,新カテゴリ,電子マネー,新規\n";
+    let (status, body) = call(&app, "/api/import/expenses/preview", csv).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["rows"][0]["category_is_new"], false);
+    assert_eq!(body["rows"][0]["payment_method_is_new"], false);
+    assert_eq!(body["rows"][1]["category_is_new"], true);
+    assert_eq!(body["rows"][1]["payment_method_is_new"], true);
+    assert_eq!(body["created_categories"], json!(["新カテゴリ"]));
+    assert_eq!(body["created_payment_methods"], json!(["電子マネー"]));
+    assert_eq!(count(&p, "SELECT COUNT(*) FROM expenses").await, 0);
+    assert_eq!(
+        count(
+            &p,
+            "SELECT COUNT(*) FROM expense_categories WHERE name='新カテゴリ'"
+        )
+        .await,
+        0
+    );
+    assert_eq!(
+        count(
+            &p,
+            "SELECT COUNT(*) FROM payment_methods WHERE name='電子マネー'"
+        )
+        .await,
+        0
+    );
+}
+
+#[tokio::test]
+async fn preview_incomes_returns_rows_and_rolls_back_all_writes() {
+    let p = pool(INCOME_SCHEMA).await;
+    sqlx::query(
+        "ALTER TABLE income_categories ADD COLUMN display_order INTEGER NOT NULL DEFAULT 0",
+    )
+    .execute(&p)
+    .await
+    .unwrap();
+    let app = import::create(p.clone());
+    let csv = "日付,金額,カテゴリ,メモ\n2026-07-25,300000,給与,既存\n2026-07-10,20000,賞与,新規\n";
+    let (status, body) = call(&app, "/api/import/incomes/preview", csv).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["rows"][0]["category_is_new"], false);
+    assert_eq!(body["rows"][1]["category_is_new"], true);
+    assert_eq!(body["created_categories"], json!(["賞与"]));
+    assert_eq!(count(&p, "SELECT COUNT(*) FROM incomes").await, 0);
+    assert_eq!(
+        count(
+            &p,
+            "SELECT COUNT(*) FROM income_categories WHERE name='賞与'"
+        )
+        .await,
+        0
+    );
+}
+
+#[tokio::test]
+async fn preview_recurring_expenses_returns_rows_and_rolls_back_all_writes() {
+    let p = pool(RECURRING_EXPENSE_SCHEMA).await;
+    let app = import::create(p.clone());
+    let csv = "名称,金額,通貨,外貨金額,支払日,開始日,終了日,カテゴリ,支払方法,金額変動,備考\n家賃,61100,,,1,2026-01-01,,住居費,口座振替,,既存\nクラウド,,USD,3.99,15,2026-01-01,,新カテゴリ,新支払方法,true,新規\n";
+    let (status, body) = call(&app, "/api/import/recurring-expenses/preview", csv).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["rows"][0]["category_is_new"], false);
+    assert_eq!(body["rows"][0]["payment_method_is_new"], false);
+    assert_eq!(body["rows"][1]["category_is_new"], true);
+    assert_eq!(body["rows"][1]["payment_method_is_new"], true);
+    assert_eq!(body["rows"][1]["amount"], "");
+    assert_eq!(body["created_categories"], json!(["新カテゴリ"]));
+    assert_eq!(body["created_payment_methods"], json!(["新支払方法"]));
+    assert_eq!(
+        count(&p, "SELECT COUNT(*) FROM recurring_expenses").await,
+        0
+    );
+    assert_eq!(
+        count(
+            &p,
+            "SELECT COUNT(*) FROM expense_categories WHERE name='新カテゴリ'"
+        )
+        .await,
+        0
+    );
+    assert_eq!(
+        count(
+            &p,
+            "SELECT COUNT(*) FROM payment_methods WHERE name='新支払方法'"
+        )
+        .await,
+        0
+    );
+}
+
+#[tokio::test]
+async fn preview_rejects_invalid_rows_without_writes_for_all_import_types() {
+    let p = pool(EXPENSE_SCHEMA).await;
+    let app = import::create(p.clone());
+    let (status, _) = call(
+        &app,
+        "/api/import/expenses/preview",
+        "日付,金額,カテゴリ,支払方法,メモ\ninvalid,0,新カテゴリ,新支払方法,\n",
+    )
+    .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert_eq!(count(&p, "SELECT COUNT(*) FROM expenses").await, 0);
+
+    let p = pool(INCOME_SCHEMA).await;
+    let app = import::create(p.clone());
+    let (status, _) = call(
+        &app,
+        "/api/import/incomes/preview",
+        "日付,金額,カテゴリ,メモ\ninvalid,0,新カテゴリ,\n",
+    )
+    .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert_eq!(count(&p, "SELECT COUNT(*) FROM incomes").await, 0);
+
+    let p = pool(RECURRING_EXPENSE_SCHEMA).await;
+    let app = import::create(p.clone());
+    let (status, _) = call(
+        &app,
+        "/api/import/recurring-expenses/preview",
+        "名称,金額,通貨,外貨金額,支払日,開始日,終了日,カテゴリ,支払方法,金額変動,備考\n,0,EUR,,32,invalid,,新カテゴリ,新支払方法,,\n",
+    )
+    .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert_eq!(
+        count(&p, "SELECT COUNT(*) FROM recurring_expenses").await,
+        0
+    );
+}
