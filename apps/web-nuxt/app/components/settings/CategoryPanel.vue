@@ -1,40 +1,54 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
-import type { Budget, Category } from '~/types/settings'
-import { availableBudgetCategories, formatYen, groupCategories, validAmount } from '~/utils/settings'
+import type { Category, CategoryKind } from '~/types/settings'
+import { categoryMove, groupCategories, validateNamed } from '~/utils/settings'
 
-useSeoMeta({ title: '予算設定' })
-const label = '予算'
-const settingsApi = useSettingsApi()
-const api = settingsApi.budgets
-const items = ref<Budget[]>([])
-const categories = ref<Category[]>([])
-const deleting = ref<Budget | null>(null)
-const state = reactive<{ category_id: string, amount: string }>({ category_id: '', amount: '' })
-const sortedItems = computed(() => items.value)
-const unassignedCategories = computed(() => availableBudgetCategories(categories.value, items.value))
-const budgetCategories = computed(() => availableBudgetCategories(categories.value, items.value, items.value.find(item => item.id === editingId.value)?.category_id))
-const categoryOptions = computed(() => budgetCategories.value.map(item => ({ label: item.name, value: item.id })))
-const columns: TableColumn<Budget>[] = [
-  { accessorKey: 'category_id', header: 'カテゴリ名', cell: ({ row }) => categoryName(row.original.category_id) },
-  { accessorKey: 'amount', header: '月額予算', cell: ({ row }) => formatYen(row.original.amount) },
+const props = defineProps<{ kind: CategoryKind }>()
+const label = computed(() => props.kind === 'expense' ? '支出カテゴリ' : '収入カテゴリ')
+const api = useSettingsApi().categories(props.kind)
+const items = ref<Category[]>([])
+const deleting = ref<Category | null>(null)
+const reordering = ref(false)
+const orderError = ref('')
+const state = reactive({ name: '', description: '', parent_category_id: 'none' })
+const sortedItems = computed(() => groupCategories(items.value))
+const editingHasChildren = computed(() => !!editingId.value && items.value.some(item => item.parent_category_id === editingId.value))
+const parentOptions = computed(() => [
+  { label: '親カテゴリなし', value: 'none' },
+  ...sortedItems.value.filter(item => item.parent_category_id === null && item.id !== editingId.value).map(item => ({ label: item.name, value: item.id }))
+])
+const columns: TableColumn<Category>[] = [
+  { accessorKey: 'name', header: 'カテゴリ名' },
+  { accessorKey: 'description', header: '説明' },
   { id: 'actions', header: '操作' }
 ]
-function categoryName(id: string) {
-  return categories.value.find(item => item.id === id)?.name ?? '不明なカテゴリ'
-}
-function validate() {
-  const errors: { name: string, message: string }[] = []
-  if (!budgetCategories.value.some(item => item.id === state.category_id)) errors.push({ name: 'category_id', message: '支出カテゴリを選択してください。' })
-  if (!validAmount(state.amount)) errors.push({ name: 'amount', message: '月額予算を0以上の整数で入力してください。' })
-  return errors
-}
-function openForm(item?: Budget) {
-  if (!item && !unassignedCategories.value.length) return
+const validate = validateNamed
+function openForm(item?: Category) {
   editingId.value = item?.id ?? null
-  Object.assign(state, { category_id: item?.category_id ?? '', amount: item?.amount ?? '' })
+  Object.assign(state, { name: item?.name ?? '', description: item?.description ?? '', parent_category_id: item?.parent_category_id ?? 'none' })
   formError.value = ''
   formOpen.value = true
+}
+function canMove(item: Category, direction: -1 | 1) {
+  return categoryMove(items.value, item.id, direction) !== null
+}
+async function move(item: Category, direction: -1 | 1) {
+  if (reordering.value) return
+  const result = categoryMove(items.value, item.id, direction)
+  if (!result) return
+  const previous = items.value
+  items.value = result.items
+  reordering.value = true
+  orderError.value = ''
+  try {
+    await api.reorder(result.input)
+    toast.add({ title: 'カテゴリの表示順を更新しました', color: 'success' })
+  } catch (error) {
+    items.value = previous
+    orderError.value = apiErrorMessage(error)
+  } finally {
+    reordering.value = false
+  }
 }
 
 const toast = useToast()
@@ -52,9 +66,7 @@ async function load() {
   loading.value = true
   loadError.value = ''
   try {
-    const [budgets, expenseCategories] = await Promise.all([api.list(), settingsApi.categories('expense').list()])
-    items.value = budgets
-    categories.value = groupCategories(expenseCategories)
+    items.value = await api.list()
   } catch (error) {
     loadError.value = apiErrorMessage(error)
   } finally {
@@ -68,18 +80,18 @@ async function save() {
   saving.value = true
   formError.value = ''
   try {
-    const input = { category_id: state.category_id, amount: String(state.amount).trim() }
+    const input = { name: state.name.trim(), description: state.description.trim() || null, parent_category_id: editingHasChildren.value || state.parent_category_id === 'none' ? null : state.parent_category_id }
     const result = editingId.value ? await api.update(editingId.value, input) : await api.create(input)
     items.value = editingId.value ? items.value.map(item => item.id === result.id ? result : item) : [...items.value, result]
     formOpen.value = false
-    toast.add({ title: `${label}を${editingId.value ? '更新' : '追加'}しました`, color: 'success' })
+    toast.add({ title: `${label.value}を${editingId.value ? '更新' : '追加'}しました`, color: 'success' })
   } catch (error) {
     formError.value = apiErrorMessage(error)
   } finally {
     saving.value = false
   }
 }
-function askDelete(item: Budget) {
+function askDelete(item: Category) {
   deleting.value = item
   deleteError.value = ''
   deleteOpen.value = true
@@ -93,9 +105,9 @@ async function remove() {
     await api.remove(id)
     items.value = items.value.filter(item => item.id !== id)
     deleteOpen.value = false
-    toast.add({ title: `${label}を削除しました`, color: 'success' })
+    toast.add({ title: `${label.value}を削除しました`, color: 'success' })
   } catch {
-    deleteError.value = '予算を削除できませんでした。'
+    deleteError.value = 'カテゴリを削除できませんでした。登録済みの明細で使用されているか、子カテゴリが存在するため削除できません。'
   } finally {
     removing.value = false
   }
@@ -105,12 +117,12 @@ async function remove() {
 <template>
   <section
     class="space-y-6"
-    aria-labelledby="budget-heading"
+    aria-labelledby="category-heading"
   >
     <div class="flex items-start justify-between gap-4">
       <div class="space-y-2">
         <h2
-          id="budget-heading"
+          id="category-heading"
           class="text-lg font-semibold flex items-center gap-3"
         >
           {{ label }}
@@ -123,24 +135,24 @@ async function remove() {
           </UBadge>
         </h2>
         <p class="text-sm text-muted">
-          支出カテゴリごとに毎月適用する予算を管理します。
+          収支の登録時に選択するカテゴリと表示順を管理します。
         </p>
       </div>
       <UButton
         icon="i-lucide-plus"
         class="shrink-0"
-        :disabled="loading || !!loadError || !unassignedCategories.length"
+        :disabled="loading || !!loadError || reordering"
         @click="openForm()"
       >
         追加
       </UButton>
     </div>
-    <p
-      v-if="!loading && !loadError && !unassignedCategories.length"
-      class="text-sm text-muted"
-    >
-      予算未設定の支出カテゴリがありません。カテゴリを追加するか、登録済みの予算を編集してください。
-    </p>
+    <UAlert
+      v-if="orderError"
+      color="error"
+      title="表示順を更新できませんでした"
+      :description="orderError"
+    />
     <div
       v-if="loading"
       role="status"
@@ -167,14 +179,14 @@ async function remove() {
     >
       <div class="py-10 space-y-3">
         <UIcon
-          name="i-lucide-chart-pie"
+          name="i-lucide-tags"
           class="size-8 text-muted"
         />
         <h3 class="font-semibold">
           {{ label }}がありません
         </h3>
         <p class="text-sm text-muted">
-          支出カテゴリを登録してから、右上の「追加」で月額予算を設定してください。
+          右上の「追加」からカテゴリを登録してください。
         </p>
       </div>
     </UCard>
@@ -184,12 +196,45 @@ async function remove() {
       :columns="columns"
       :aria-label="`${label}一覧`"
     >
+      <template #name-cell="{ row }">
+        <div :class="['flex items-center gap-2', row.original.parent_category_id !== null ? 'pl-6' : '']">
+          <span class="whitespace-normal break-words">{{ row.original.name }}</span>
+          <UBadge
+            color="neutral"
+            variant="soft"
+          >
+            {{ row.original.parent_category_id === null ? '親カテゴリ' : '子カテゴリ' }}
+          </UBadge>
+        </div>
+      </template>
+      <template #description-cell="{ row }">
+        <p class="whitespace-pre-wrap break-words">
+          {{ row.original.description || '—' }}
+        </p>
+      </template>
       <template #actions-cell="{ row }">
         <div class="flex gap-2">
           <UButton
+            icon="i-lucide-arrow-up"
             color="neutral"
             variant="ghost"
-            :aria-label="`${categoryName(row.original.category_id)}を編集`"
+            :aria-label="`${row.original.name}を上へ移動`"
+            :disabled="reordering || !canMove(row.original, -1)"
+            @click="move(row.original, -1)"
+          />
+          <UButton
+            icon="i-lucide-arrow-down"
+            color="neutral"
+            variant="ghost"
+            :aria-label="`${row.original.name}を下へ移動`"
+            :disabled="reordering || !canMove(row.original, 1)"
+            @click="move(row.original, 1)"
+          />
+          <UButton
+            color="neutral"
+            variant="ghost"
+            :aria-label="`${row.original.name}を編集`"
+            :disabled="reordering"
             @click="openForm(row.original)"
           >
             編集
@@ -197,7 +242,8 @@ async function remove() {
           <UButton
             color="error"
             variant="soft"
-            :aria-label="`${categoryName(row.original.category_id)}を削除`"
+            :aria-label="`${row.original.name}を削除`"
+            :disabled="reordering"
             @click="askDelete(row.original)"
           >
             削除
@@ -208,14 +254,14 @@ async function remove() {
     <UModal
       v-model:open="formOpen"
       :title="`${label}を${editingId ? '編集' : '追加'}`"
-      description="支出カテゴリと毎月の予算額を設定します。"
+      description="カテゴリ名、親カテゴリ、説明を設定します。"
       :dismissible="!saving"
       :close="!saving"
       :ui="{ footer: 'justify-end' }"
     >
       <template #body>
         <UForm
-          id="budget-form"
+          id="category-form"
           :state="state"
           :validate="validate"
           :disabled="saving"
@@ -229,29 +275,37 @@ async function remove() {
             :description="formError"
           />
           <UFormField
-            name="category_id"
-            label="支出カテゴリ"
+            name="name"
+            label="カテゴリ名"
             required
           >
+            <UInput
+              v-model="state.name"
+              :maxlength="100"
+              class="w-full"
+              autofocus
+            />
+          </UFormField>
+          <UFormField
+            name="parent_category_id"
+            label="親カテゴリ（任意）"
+            :description="editingHasChildren ? '子カテゴリが存在するため、このカテゴリには親を設定できません。' : undefined"
+          >
             <USelect
-              v-model="state.category_id"
-              :items="categoryOptions"
-              placeholder="選択してください"
+              v-model="state.parent_category_id"
+              :items="parentOptions"
+              :disabled="editingHasChildren"
               class="w-full"
             />
           </UFormField>
           <UFormField
-            name="amount"
-            label="月額予算"
-            required
+            name="description"
+            label="説明（任意）"
           >
-            <UInput
-              :model-value="state.amount"
-              type="number"
-              :min="0"
-              :step="1"
+            <UTextarea
+              v-model="state.description"
+              :maxlength="500"
               class="w-full"
-              @update:model-value="state.amount = String($event ?? '')"
             />
           </UFormField>
         </UForm>
@@ -267,7 +321,7 @@ async function remove() {
         </UButton>
         <UButton
           type="submit"
-          form="budget-form"
+          form="category-form"
           :loading="saving"
           :disabled="saving"
         >
@@ -285,7 +339,7 @@ async function remove() {
     >
       <template #body>
         <p class="break-all">
-          {{ deleting ? categoryName(deleting.category_id) : '' }}
+          {{ deleting?.name }}
         </p>
         <UAlert
           v-if="deleteError"
