@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { Button } from '$lib/components/ui/button';
+  import CategoryCombobox from '$lib/components/CategoryCombobox.svelte';
   import * as Dialog from '$lib/components/ui/dialog';
   import * as Field from '$lib/components/ui/field';
   import { Input } from '$lib/components/ui/input';
@@ -32,6 +34,8 @@
     initialRecurringIncome?: RecurringIncome;
     exchangePreview?: ExchangeRatePreview | null;
     onclose(): void;
+    oncreateexpensecategory?(category: ExpenseCategory): void;
+    oncreateincomecategory?(category: IncomeCategory): void;
     onsubmit(
       kind: 'expense' | 'income',
       input: ExpenseInput | IncomeInput,
@@ -50,6 +54,8 @@
     initialRecurringIncome,
     exchangePreview,
     onclose,
+    oncreateexpensecategory,
+    oncreateincomecategory,
     onsubmit,
   }: Props = $props();
   let kind = $derived<'expense' | 'income'>(
@@ -82,21 +88,38 @@
       initialRecurringIncome?.amount ??
       '',
   );
-  let categoryId = $derived(
-    initialExpense?.category_id ??
-      initialIncome?.category_id ??
-      initialRecurring?.category_id ??
-      initialRecurringIncome?.category_id ??
-      categories[0]?.id ??
-      '',
+  let categoryId = $state(
+    untrack(
+      () =>
+        initialExpense?.category_id ??
+        initialIncome?.category_id ??
+        initialRecurring?.category_id ??
+        initialRecurringIncome?.category_id ??
+        categories[0]?.id ??
+        '',
+    ),
   );
-  let paymentMethodId = $derived(
-    initialExpense?.payment_method_id ??
-      initialIncome?.payment_method_id ??
-      initialRecurring?.payment_method_id ??
-      (kind === 'expense' ? paymentMethods[0]?.id : '') ??
-      '',
+  let paymentMethodId = $state(
+    untrack(
+      () =>
+        initialExpense?.payment_method_id ??
+        initialIncome?.payment_method_id ??
+        initialRecurring?.payment_method_id ??
+        (kind === 'expense' ? paymentMethods[0]?.id : '') ??
+        '',
+    ),
   );
+  let previousKind = untrack(() => kind);
+  $effect(() => {
+    if (!categories.some((category) => category.id === categoryId)) {
+      categoryId = categories[0]?.id ?? '';
+    }
+  });
+  $effect(() => {
+    if (kind === previousKind) return;
+    previousKind = kind;
+    paymentMethodId = kind === 'expense' ? (paymentMethods[0]?.id ?? '') : '';
+  });
   let description = $derived(
     initialExpense?.description ??
       initialIncome?.description ??
@@ -194,11 +217,17 @@
         </Field.Field>
         <Field.Field>
           <Field.FieldLabel for="transaction-category">カテゴリ</Field.FieldLabel>
-          <NativeSelect.Root id="transaction-category" required bind:value={categoryId}>
-            {#each categories as category (category.id)}
-              <NativeSelect.Option value={category.id}>{category.name}</NativeSelect.Option>
-            {/each}
-          </NativeSelect.Root>
+          <CategoryCombobox
+            id="transaction-category"
+            {categories}
+            {kind}
+            required
+            bind:value={categoryId}
+            oncreate={(category) =>
+              kind === 'expense'
+                ? oncreateexpensecategory?.(category as ExpenseCategory)
+                : oncreateincomecategory?.(category as IncomeCategory)}
+          />
         </Field.Field>
         <Field.Field>
           <Field.FieldLabel for="transaction-payment">
