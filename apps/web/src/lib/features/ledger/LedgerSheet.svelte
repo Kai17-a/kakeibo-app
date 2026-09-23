@@ -84,8 +84,32 @@
         (!item.end_date || item.end_date.slice(0, 7) >= month),
     ),
   );
-  const variable = $derived(expenses.filter((item) => !item.recurring_expense_id));
+  const variableRecurringCategoryIds = $derived(
+    new Set(
+      recurringExpenses
+        .filter(
+          (item) =>
+            item.is_active &&
+            item.is_variable === true &&
+            item.start_date.slice(0, 7) <= month &&
+            (!item.end_date || item.end_date.slice(0, 7) >= month),
+        )
+        .map((item) => item.category_id),
+    ),
+  );
+  const fixedVariable = $derived(
+    expenses.filter(
+      (item) => !item.recurring_expense_id && variableRecurringCategoryIds.has(item.category_id),
+    ),
+  );
+  const variable = $derived(
+    expenses.filter(
+      (item) => !item.recurring_expense_id && !variableRecurringCategoryIds.has(item.category_id),
+    ),
+  );
   const recurringTotal = $derived(sumAmounts(recurring));
+  const fixedVariableTotal = $derived(sumAmounts(fixedVariable));
+  const fixedVariableTotals = $derived(categoryTotals(fixedVariable, expenseCategories));
   const variableTotal = $derived(sumAmounts(variable));
   const variableTotals = $derived(categoryTotals(variable, expenseCategories));
   const ledger = $derived(
@@ -370,6 +394,18 @@
                   <small class="block">毎月{item.payment_day}日</small>
                 </span>
                 <span>{Number(item.amount).toLocaleString('ja-JP')}</span>
+              </div>{/each}
+            <div class="mt-4 flex items-center justify-between gap-4 bg-muted px-3 py-2">
+              <h3 class="text-sm font-bold">支出（固定変動費）</h3>
+              <span class="text-sm font-bold whitespace-nowrap">
+                {formatYen(fixedVariableTotal)}
+              </span>
+            </div>
+            {#each fixedVariableTotals as item (item.id)}<div
+                class="flex justify-between border-b p-2 text-sm"
+              >
+                <span>{item.name}</span>
+                <span>{item.total.toLocaleString('ja-JP')}</span>
               </div>{/each}
             <div class="mt-4 flex items-center justify-between gap-4 bg-muted px-3 py-2">
               <h3 class="text-sm font-bold">支出（変動費）</h3>
