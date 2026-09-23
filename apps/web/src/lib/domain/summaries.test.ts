@@ -39,6 +39,10 @@ function expense(
     payment_method_id,
     recurring_expense_id: null,
     description: null,
+    foreign_amount: null,
+    currency_code: null,
+    exchange_rate: null,
+    exchange_rate_date: null,
   };
 }
 
@@ -226,5 +230,77 @@ describe('summary calculations', () => {
     });
     expect(recurringForecast([posted], [], [recurringExpense], [], '2026-02').expense).toBe(0);
     expect(recurringForecast([], [], [recurringExpense], [], '2025-12').expense).toBe(0);
+  });
+
+  it('uses the USD exchange preview for fixed recurring expense forecasts', () => {
+    const usdRecurringExpense = {
+      ...resourceFields,
+      id: 'subscription',
+      name: 'サブスク',
+      amount: '10',
+      payment_day: 1,
+      start_date: '2026-01-01',
+      end_date: null,
+      category_id: 'services',
+      payment_method_id: 'card',
+      is_active: true,
+      is_variable: false,
+      description: null,
+      foreign_amount: '10',
+      currency_code: 'USD',
+      exchange_rate: null,
+    } satisfies RecurringExpense;
+
+    expect(
+      recurringForecast(
+        [],
+        [],
+        [usdRecurringExpense],
+        [],
+        '2026-03',
+        new Map([['subscription', { converted_amount: '1500' }]]),
+      ),
+    ).toEqual({
+      expense: 1500,
+      income: 0,
+      expensesByCategory: new Map([['services', 1500]]),
+    });
+  });
+
+  it('excludes USD fixed recurring expenses when the exchange preview is unavailable', () => {
+    const usdRecurringExpense = {
+      ...resourceFields,
+      id: 'subscription',
+      name: 'サブスク',
+      amount: '10',
+      payment_day: 1,
+      start_date: '2026-01-01',
+      end_date: null,
+      category_id: 'services',
+      payment_method_id: 'card',
+      is_active: true,
+      is_variable: false,
+      description: null,
+      foreign_amount: '10',
+      currency_code: 'USD',
+      exchange_rate: null,
+    } satisfies RecurringExpense;
+    const yenRecurringExpense = {
+      ...usdRecurringExpense,
+      id: 'rent',
+      name: '家賃',
+      amount: '80000',
+      category_id: 'housing',
+      foreign_amount: null,
+      currency_code: null,
+    } satisfies RecurringExpense;
+
+    expect(
+      recurringForecast([], [], [usdRecurringExpense, yenRecurringExpense], [], '2026-03'),
+    ).toEqual({
+      expense: 80000,
+      income: 0,
+      expensesByCategory: new Map([['housing', 80000]]),
+    });
   });
 });

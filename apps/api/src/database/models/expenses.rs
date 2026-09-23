@@ -10,4 +10,8 @@ pub struct ExpenseRow {
     pub payment_method_id: String,
     pub recurring_expense_id: Option<String>,
     pub description: Option<String>,
+    pub foreign_amount: Option<String>,
+    pub currency_code: Option<String>,
+    pub exchange_rate: Option<String>,
+    pub exchange_rate_date: Option<String>,
 }

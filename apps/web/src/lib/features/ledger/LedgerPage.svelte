@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { SvelteMap } from 'svelte/reactivity';
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
@@ -23,6 +24,7 @@
     Expense,
     ExpenseCategory,
     ExpenseInput,
+    ExchangeRatePreview,
     Income,
     IncomeCategory,
     IncomeInput,
@@ -50,6 +52,8 @@
   let editingExpense = $state<Expense | null>(null);
   let editingIncome = $state<Income | null>(null);
   let transactionPreset = $state<RecurringExpense | null>(null);
+  let exchangePreview = $state<ExchangeRatePreview | null>(null);
+  let usdRecurringPreviews = $state(new SvelteMap<string, ExchangeRatePreview>());
   let incomeTransactionPreset = $state<RecurringIncome | null>(null);
   let recurringFormOpen = $state(false);
   let recurringIncomeFormOpen = $state(false);
@@ -75,6 +79,31 @@
       .sort()
       .reverse(),
   );
+
+  $effect(() => {
+    const month = selectedMonth;
+    const targets = recurringExpenses.filter(
+      (item) => item.is_active && !item.is_variable && item.currency_code === 'USD',
+    );
+    let cancelled = false;
+    usdRecurringPreviews = new SvelteMap();
+
+    void Promise.allSettled(
+      targets.map(
+        async (item) =>
+          [item.id, await api.previewRecurringExpenseExchangeRate(item.id, month)] as const,
+      ),
+    ).then((results) => {
+      if (cancelled) return;
+      usdRecurringPreviews = new SvelteMap(
+        results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : [])),
+      );
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  });
 
   onMount(loadAll);
 
@@ -173,6 +202,7 @@
         editingIncome = null;
         transactionPreset = null;
         incomeTransactionPreset = null;
+        exchangePreview = null;
       }
       return true;
     } catch (caught) {
@@ -188,14 +218,25 @@
     editingIncome = null;
     transactionPreset = null;
     incomeTransactionPreset = null;
+    exchangePreview = null;
     transactionFormOpen = true;
   }
 
-  function registerVariableRecurring(item: RecurringExpense) {
+  async function registerVariableRecurring(item: RecurringExpense) {
     editingExpense = null;
     editingIncome = null;
     incomeTransactionPreset = null;
     transactionPreset = item;
+    exchangePreview = null;
+    if (item.currency_code === 'USD') {
+      try {
+        exchangePreview = await api.previewRecurringExpenseExchangeRate(item.id, selectedMonth);
+      } catch (caught) {
+        toast.error(
+          message(caught, '為替レートを取得できませんでした。金額を手動で入力してください。'),
+        );
+      }
+    }
     transactionFormOpen = true;
   }
 
@@ -204,6 +245,7 @@
     editingIncome = null;
     transactionPreset = null;
     incomeTransactionPreset = item;
+    exchangePreview = null;
     transactionFormOpen = true;
   }
 
@@ -212,6 +254,7 @@
     editingIncome = null;
     transactionPreset = null;
     incomeTransactionPreset = null;
+    exchangePreview = null;
     transactionFormOpen = true;
   }
 
@@ -220,6 +263,7 @@
     editingIncome = income;
     transactionPreset = null;
     incomeTransactionPreset = null;
+    exchangePreview = null;
     transactionFormOpen = true;
   }
 
@@ -229,6 +273,7 @@
     editingIncome = null;
     transactionPreset = null;
     incomeTransactionPreset = null;
+    exchangePreview = null;
   }
 
   async function saveRecurring(input: RecurringExpenseInput) {
@@ -404,6 +449,7 @@
         {paymentMethods}
         {recurringExpenses}
         {recurringIncomes}
+        {usdRecurringPreviews}
         onregistervariable={registerVariableRecurring}
         onregistervariableincome={registerVariableRecurringIncome}
       />{/if}
@@ -419,6 +465,7 @@
     initialIncome={editingIncome ?? undefined}
     initialRecurring={transactionPreset ?? undefined}
     initialRecurringIncome={incomeTransactionPreset ?? undefined}
+    {exchangePreview}
     initialDate={`${selectedMonth}-${String(Math.min(new Date().getDate(), 28)).padStart(2, '0')}`}
     onclose={closeTransaction}
     onsubmit={saveTransaction}

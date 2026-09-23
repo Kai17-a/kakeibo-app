@@ -94,6 +94,10 @@ impl ImportService {
                         payment_method_id,
                         recurring_expense_id: None,
                         description: row.description.clone(),
+                        foreign_amount: None,
+                        currency_code: None,
+                        exchange_rate: None,
+                        exchange_rate_date: None,
                     },
                 )
                 .await?;

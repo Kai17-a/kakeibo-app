@@ -32,6 +32,15 @@ const variableRecurring = {
   is_variable: true,
   description: null,
 };
+const usdVariableRecurring = {
+  ...variableRecurring,
+  id: 'recurring-usd-1',
+  name: '動画サービス',
+  amount: '10',
+  foreign_amount: '10',
+  currency_code: 'USD',
+  exchange_rate: null,
+};
 
 async function mockMonthlyApi(page: Page) {
   let expenses: unknown[] = [];
@@ -88,6 +97,104 @@ test('準固定費の今月分を登録する', async ({ page }) => {
 
   await expect(page.getByText('支出を登録しました。')).toBeVisible();
   await expect(page.getByText(/−.*7,500/)).toBeVisible();
+});
+
+test('USD建て準固定費は為替プレビューを表示し、参照情報を送信する', async ({ page }) => {
+  let requestBody: Record<string, unknown> | undefined;
+  await page.route('**/api/**', async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+
+    if (path === '/api/recurring-expenses/recurring-usd-1/exchange-rate') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          foreign_amount: '10',
+          currency_code: 'USD',
+          exchange_rate: '150.5',
+          exchange_rate_date: '2026-08-31',
+          converted_amount: '1505',
+        }),
+      });
+      return;
+    }
+    if (path === '/api/expenses' && request.method() === 'POST') {
+      requestBody = request.postDataJSON() as Record<string, unknown>;
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'expense-usd-1', ...requestBody }),
+      });
+      return;
+    }
+    const responses: Record<string, unknown> = {
+      '/api/expenses': [],
+      '/api/incomes': { items: [], pagination },
+      '/api/expense-categories': { items: [expenseCategory], pagination },
+      '/api/income-categories': { items: [], pagination },
+      '/api/payment-methods': { items: [paymentMethod], pagination },
+      '/api/recurring-expenses': [usdVariableRecurring],
+      '/api/recurring-incomes': [],
+      '/api/budgets': [],
+    };
+    await route.fulfill({
+      status: responses[path] === undefined ? 404 : 200,
+      contentType: 'application/json',
+      body: JSON.stringify(responses[path] ?? { message: 'Not found' }),
+    });
+  });
+
+  await page.goto('/monthly');
+  await page.getByRole('button', { name: '動画サービスの今月分を登録' }).click();
+  await expect(page.getByLabel('金額')).toHaveValue('1505');
+  await expect(page.getByText(/USD 10 × レート 150.5/)).toBeVisible();
+  await page.getByRole('button', { name: '登録する' }).click();
+
+  await expect(page.getByText('支出を登録しました。')).toBeVisible();
+  expect(requestBody).toMatchObject({
+    amount: '1505',
+    foreign_amount: '10',
+    currency_code: 'USD',
+    exchange_rate: '150.5',
+    exchange_rate_date: '2026-08-31',
+  });
+});
+
+test('USD為替プレビュー失敗時は手動入力へフォールバックする', async ({ page }) => {
+  await page.route('**/api/**', async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path === '/api/recurring-expenses/recurring-usd-1/exchange-rate') {
+      await route.fulfill({
+        status: 422,
+        contentType: 'application/json',
+        body: JSON.stringify({ message: '為替レートを取得できませんでした。' }),
+      });
+      return;
+    }
+    const responses: Record<string, unknown> = {
+      '/api/expenses': [],
+      '/api/incomes': { items: [], pagination },
+      '/api/expense-categories': { items: [expenseCategory], pagination },
+      '/api/income-categories': { items: [], pagination },
+      '/api/payment-methods': { items: [paymentMethod], pagination },
+      '/api/recurring-expenses': [usdVariableRecurring],
+      '/api/recurring-incomes': [],
+      '/api/budgets': [],
+    };
+    await route.fulfill({
+      status: responses[path] === undefined ? 404 : 200,
+      contentType: 'application/json',
+      body: JSON.stringify(responses[path] ?? { message: 'Not found' }),
+    });
+  });
+
+  await page.goto('/monthly');
+  await page.getByRole('button', { name: '動画サービスの今月分を登録' }).click();
+  await expect(page.getByRole('heading', { name: '準固定費を登録' })).toBeVisible();
+  await expect(page.getByLabel('金額')).toHaveValue('10');
+  await expect(page.getByText('為替レートを取得できませんでした。')).toBeVisible();
 });
 
 test('表示期間をURLに反映し、ブラウザ履歴で復元する', async ({ page }) => {

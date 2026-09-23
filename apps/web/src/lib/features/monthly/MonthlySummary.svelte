@@ -24,6 +24,7 @@
     RecurringExpense,
     RecurringIncome,
     Budget,
+    ExchangeRatePreview,
   } from '../../types';
   interface Props {
     month: string;
@@ -35,6 +36,7 @@
     paymentMethods: PaymentMethod[];
     recurringExpenses: RecurringExpense[];
     recurringIncomes: RecurringIncome[];
+    usdRecurringPreviews: Map<string, ExchangeRatePreview>;
     budgets: Budget[];
     onregistervariable(item: RecurringExpense): void;
     onregistervariableincome(item: RecurringIncome): void;
@@ -49,6 +51,7 @@
     paymentMethods,
     recurringExpenses,
     recurringIncomes,
+    usdRecurringPreviews,
     budgets,
     onregistervariable,
     onregistervariableincome,
@@ -56,7 +59,14 @@
   const expenseTotal = $derived(sumAmounts(expenses));
   const incomeTotal = $derived(sumAmounts(incomes));
   const forecast = $derived(
-    recurringForecast(expenses, incomes, recurringExpenses, recurringIncomes, month),
+    recurringForecast(
+      expenses,
+      incomes,
+      recurringExpenses,
+      recurringIncomes,
+      month,
+      usdRecurringPreviews,
+    ),
   );
   const projectedExpenseTotal = $derived(expenseTotal + forecast.expense);
   const projectedIncomeTotal = $derived(incomeTotal + forecast.income);
@@ -227,7 +237,24 @@
                 <b class="block">{item.name}</b>
                 <small>毎月 {item.payment_day} 日</small>
               </span>
-              <b>{formatYen(item.amount)}</b>
+              <b class="text-right">
+                {#if item.currency_code === 'USD'}
+                  {#if usdRecurringPreviews.get(item.id)}
+                    <span class="block">
+                      {formatYen(usdRecurringPreviews.get(item.id)!.converted_amount)}
+                    </span>
+                    <small class="font-normal text-muted-foreground">
+                      USD {item.foreign_amount ?? item.amount}
+                    </small>
+                  {:else}
+                    <span class="font-normal">
+                      USD {item.foreign_amount ?? item.amount}（換算待ち）
+                    </span>
+                  {/if}
+                {:else}
+                  {formatYen(item.amount)}
+                {/if}
+              </b>
             </li>{/each}
         </ul>
         {#if variableRecurring.length}
@@ -240,7 +267,11 @@
               >
                 <span>
                   <b class="block">{item.name}</b>
-                  <small>毎月 {item.payment_day} 日 · 目安 {formatYen(item.amount)}</small>
+                  <small>
+                    毎月 {item.payment_day} 日 · 目安 {item.currency_code === 'USD'
+                      ? `USD ${item.foreign_amount ?? item.amount}`
+                      : formatYen(item.amount)}
+                  </small>
                 </span>
                 <Button
                   variant="outline"

@@ -7,7 +7,9 @@
   import { Spinner } from '$lib/components/ui/spinner';
   import * as Tabs from '$lib/components/ui/tabs';
   import { Textarea } from '$lib/components/ui/textarea';
+  import { formatYen } from '../../format';
   import type {
+    ExchangeRatePreview,
     Expense,
     ExpenseCategory,
     ExpenseInput,
@@ -28,6 +30,7 @@
     initialIncome?: Income;
     initialRecurring?: RecurringExpense;
     initialRecurringIncome?: RecurringIncome;
+    exchangePreview?: ExchangeRatePreview | null;
     onclose(): void;
     onsubmit(
       kind: 'expense' | 'income',
@@ -45,6 +48,7 @@
     initialIncome,
     initialRecurring,
     initialRecurringIncome,
+    exchangePreview,
     onclose,
     onsubmit,
   }: Props = $props();
@@ -73,6 +77,7 @@
   let amount = $derived(
     initialExpense?.amount ??
       initialIncome?.amount ??
+      exchangePreview?.converted_amount ??
       initialRecurring?.amount ??
       initialRecurringIncome?.amount ??
       '',
@@ -112,6 +117,14 @@
             recurring_expense_id:
               initialExpense?.recurring_expense_id ?? initialRecurring?.id ?? null,
             description: description || null,
+            ...(exchangePreview
+              ? {
+                  foreign_amount: exchangePreview.foreign_amount,
+                  currency_code: exchangePreview.currency_code,
+                  exchange_rate: exchangePreview.exchange_rate,
+                  exchange_rate_date: exchangePreview.exchange_rate_date,
+                }
+              : {}),
           }
         : {
             transaction_date: date,
@@ -172,6 +185,12 @@
             required
             bind:value={amount}
           />
+          {#if preset && exchangePreview}
+            <Field.FieldDescription>
+              USD {exchangePreview.foreign_amount} × レート {exchangePreview.exchange_rate}（適用日:
+              {exchangePreview.exchange_rate_date}） = {formatYen(exchangePreview.converted_amount)}
+            </Field.FieldDescription>
+          {/if}
         </Field.Field>
         <Field.Field>
           <Field.FieldLabel for="transaction-category">カテゴリ</Field.FieldLabel>

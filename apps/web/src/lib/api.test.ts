@@ -6,6 +6,33 @@ import { api } from './api';
 afterEach(() => vi.unstubAllGlobals());
 
 describe('ky API client', () => {
+  it('previews a recurring expense exchange rate for a month', async () => {
+    const fetchMock = vi.fn(async (request: Request) => {
+      expect(request.url).toBe(
+        'http://localhost/api/recurring-expenses/recurring-1/exchange-rate?month=2026-08',
+      );
+      expect(request.method).toBe('GET');
+      return Response.json({
+        foreign_amount: '10',
+        currency_code: 'USD',
+        exchange_rate: '150.5',
+        exchange_rate_date: '2026-08-31',
+        converted_amount: '1505',
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      api.previewRecurringExpenseExchangeRate('recurring-1', '2026-08'),
+    ).resolves.toEqual({
+      foreign_amount: '10',
+      currency_code: 'USD',
+      exchange_rate: '150.5',
+      exchange_rate_date: '2026-08-31',
+      converted_amount: '1505',
+    });
+  });
+
   it('sends JSON through ky', async () => {
     const fetchMock = vi.fn(async (request: Request) => {
       expect(request.method).toBe('POST');

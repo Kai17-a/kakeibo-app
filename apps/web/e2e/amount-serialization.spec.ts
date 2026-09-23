@@ -108,6 +108,28 @@ test('固定費金額を文字列としてAPIへ送信する', async ({ page }) 
   expect(typeof requestBody?.amount).toBe('string');
 });
 
+test('USD建て固定費はUSD金額と自動換算用の項目を送信する', async ({ page }) => {
+  let requestBody: Record<string, unknown> | undefined;
+  await mockApi(page, (path, body) => {
+    if (path === '/api/recurring-expenses') requestBody = body as Record<string, unknown>;
+  });
+
+  await page.goto('/monthly');
+  await page.getByRole('button', { name: '固定費' }).click();
+  await page.getByRole('checkbox', { name: '外貨建て（USD）にする' }).check();
+  await page.getByLabel('名称').fill('音楽サービス');
+  await page.getByLabel('毎月のUSD金額').fill('12.5');
+  await page.getByRole('button', { name: '固定費を登録' }).click();
+
+  await expect(page.getByText('固定費を登録しました。')).toBeVisible();
+  expect(requestBody).toMatchObject({
+    amount: '12.5',
+    foreign_amount: '12.5',
+    currency_code: 'USD',
+    exchange_rate: null,
+  });
+});
+
 test('小さい画面でも固定費登録ボタンまでスクロールできる', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 480 });
   await mockApi(page, () => {});

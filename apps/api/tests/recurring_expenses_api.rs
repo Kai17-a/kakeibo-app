@@ -2,9 +2,13 @@ use axum::{
     body::{Body, to_bytes},
     http::{Request, StatusCode},
 };
-use kakeibo_app::router::recurring_expenses;
+use kakeibo_app::{
+    router::recurring_expenses,
+    service::exchange_rate::{ExchangeRateError, ExchangeRateProvider, RateQuote},
+};
 use serde_json::{Value, json};
 use sqlx::sqlite::SqlitePoolOptions;
+use std::{future::Future, pin::Pin, sync::Arc};
 use tower::ServiceExt;
 async fn call(
     app: &axum::Router,
@@ -66,6 +70,27 @@ async fn recurring_expense_supports_foreign_currency() {
 }
 
 #[tokio::test]
+async fn recurring_expense_rejects_non_usd_currency() {
+    let p = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect("sqlite::memory:")
+        .await
+        .unwrap();
+    sqlx::query("CREATE TABLE expense_categories(id TEXT PRIMARY KEY);CREATE TABLE payment_methods(id TEXT PRIMARY KEY);CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY DEFAULT 're-1',created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,amount TEXT NOT NULL,payment_day INTEGER NOT NULL,start_date TEXT NOT NULL,end_date TEXT,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),is_active INTEGER NOT NULL,is_variable INTEGER NOT NULL DEFAULT 0,description TEXT,foreign_amount TEXT,currency_code TEXT,exchange_rate TEXT);CREATE TABLE expenses(id TEXT PRIMARY KEY,updated_at TEXT NOT NULL DEFAULT current_timestamp,transaction_date TEXT NOT NULL,amount TEXT NOT NULL,category_id TEXT NOT NULL,payment_method_id TEXT NOT NULL,recurring_expense_id TEXT,description TEXT);INSERT INTO expense_categories VALUES('ec');INSERT INTO payment_methods VALUES('pm')")
+        .execute(&p)
+        .await
+        .unwrap();
+    let app = recurring_expenses::create(p);
+    let v = json!({"name":"Cloud","amount":"1000","payment_day":1,"start_date":"2026-01-01","category_id":"ec","payment_method_id":"pm","is_active":true,"is_variable":false,"foreign_amount":"10","currency_code":"EUR"});
+    assert_eq!(
+        call(&app, "POST", "/api/recurring-expenses", Some(v))
+            .await
+            .0,
+        StatusCode::BAD_REQUEST
+    );
+}
+
+#[tokio::test]
 async fn update_can_sync_generated_transactions_from_current_month() {
     let p = SqlitePoolOptions::new()
         .max_connections(1)
@@ -101,5 +126,148 @@ async fn update_can_sync_generated_transactions_from_current_month() {
             ("future".into(), "90000".into()),
             ("past".into(), "80000".into())
         ]
+    );
+}
+
+struct FixedRateProvider;
+impl ExchangeRateProvider for FixedRateProvider {
+    fn fetch<'a>(
+        &'a self,
+        _date: &'a str,
+    ) -> Pin<Box<dyn Future<Output = Result<Option<RateQuote>, ExchangeRateError>> + Send + 'a>>
+    {
+        Box::pin(async {
+            Ok(Some(RateQuote {
+                rate: 150.5,
+                effective_date: "2026-08-31".into(),
+            }))
+        })
+    }
+}
+
+struct FailingRateProvider;
+impl ExchangeRateProvider for FailingRateProvider {
+    fn fetch<'a>(
+        &'a self,
+        _date: &'a str,
+    ) -> Pin<Box<dyn Future<Output = Result<Option<RateQuote>, ExchangeRateError>> + Send + 'a>>
+    {
+        Box::pin(async { Err(ExchangeRateError::Provider("provider unavailable".into())) })
+    }
+}
+
+async fn preview_pool() -> sqlx::SqlitePool {
+    let pool = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect("sqlite::memory:")
+        .await
+        .unwrap();
+    sqlx::query(
+        "CREATE TABLE expense_categories(id TEXT PRIMARY KEY); \
+         CREATE TABLE payment_methods(id TEXT PRIMARY KEY); \
+         CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY,created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,amount TEXT NOT NULL,payment_day INTEGER NOT NULL,start_date TEXT NOT NULL,end_date TEXT,category_id TEXT NOT NULL,payment_method_id TEXT NOT NULL,is_active INTEGER NOT NULL,is_variable INTEGER NOT NULL,description TEXT,foreign_amount TEXT,currency_code TEXT,exchange_rate TEXT); \
+         CREATE TABLE exchange_rates(target_date TEXT NOT NULL,base_currency TEXT NOT NULL,quote_currency TEXT NOT NULL,rate TEXT NOT NULL,effective_date TEXT NOT NULL,source TEXT NOT NULL,fetched_at TEXT NOT NULL DEFAULT current_timestamp,PRIMARY KEY(target_date,base_currency,quote_currency)); \
+         INSERT INTO expense_categories VALUES('ec'); INSERT INTO payment_methods VALUES('pm')",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    pool
+}
+
+async fn insert_usd_recurring(pool: &sqlx::SqlitePool) {
+    sqlx::query("INSERT INTO recurring_expenses(id,name,amount,payment_day,start_date,category_id,payment_method_id,is_active,is_variable,foreign_amount,currency_code) VALUES('usd','Cloud','0',1,'2026-01-01','ec','pm',1,0,'10','USD')")
+        .execute(pool)
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn exchange_rate_preview_returns_converted_amount() {
+    let pool = preview_pool().await;
+    insert_usd_recurring(&pool).await;
+    let app =
+        recurring_expenses::create_with_exchange_rate_provider(pool, Arc::new(FixedRateProvider));
+
+    let (status, body) = call(
+        &app,
+        "GET",
+        "/api/recurring-expenses/usd/exchange-rate?month=2026-09",
+        None,
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::OK, "{body:?}");
+    let body = body.unwrap();
+    assert_eq!(body["foreign_amount"], "10");
+    assert_eq!(body["currency_code"], "USD");
+    assert_eq!(body["exchange_rate"], "150.5");
+    assert_eq!(body["exchange_rate_date"], "2026-08-31");
+    assert_eq!(body["converted_amount"], "1505");
+}
+
+#[tokio::test]
+async fn exchange_rate_preview_validates_resource_and_month() {
+    let pool = preview_pool().await;
+    insert_usd_recurring(&pool).await;
+    sqlx::query("INSERT INTO recurring_expenses(id,name,amount,payment_day,start_date,category_id,payment_method_id,is_active,is_variable) VALUES('jpy','100','1000',1,'2026-01-01','ec','pm',1,0)")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let app =
+        recurring_expenses::create_with_exchange_rate_provider(pool, Arc::new(FixedRateProvider));
+
+    assert_eq!(
+        call(
+            &app,
+            "GET",
+            "/api/recurring-expenses/missing/exchange-rate?month=2026-09",
+            None
+        )
+        .await
+        .0,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        call(
+            &app,
+            "GET",
+            "/api/recurring-expenses/jpy/exchange-rate?month=2026-09",
+            None
+        )
+        .await
+        .0,
+        StatusCode::BAD_REQUEST
+    );
+    assert_eq!(
+        call(
+            &app,
+            "GET",
+            "/api/recurring-expenses/usd/exchange-rate?month=2026-9",
+            None
+        )
+        .await
+        .0,
+        StatusCode::BAD_REQUEST
+    );
+}
+
+#[tokio::test]
+async fn exchange_rate_preview_returns_unprocessable_entity_on_provider_failure() {
+    let pool = preview_pool().await;
+    insert_usd_recurring(&pool).await;
+    let app =
+        recurring_expenses::create_with_exchange_rate_provider(pool, Arc::new(FailingRateProvider));
+
+    assert_eq!(
+        call(
+            &app,
+            "GET",
+            "/api/recurring-expenses/usd/exchange-rate?month=2026-09",
+            None
+        )
+        .await
+        .0,
+        StatusCode::UNPROCESSABLE_ENTITY
     );
 }
