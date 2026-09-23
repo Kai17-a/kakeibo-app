@@ -6,6 +6,7 @@ export const settingsTabs = [
   'recurring',
   'recurring-income',
   'webhook',
+  'data',
 ] as const;
 export type SettingsTab = (typeof settingsTabs)[number];
 

@@ -4,6 +4,7 @@ import { parseSettingsTab, settingsUrl } from './settings-route';
 describe('settings route', () => {
   it('uses the requested tab and defaults invalid values', () => {
     expect(parseSettingsTab(new URL('https://example.test/settings?tab=budget'))).toBe('budget');
+    expect(parseSettingsTab(new URL('https://example.test/settings?tab=data'))).toBe('data');
     expect(parseSettingsTab(new URL('https://example.test/settings?tab=invalid'))).toBe('expense');
   });
 

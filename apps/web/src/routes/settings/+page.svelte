@@ -4,15 +4,15 @@
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
-  import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
   import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
   import CreditCardIcon from '@lucide/svelte/icons/credit-card';
-  import DatabaseIcon from '@lucide/svelte/icons/database';
+  import DownloadIcon from '@lucide/svelte/icons/download';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
   import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
   import RepeatIcon from '@lucide/svelte/icons/repeat';
   import TagsIcon from '@lucide/svelte/icons/tags';
+  import UploadIcon from '@lucide/svelte/icons/upload';
   import WebhookIcon from '@lucide/svelte/icons/webhook';
   import WalletCardsIcon from '@lucide/svelte/icons/wallet-cards';
   import { toast } from 'svelte-sonner';
@@ -33,6 +33,7 @@
   import RecurringExpenseForm from '$lib/features/forms/RecurringExpenseForm.svelte';
   import RecurringIncomeForm from '$lib/features/forms/RecurringIncomeForm.svelte';
   import WebhookUrlForm from '$lib/features/settings/WebhookUrlForm.svelte';
+  import CsvImport from '$lib/features/settings/CsvImport.svelte';
   import { api } from '$lib/api';
   import { formatYen } from '$lib/format';
   import {
@@ -634,6 +635,7 @@
         <Tabs.Trigger value="recurring">定期支出</Tabs.Trigger>
         <Tabs.Trigger value="recurring-income">定期収入</Tabs.Trigger>
         <Tabs.Trigger value="webhook">Webhook</Tabs.Trigger>
+        <Tabs.Trigger value="data">データ管理</Tabs.Trigger>
       </Tabs.List>
       <Tabs.Content value="expense">
         {@render categoryPanel('支出カテゴリ', expenseCategories)}
@@ -654,23 +656,64 @@
       <Tabs.Content value="webhook">
         {@render webhookPanel()}
       </Tabs.Content>
+      <Tabs.Content value="data">{@render dataPanel()}</Tabs.Content>
     </Tabs.Root>
-
-    <a
-      href={resolve('/settings/data')}
-      class="flex items-center gap-4 bg-card p-6 text-card-foreground shadow-sm ring-1 ring-foreground/5 transition-colors hover:bg-muted/50"
-    >
-      <DatabaseIcon class="size-5 shrink-0 text-muted-foreground" />
-      <span class="min-w-0 flex-1">
-        <span class="block font-semibold">データ管理</span>
-        <span class="block text-muted-foreground">
-          収支データのインポート・エクスポートはこちら
-        </span>
-      </span>
-      <ChevronRightIcon class="size-5 shrink-0 text-muted-foreground" />
-    </a>
   </main>
 </div>
+
+{#snippet dataPanel()}
+  <div class="flex flex-col gap-6">
+    <Card.Root>
+      <Card.Header>
+        <Card.Title class="flex items-center gap-2">
+          <DownloadIcon />データのエクスポート
+        </Card.Title>
+        <Card.Description>
+          登録済みの収支データをCSVファイル（UTF-8・BOM付き）としてダウンロードできます。
+        </Card.Description>
+      </Card.Header>
+      <Card.Content class="flex flex-col gap-3 sm:flex-row">
+        <Button variant="outline" href="/api/export/expenses">
+          <DownloadIcon data-icon="inline-start" />支出データ（CSV）
+        </Button>
+        <Button variant="outline" href="/api/export/incomes">
+          <DownloadIcon data-icon="inline-start" />収入データ（CSV）
+        </Button>
+      </Card.Content>
+    </Card.Root>
+
+    <Card.Root>
+      <Card.Header>
+        <Card.Title class="flex items-center gap-2">
+          <DownloadIcon />フルバックアップ
+        </Card.Title>
+        <Card.Description>
+          カテゴリや設定を含むすべてのデータをSQLiteデータベースとしてダウンロードできます。
+        </Card.Description>
+      </Card.Header>
+      <Card.Content>
+        <Button variant="outline" href="/api/backup">
+          <DownloadIcon data-icon="inline-start" />バックアップをダウンロード
+        </Button>
+      </Card.Content>
+    </Card.Root>
+
+    <Card.Root>
+      <Card.Header>
+        <Card.Title class="flex items-center gap-2">
+          <UploadIcon />データのインポート
+        </Card.Title>
+        <Card.Description>
+          ヘッダーは名前と順序を完全に一致させてください。日付はYYYY-MM-DD、金額は記号・桁区切り・小数なしの正の整数で指定します。カテゴリと支出の支払方法は必須です。メモは空欄にできますが、列は必要です。未登録のカテゴリや支払方法は自動的に追加されます。同じファイルを再度取り込むと重複して登録されるためご注意ください。
+        </Card.Description>
+      </Card.Header>
+      <Card.Content class="flex flex-col gap-4 sm:flex-row sm:gap-8">
+        <CsvImport kind="expense" />
+        <CsvImport kind="income" />
+      </Card.Content>
+    </Card.Root>
+  </div>
+{/snippet}
 
 {#snippet categoryPanel(title: string, categories: (ExpenseCategory | IncomeCategory)[])}
   <Card.Root>
