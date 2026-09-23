@@ -59,6 +59,7 @@ async function request<T>(path: string, options?: Options): Promise<T> {
 export const importSampleUrls = {
   expense: '/api/import/expenses/sample',
   income: '/api/import/incomes/sample',
+  'recurring-expense': '/api/import/recurring-expenses/sample',
 } as const;
 
 export const api = {
@@ -160,6 +161,12 @@ export const api = {
     }),
   importIncomes: (csv: string) =>
     request<ImportResult>('/api/import/incomes', {
+      method: 'post',
+      headers: { 'content-type': 'text/csv' },
+      body: csv,
+    }),
+  importRecurringExpenses: (csv: string) =>
+    request<ImportResult>('/api/import/recurring-expenses', {
       method: 'post',
       headers: { 'content-type': 'text/csv' },
       body: csv,

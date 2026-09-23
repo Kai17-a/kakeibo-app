@@ -54,6 +54,7 @@ async fn count(p: &sqlx::SqlitePool, sql: &'static str) -> i64 {
 }
 const EXPENSE_SCHEMA: &str = "CREATE TABLE expense_categories(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,parent_category_id TEXT REFERENCES expense_categories(id));CREATE TABLE payment_methods(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,initial_balance TEXT);CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY);CREATE TABLE expenses(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,transaction_date TEXT NOT NULL,amount TEXT NOT NULL,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),recurring_expense_id TEXT REFERENCES recurring_expenses(id),description TEXT,foreign_amount TEXT,currency_code TEXT,exchange_rate TEXT,exchange_rate_date TEXT);INSERT INTO expense_categories(name,description) VALUES('食費',NULL);INSERT INTO payment_methods(name,description) VALUES('現金',NULL)";
 const INCOME_SCHEMA: &str = "CREATE TABLE income_categories(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,parent_category_id TEXT REFERENCES income_categories(id));CREATE TABLE incomes(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,category_id TEXT NOT NULL REFERENCES income_categories(id),transaction_date TEXT NOT NULL,amount TEXT NOT NULL,payment_method_id TEXT,recurring_income_id TEXT,description TEXT);INSERT INTO income_categories(name,description) VALUES('給与',NULL)";
+const RECURRING_EXPENSE_SCHEMA: &str = "CREATE TABLE expense_categories(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,parent_category_id TEXT REFERENCES expense_categories(id),display_order INTEGER NOT NULL DEFAULT 0);CREATE TABLE payment_methods(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,initial_balance TEXT);CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,amount TEXT NOT NULL,payment_day INTEGER NOT NULL,start_date TEXT NOT NULL,end_date TEXT,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),is_active INTEGER NOT NULL,is_variable INTEGER NOT NULL DEFAULT 0,description TEXT,foreign_amount TEXT,currency_code TEXT,exchange_rate TEXT);INSERT INTO expense_categories(name,description) VALUES('住居費',NULL);INSERT INTO payment_methods(name,description) VALUES('口座振替',NULL)";
 
 #[tokio::test]
 async fn download_expense_import_sample() {
@@ -241,4 +242,73 @@ async fn import_rejects_wrong_headers() {
     let (s, b) = call(&app, "/api/import/expenses", "").await;
     assert_eq!(s, StatusCode::BAD_REQUEST, "{b}");
     assert!(b["message"].as_str().unwrap().contains("空です"), "{b}");
+}
+
+#[tokio::test]
+async fn import_recurring_expenses_supports_yen_and_creates_names() {
+    let p = pool(RECURRING_EXPENSE_SCHEMA).await;
+    let app = import::create(p.clone());
+    let csv = "名称,金額,通貨,外貨金額,支払日,開始日,終了日,カテゴリ,支払方法,金額変動,備考\n家賃,61100,,,1,2026-01-01,,新カテゴリ,新支払方法,,備考\n";
+    let (status, body) = call(&app, "/api/import/recurring-expenses", csv).await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+    assert_eq!(body["imported"], 1);
+    assert_eq!(body["created_categories"], json!(["新カテゴリ"]));
+    assert_eq!(body["created_payment_methods"], json!(["新支払方法"]));
+    let row: (String, i64, bool, bool, Option<String>) = sqlx::query_as(
+        "SELECT amount, payment_day, is_active, is_variable, description FROM recurring_expenses",
+    )
+    .fetch_one(&p)
+    .await
+    .unwrap();
+    assert_eq!(
+        row,
+        ("61100".to_owned(), 1, true, false, Some("備考".to_owned()))
+    );
+}
+
+#[tokio::test]
+async fn import_recurring_expenses_supports_usd_and_variable_amount() {
+    let p = pool(RECURRING_EXPENSE_SCHEMA).await;
+    let app = import::create(p.clone());
+    let csv = "名称,金額,通貨,外貨金額,支払日,開始日,終了日,カテゴリ,支払方法,金額変動,備考\nクラウド,,usd,3.99,32,2026-01-01,,住居費,口座振替,true,\n";
+    let (status, body) = call(&app, "/api/import/recurring-expenses", csv).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST, "{body}");
+
+    let csv = "名称,金額,通貨,外貨金額,支払日,開始日,終了日,カテゴリ,支払方法,金額変動,備考\nクラウド,,usd,3.99,15,2026-01-01,,住居費,口座振替,true,\n";
+    let (status, body) = call(&app, "/api/import/recurring-expenses", csv).await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+    let row: (String, String, String, bool) = sqlx::query_as(
+        "SELECT amount, foreign_amount, currency_code, is_variable FROM recurring_expenses",
+    )
+    .fetch_one(&p)
+    .await
+    .unwrap();
+    assert_eq!(
+        row,
+        ("3.99".to_owned(), "3.99".to_owned(), "USD".to_owned(), true)
+    );
+}
+
+#[tokio::test]
+async fn import_recurring_expenses_rejects_invalid_currency_and_required_fields() {
+    let p = pool(RECURRING_EXPENSE_SCHEMA).await;
+    let app = import::create(p.clone());
+    let csv = "名称,金額,通貨,外貨金額,支払日,開始日,終了日,カテゴリ,支払方法,金額変動,備考\n家賃,61100,EUR,,15,2026-01-01,,住居費,口座振替,,\n";
+    let (status, body) = call(&app, "/api/import/recurring-expenses", csv).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST, "{body}");
+    let message = body["message"].as_str().unwrap();
+    assert!(message.contains("通貨"), "{message}");
+
+    let csv = "名称,金額,通貨,外貨金額,支払日,開始日,終了日,カテゴリ,支払方法,金額変動,備考\n,61100,,,15,2026-01-01,,,,false,\n";
+    let (status, body) = call(&app, "/api/import/recurring-expenses", csv).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST, "{body}");
+    let message = body["message"].as_str().unwrap();
+    assert!(
+        message.contains("名称") && message.contains("カテゴリ"),
+        "{message}"
+    );
+    assert_eq!(
+        count(&p, "SELECT COUNT(*) FROM recurring_expenses").await,
+        0
+    );
 }
