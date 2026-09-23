@@ -1,5 +1,8 @@
 use crate::{
-    model::{expenses::ExpenseUpsertRequest, incomes::IncomeUpsertRequest},
+    model::{
+        expenses::ExpenseUpsertRequest, incomes::IncomeUpsertRequest,
+        recurring_expenses::RecurringExpenseUpsertRequest,
+    },
     utils::error::AppResult,
 };
 use sqlx::{Row, Sqlite, SqlitePool, Transaction};
@@ -116,6 +119,29 @@ impl ImportRepository {
             .bind(&v.payment_method_id)
             .bind(&v.recurring_income_id)
             .bind(&v.description)
+            .fetch_one(&mut **tx)
+            .await?;
+        Ok(())
+    }
+    pub async fn insert_recurring_expense(
+        &self,
+        tx: &mut Transaction<'_, Sqlite>,
+        v: &RecurringExpenseUpsertRequest,
+    ) -> AppResult<()> {
+        sqlx::query(include_str!("../../queries/recurring_expenses/insert.sql"))
+            .bind(&v.name)
+            .bind(&v.amount)
+            .bind(v.payment_day)
+            .bind(&v.start_date)
+            .bind(&v.end_date)
+            .bind(&v.category_id)
+            .bind(&v.payment_method_id)
+            .bind(v.is_active)
+            .bind(v.is_variable)
+            .bind(&v.description)
+            .bind(&v.foreign_amount)
+            .bind(&v.currency_code)
+            .bind(&v.exchange_rate)
             .fetch_one(&mut **tx)
             .await?;
         Ok(())

@@ -704,12 +704,13 @@
           <UploadIcon />データのインポート
         </Card.Title>
         <Card.Description>
-          ヘッダーは名前と順序を完全に一致させてください。日付はYYYY-MM-DD、金額は記号・桁区切り・小数なしの正の整数で指定します。カテゴリと支出の支払方法は必須です。メモは空欄にできますが、列は必要です。未登録のカテゴリや支払方法は自動的に追加されます。同じファイルを再度取り込むと重複して登録されるためご注意ください。
+          ヘッダーは名前と順序を完全に一致させてください。日付はYYYY-MM-DD、金額は記号・桁区切り・小数なしの正の整数で指定します。カテゴリと支出の支払方法は必須です。固定費は通貨・外貨金額・支払日・開始日・終了日・金額変動も指定できます。メモは空欄にできますが、列は必要です。未登録のカテゴリや支払方法は自動的に追加されます。同じファイルを再度取り込むと重複して登録されるためご注意ください。
         </Card.Description>
       </Card.Header>
       <Card.Content class="flex flex-col gap-4 sm:flex-row sm:gap-8">
         <CsvImport kind="expense" />
         <CsvImport kind="income" />
+        <CsvImport kind="recurring-expense" />
       </Card.Content>
     </Card.Root>
   </div>

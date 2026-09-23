@@ -7,7 +7,7 @@
   import { cn } from '$lib/utils';
 
   interface Props {
-    kind: 'expense' | 'income';
+    kind: 'expense' | 'income' | 'recurring-expense';
     onimported?: () => void;
   }
   let { kind, onimported }: Props = $props();
@@ -15,7 +15,7 @@
   let importing = $state(false);
   let error = $state('');
 
-  const label = $derived(kind === 'expense' ? '支出' : '収入');
+  const label = $derived(kind === 'expense' ? '支出' : kind === 'income' ? '収入' : '固定費');
   const sampleUrl = $derived(importSampleUrls[kind]);
 
   async function importFile(event: Event) {
@@ -28,7 +28,11 @@
     try {
       const csv = await file.text();
       const result =
-        kind === 'expense' ? await api.importExpenses(csv) : await api.importIncomes(csv);
+        kind === 'expense'
+          ? await api.importExpenses(csv)
+          : kind === 'income'
+            ? await api.importIncomes(csv)
+            : await api.importRecurringExpenses(csv);
       toast.success(successMessage(result));
       onimported?.();
     } catch (caught) {

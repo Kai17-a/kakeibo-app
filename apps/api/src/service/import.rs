@@ -1,8 +1,9 @@
 use crate::{
     model::{
         expenses::ExpenseUpsertRequest,
-        import::{ExpenseCsvRow, ImportResult, IncomeCsvRow},
+        import::{ExpenseCsvRow, ImportResult, IncomeCsvRow, RecurringExpenseCsvRow},
         incomes::IncomeUpsertRequest,
+        recurring_expenses::RecurringExpenseUpsertRequest,
     },
     repository::import::ImportRepository,
     utils::error::{AppError, AppResult},
@@ -12,8 +13,34 @@ use serde::de::DeserializeOwned;
 const UTF8_BOM: &str = "\u{feff}";
 const EXPENSE_HEADERS: &[&str] = &["日付", "金額", "カテゴリ", "支払方法", "メモ"];
 const INCOME_HEADERS: &[&str] = &["日付", "金額", "カテゴリ", "メモ"];
+const RECURRING_EXPENSE_HEADERS: &[&str] = &[
+    "名称",
+    "金額",
+    "通貨",
+    "外貨金額",
+    "支払日",
+    "開始日",
+    "終了日",
+    "カテゴリ",
+    "支払方法",
+    "金額変動",
+    "備考",
+];
 const EXPENSE_SAMPLE_ROW: &[&str] = &["2026-01-15", "1200", "食費", "現金", "昼食"];
 const INCOME_SAMPLE_ROW: &[&str] = &["2026-01-15", "300000", "給与", "1月分"];
+const RECURRING_EXPENSE_SAMPLE_ROW: &[&str] = &[
+    "家賃",
+    "61100",
+    "",
+    "",
+    "1",
+    "2026-01-01",
+    "",
+    "住居費",
+    "口座振替",
+    "",
+    "",
+];
 const MAX_REPORTED_ERRORS: usize = 3;
 #[derive(Clone)]
 pub struct ImportService {
@@ -30,6 +57,10 @@ impl ImportService {
 
     pub fn income_sample_csv() -> String {
         sample_csv(INCOME_HEADERS, INCOME_SAMPLE_ROW)
+    }
+
+    pub fn recurring_expense_sample_csv() -> String {
+        sample_csv(RECURRING_EXPENSE_HEADERS, RECURRING_EXPENSE_SAMPLE_ROW)
     }
 
     pub async fn import_expenses(&self, csv_text: &str) -> AppResult<ImportResult> {
@@ -162,6 +193,165 @@ impl ImportService {
             created_payment_methods: Vec::new(),
         })
     }
+
+    pub async fn import_recurring_expenses(&self, csv_text: &str) -> AppResult<ImportResult> {
+        let rows = parse_csv::<RecurringExpenseCsvRow>(csv_text, RECURRING_EXPENSE_HEADERS)?;
+        validate_all(rows.iter().enumerate().map(|(index, row)| {
+            let row_number = index + 2;
+            let mut errors = Vec::new();
+            validate_required(
+                row_number,
+                &[
+                    ("名称", &row.name),
+                    ("支払日", &row.payment_day),
+                    ("開始日", &row.start_date),
+                    ("カテゴリ", &row.category),
+                    ("支払方法", &row.payment_method),
+                ],
+                &mut errors,
+            );
+            if NaiveDate::parse_from_str(row.start_date.trim(), "%Y-%m-%d").is_err() {
+                errors.push(format!(
+                    "{row_number}行目: 開始日「{}」はYYYY-MM-DD形式で指定してください",
+                    row.start_date
+                ));
+            }
+            if !row.end_date.as_deref().unwrap_or("").trim().is_empty()
+                && NaiveDate::parse_from_str(row.end_date.as_deref().unwrap().trim(), "%Y-%m-%d")
+                    .is_err()
+            {
+                errors.push(format!(
+                    "{row_number}行目: 終了日「{}」はYYYY-MM-DD形式で指定してください",
+                    row.end_date.as_deref().unwrap_or("")
+                ));
+            }
+            let payment_day = row.payment_day.trim().parse::<i64>().ok();
+            if !payment_day.is_some_and(|day| (1..=31).contains(&day)) {
+                errors.push(format!(
+                    "{row_number}行目: 支払日「{}」は1〜31の整数で指定してください",
+                    row.payment_day
+                ));
+            }
+            let currency = row.currency.trim();
+            if currency.is_empty() {
+                if !is_positive_integer(&row.amount) {
+                    errors.push(format!(
+                        "{row_number}行目: 金額「{}」は1以上の整数で指定してください",
+                        row.amount
+                    ));
+                }
+                if !row.foreign_amount.trim().is_empty() {
+                    errors.push(format!(
+                        "{row_number}行目: 円建てでは外貨金額を空欄にしてください"
+                    ));
+                }
+            } else if currency.eq_ignore_ascii_case("USD") {
+                if !is_positive_number(&row.foreign_amount) {
+                    errors.push(format!(
+                        "{row_number}行目: 外貨金額「{}」は正の数値で指定してください",
+                        row.foreign_amount
+                    ));
+                }
+            } else {
+                errors.push(format!(
+                    "{row_number}行目: 通貨「{}」はUSDまたは空欄で指定してください",
+                    row.currency
+                ));
+            }
+            if !matches!(
+                row.is_variable.trim().to_ascii_lowercase().as_str(),
+                "" | "false" | "0" | "true" | "1"
+            ) {
+                errors.push(format!(
+                    "{row_number}行目: 金額変動「{}」はtrue/falseまたは1/0で指定してください",
+                    row.is_variable
+                ));
+            }
+            errors
+        }))?;
+
+        let mut tx = self.repository.begin().await?;
+        let mut created_categories = Vec::new();
+        let mut created_payment_methods = Vec::new();
+        for row in &rows {
+            let category = row.category.trim();
+            let category_id = match self
+                .repository
+                .find_expense_category_id(&mut tx, category)
+                .await?
+            {
+                Some(id) => id,
+                None => {
+                    let id = self
+                        .repository
+                        .create_expense_category(&mut tx, category)
+                        .await?;
+                    created_categories.push(category.to_owned());
+                    id
+                }
+            };
+            let payment_method = row.payment_method.trim();
+            let payment_method_id = match self
+                .repository
+                .find_payment_method_id(&mut tx, payment_method)
+                .await?
+            {
+                Some(id) => id,
+                None => {
+                    let id = self
+                        .repository
+                        .create_payment_method(&mut tx, payment_method)
+                        .await?;
+                    created_payment_methods.push(payment_method.to_owned());
+                    id
+                }
+            };
+            let currency = row.currency.trim();
+            let usd = currency.eq_ignore_ascii_case("USD");
+            self.repository
+                .insert_recurring_expense(
+                    &mut tx,
+                    &RecurringExpenseUpsertRequest {
+                        name: row.name.trim().to_owned(),
+                        amount: if usd {
+                            row.foreign_amount.trim()
+                        } else {
+                            row.amount.trim()
+                        }
+                        .to_owned(),
+                        payment_day: row
+                            .payment_day
+                            .trim()
+                            .parse()
+                            .expect("validated payment day"),
+                        start_date: row.start_date.trim().to_owned(),
+                        end_date: row
+                            .end_date
+                            .clone()
+                            .filter(|value| !value.trim().is_empty()),
+                        category_id,
+                        payment_method_id,
+                        is_active: true,
+                        is_variable: matches!(
+                            row.is_variable.trim().to_ascii_lowercase().as_str(),
+                            "true" | "1"
+                        ),
+                        description: row.description.clone(),
+                        foreign_amount: usd.then(|| row.foreign_amount.trim().to_owned()),
+                        currency_code: usd.then(|| "USD".to_owned()),
+                        exchange_rate: None,
+                        sync_future_transactions: false,
+                    },
+                )
+                .await?;
+        }
+        tx.commit().await?;
+        Ok(ImportResult {
+            imported: rows.len(),
+            created_categories,
+            created_payment_methods,
+        })
+    }
 }
 fn sample_csv(headers: &[&str], example_row: &[&str]) -> String {
     format!(
@@ -242,4 +432,23 @@ fn validate_row(
             errors.push(format!("{row}行目: {label}を指定してください"));
         }
     }
+}
+
+fn validate_required(row: usize, required: &[(&str, &String)], errors: &mut Vec<String>) {
+    for (label, value) in required {
+        if value.trim().is_empty() {
+            errors.push(format!("{row}行目: {label}を指定してください"));
+        }
+    }
+}
+
+fn is_positive_integer(value: &str) -> bool {
+    matches!(value.trim().parse::<u64>(), Ok(value) if value >= 1)
+}
+
+fn is_positive_number(value: &str) -> bool {
+    value
+        .trim()
+        .parse::<f64>()
+        .is_ok_and(|value| value.is_finite() && value > 0.0)
 }

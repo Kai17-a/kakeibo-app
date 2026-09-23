@@ -30,6 +30,17 @@ pub async fn incomes(
     ))
 }
 
+#[utoipa::path(post,path="/api/import/recurring-expenses",request_body(content=String,content_type="text/csv"),responses((status=201,body=ImportResult),(status=400)))]
+pub async fn recurring_expenses(
+    State(s): State<AppState>,
+    body: String,
+) -> AppResult<(StatusCode, Json<ImportResult>)> {
+    Ok((
+        StatusCode::CREATED,
+        Json(s.import.import_recurring_expenses(&body).await?),
+    ))
+}
+
 pub async fn expense_sample() -> impl IntoResponse {
     csv_response(
         "expense_import_sample.csv",
@@ -41,6 +52,13 @@ pub async fn income_sample() -> impl IntoResponse {
     csv_response(
         "income_import_sample.csv",
         ImportService::income_sample_csv(),
+    )
+}
+
+pub async fn recurring_expense_sample() -> impl IntoResponse {
+    csv_response(
+        "recurring_expense_import_sample.csv",
+        ImportService::recurring_expense_sample_csv(),
     )
 }
 

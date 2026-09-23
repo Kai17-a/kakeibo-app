@@ -59,6 +59,7 @@ use crate::{
         export::incomes,
         import::expenses,
         import::incomes,
+        import::recurring_expenses,
         payment_methods::list,
         payment_methods::get,
         payment_methods::create,
@@ -186,7 +187,9 @@ fn tag_for_path(path: &str) -> &'static str {
         "/api/expenses" | "/api/expenses/{id}" => "支出",
         "/api/expense-categories" | "/api/expense-categories/{id}" => "支出カテゴリ",
         "/api/export/expenses" | "/api/export/incomes" => "エクスポート",
-        "/api/import/expenses" | "/api/import/incomes" => "インポート",
+        "/api/import/expenses" | "/api/import/incomes" | "/api/import/recurring-expenses" => {
+            "インポート"
+        }
         "/api/payment-methods" | "/api/payment-methods/{id}" => "支払方法",
         "/api/recurring-expenses" | "/api/recurring-expenses/{id}" => "定期支出",
         "/api/recurring-incomes" | "/api/recurring-incomes/{id}" => "定期収入",
