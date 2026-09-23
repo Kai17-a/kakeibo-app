@@ -44,4 +44,12 @@ pub struct ExpenseUpsertRequest {
     pub payment_method_id: String,
     pub recurring_expense_id: Option<String>,
     pub description: Option<String>,
+    #[serde(default)]
+    pub foreign_amount: Option<String>,
+    #[serde(default)]
+    pub currency_code: Option<String>,
+    #[serde(default)]
+    pub exchange_rate: Option<String>,
+    #[serde(default)]
+    pub exchange_rate_date: Option<String>,
 }

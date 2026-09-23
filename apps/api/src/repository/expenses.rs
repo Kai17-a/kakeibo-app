@@ -115,7 +115,7 @@ impl ExpenseRepository {
             .map_err(Into::into)
     }
     pub async fn insert(&self, v: &ExpenseUpsertRequest) -> AppResult<ExpenseRow> {
-        bind(
+        bind_insert(
             sqlx::query_as(include_str!("../../queries/expenses/insert.sql")),
             v,
         )
@@ -128,7 +128,7 @@ impl ExpenseRepository {
         v: &ExpenseUpsertRequest,
     ) -> AppResult<ExpenseWriteResult> {
         let mut tx = self.pool.begin().await?;
-        let expense = bind(
+        let expense = bind_insert(
             sqlx::query_as(include_str!("../../queries/expenses/insert.sql")),
             v,
         )
@@ -167,7 +167,7 @@ impl ExpenseRepository {
         id: &str,
         v: &ExpenseUpsertRequest,
     ) -> AppResult<Option<ExpenseRow>> {
-        bind(
+        bind_update(
             sqlx::query_as(include_str!("../../queries/expenses/update.sql")),
             v,
         )
@@ -191,7 +191,7 @@ impl ExpenseRepository {
             tx.rollback().await?;
             return Ok(None);
         };
-        let expense = bind(
+        let expense = bind_update(
             sqlx::query_as(include_str!("../../queries/expenses/update.sql")),
             v,
         )
@@ -262,7 +262,23 @@ async fn budget_state(
     .fetch_optional(&mut **tx)
     .await
 }
-fn bind<'q>(
+fn bind_insert<'q>(
+    q: sqlx::query::QueryAs<'q, sqlx::Sqlite, ExpenseRow, sqlx::sqlite::SqliteArguments>,
+    v: &'q ExpenseUpsertRequest,
+) -> sqlx::query::QueryAs<'q, sqlx::Sqlite, ExpenseRow, sqlx::sqlite::SqliteArguments> {
+    q.bind(&v.transaction_date)
+        .bind(&v.amount)
+        .bind(&v.category_id)
+        .bind(&v.payment_method_id)
+        .bind(&v.recurring_expense_id)
+        .bind(&v.description)
+        .bind(&v.foreign_amount)
+        .bind(&v.currency_code)
+        .bind(&v.exchange_rate)
+        .bind(&v.exchange_rate_date)
+}
+
+fn bind_update<'q>(
     q: sqlx::query::QueryAs<'q, sqlx::Sqlite, ExpenseRow, sqlx::sqlite::SqliteArguments>,
     v: &'q ExpenseUpsertRequest,
 ) -> sqlx::query::QueryAs<'q, sqlx::Sqlite, ExpenseRow, sqlx::sqlite::SqliteArguments> {

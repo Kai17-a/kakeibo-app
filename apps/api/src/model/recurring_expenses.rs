@@ -1,6 +1,15 @@
 use crate::database::models::recurring_expenses::RecurringExpenseRow;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct ExchangeRatePreview {
+    pub foreign_amount: String,
+    pub currency_code: String,
+    pub exchange_rate: String,
+    pub exchange_rate_date: String,
+    pub converted_amount: String,
+}
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct RecurringExpense {
     pub id: String,

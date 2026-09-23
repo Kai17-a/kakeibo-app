@@ -61,6 +61,10 @@ fn expense(date: &str, amount: &str, category: &str) -> ExpenseUpsertRequest {
         payment_method_id: "pm".into(),
         recurring_expense_id: None,
         description: None,
+        foreign_amount: None,
+        currency_code: None,
+        exchange_rate: None,
+        exchange_rate_date: None,
     }
 }
 
@@ -158,6 +162,55 @@ async fn create_rejects_amount_above_i64_max() {
     let (s, _) = call(&app, "POST", "/api/expenses", Some(v)).await;
 
     assert_eq!(s, StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn create_persists_foreign_currency_fields() {
+    let p = setup_pool().await;
+    let app = expenses::create_with_exchange_rate_provider(p, Arc::new(FixedRateProvider));
+    let v = json!({
+        "transaction_date":"2026-07-22", "amount":"1505", "category_id":"ec",
+        "payment_method_id":"pm", "foreign_amount":"10", "currency_code":"USD",
+        "exchange_rate":"150.5", "exchange_rate_date":"2026-08-31"
+    });
+
+    let (status, body) = call(&app, "POST", "/api/expenses", Some(v)).await;
+
+    assert_eq!(status, StatusCode::CREATED, "{body:?}");
+    let body = body.unwrap();
+    assert_eq!(body["amount"], "1505");
+    assert_eq!(body["foreign_amount"], "10");
+    assert_eq!(body["currency_code"], "USD");
+    assert_eq!(body["exchange_rate"], "150.5");
+    assert_eq!(body["exchange_rate_date"], "2026-08-31");
+}
+
+#[tokio::test]
+async fn create_rejects_invalid_foreign_currency_fields() {
+    let cases = [
+        json!({"currency_code":"EUR", "foreign_amount":"10", "exchange_rate":"150", "exchange_rate_date":"2026-08-31"}),
+        json!({"currency_code":"USD", "foreign_amount":"10"}),
+        json!({"currency_code":"USD", "foreign_amount":"0", "exchange_rate":"150", "exchange_rate_date":"2026-08-31"}),
+        json!({"currency_code":"USD", "foreign_amount":"10", "exchange_rate":"NaN", "exchange_rate_date":"2026-08-31"}),
+        json!({"currency_code":"USD", "foreign_amount":"10", "exchange_rate":"150", "exchange_rate_date":""}),
+    ];
+    for foreign_fields in cases {
+        let p = setup_pool().await;
+        let app = expenses::create(p);
+        let mut v = json!({"transaction_date":"2026-07-22", "amount":"1505", "category_id":"ec", "payment_method_id":"pm"});
+        v.as_object_mut().unwrap().extend(
+            foreign_fields
+                .as_object()
+                .unwrap()
+                .iter()
+                .map(|(key, value)| (key.clone(), value.clone())),
+        );
+
+        assert_eq!(
+            call(&app, "POST", "/api/expenses", Some(v)).await.0,
+            StatusCode::BAD_REQUEST
+        );
+    }
 }
 #[tokio::test]
 async fn list_posts_recurring_expenses_for_current_month() {
@@ -416,4 +469,20 @@ async fn list_skips_usd_recurring_expenses_with_invalid_foreign_amounts() {
         .await
         .unwrap();
     assert_eq!(count.0, 0);
+}
+
+#[tokio::test]
+async fn create_normalizes_lowercase_currency_code() {
+    let p = setup_pool().await;
+    let app = expenses::create_with_exchange_rate_provider(p, Arc::new(FixedRateProvider));
+    let v = json!({
+        "transaction_date":"2026-07-22", "amount":"1505", "category_id":"ec",
+        "payment_method_id":"pm", "foreign_amount":"10", "currency_code":"usd",
+        "exchange_rate":"150.5", "exchange_rate_date":"2026-08-31"
+    });
+
+    let (status, body) = call(&app, "POST", "/api/expenses", Some(v)).await;
+
+    assert_eq!(status, StatusCode::CREATED, "{body:?}");
+    assert_eq!(body.unwrap()["currency_code"], "USD");
 }

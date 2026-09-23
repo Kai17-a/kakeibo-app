@@ -4,7 +4,7 @@ INSERT INTO expenses (
 )
 VALUES (
   ?, ?, ?, ?
-  , ?, ?, NULL, NULL, NULL, NULL
+  , ?, ?, ?, ?, ?, ?
 )
 RETURNING
   id, created_at, updated_at, transaction_date, amount, category_id

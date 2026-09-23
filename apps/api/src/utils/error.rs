@@ -36,6 +36,13 @@ impl AppError {
             status: StatusCode::NOT_FOUND,
         }
     }
+
+    pub fn unprocessable_entity(message: &str) -> Self {
+        Self {
+            message: message.to_owned(),
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+        }
+    }
 }
 
 impl From<sqlx::Error> for AppError {

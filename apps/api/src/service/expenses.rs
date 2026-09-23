@@ -96,7 +96,8 @@ impl ExpenseService {
         v: &ExpenseUpsertRequest,
     ) -> AppResult<(Expense, Option<BudgetCrossing>)> {
         validate(v)?;
-        let result = self.repository.insert_with_budget_check(v).await?;
+        let v = normalized(v);
+        let result = self.repository.insert_with_budget_check(&v).await?;
         Ok((result.expense.into(), result.budget_crossing))
     }
     pub async fn update(
@@ -105,8 +106,9 @@ impl ExpenseService {
         v: &ExpenseUpsertRequest,
     ) -> AppResult<(Expense, Option<BudgetCrossing>)> {
         validate(v)?;
+        let v = normalized(v);
         self.repository
-            .update_with_budget_check(id, v)
+            .update_with_budget_check(id, &v)
             .await?
             .map(|result| (result.expense.into(), result.budget_crossing))
             .ok_or_else(|| AppError::not_found("expense", id))
@@ -133,6 +135,59 @@ fn validate(v: &ExpenseUpsertRequest) -> AppResult<()> {
     } else if v.amount.parse::<i64>().is_err() {
         Err(AppError::bad_request("amount must be within i64 range"))
     } else {
-        Ok(())
+        validate_foreign_currency(v)
     }
+}
+
+fn validate_foreign_currency(v: &ExpenseUpsertRequest) -> AppResult<()> {
+    let has_foreign_fields = v.foreign_amount.is_some()
+        || v.currency_code.is_some()
+        || v.exchange_rate.is_some()
+        || v.exchange_rate_date.is_some();
+    if !has_foreign_fields {
+        return Ok(());
+    }
+
+    if !v
+        .currency_code
+        .as_deref()
+        .is_some_and(|code| code.eq_ignore_ascii_case("USD"))
+    {
+        return Err(AppError::bad_request("currency_code must be USD"));
+    }
+    let foreign_amount = v.foreign_amount.as_deref().ok_or_else(|| {
+        AppError::bad_request("foreign_amount is required when currency_code is USD")
+    })?;
+    let exchange_rate = v.exchange_rate.as_deref().ok_or_else(|| {
+        AppError::bad_request("exchange_rate is required when currency_code is USD")
+    })?;
+    let exchange_rate_date = v.exchange_rate_date.as_deref().ok_or_else(|| {
+        AppError::bad_request("exchange_rate_date is required when currency_code is USD")
+    })?;
+    if !foreign_amount
+        .parse::<f64>()
+        .is_ok_and(|value| value.is_finite() && value > 0.0)
+        || !exchange_rate
+            .parse::<f64>()
+            .is_ok_and(|value| value.is_finite() && value > 0.0)
+    {
+        return Err(AppError::bad_request(
+            "foreign_amount and exchange_rate must be positive numbers",
+        ));
+    }
+    if exchange_rate_date.trim().is_empty() {
+        return Err(AppError::bad_request(
+            "exchange_rate_date must not be empty",
+        ));
+    }
+    Ok(())
+}
+
+fn normalized(v: &ExpenseUpsertRequest) -> ExpenseUpsertRequest {
+    let mut normalized = v.clone();
+    normalized.currency_code = v
+        .currency_code
+        .as_ref()
+        .map(|code| code.trim().to_ascii_uppercase());
+    normalized
 }
