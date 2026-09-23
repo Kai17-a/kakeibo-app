@@ -72,6 +72,7 @@
   const projectedIncomeTotal = $derived(incomeTotal + forecast.income);
   const balance = $derived(projectedIncomeTotal - projectedExpenseTotal);
   const transactions = $derived(mergeTransactions(expenses, incomes));
+  const recentTransactions = $derived(transactions.slice(0, 15));
   const fixedRecurring = $derived(
     recurringExpenses.filter((item) => item.is_active && !item.is_variable),
   );
@@ -151,8 +152,10 @@
       <Card.Action><Badge variant="outline">{transactions.length} 件</Badge></Card.Action>
     </Card.Header>
     <Card.Content class="px-0">
-      {#if transactions.length}<ul class="divide-y">
-          {#each transactions as item (item.id)}<li class="group flex items-center gap-3 px-5 py-4">
+      {#if recentTransactions.length}<ul class="divide-y">
+          {#each recentTransactions as item (item.id)}<li
+              class="group flex items-center gap-3 px-5 py-4"
+            >
               <span
                 class={[
                   'grid size-10 place-items-center rounded-xl',
