@@ -38,3 +38,16 @@ export interface BudgetInput {
   category_id: string
   amount: string
 }
+
+export interface RecurringIncomeInput {
+  name: string
+  amount: string
+  payment_day: number
+  start_date: string
+  end_date: string | null
+  category_id: string
+  is_active: boolean
+  is_variable: boolean
+  description: string | null
+}
+export interface RecurringIncome extends BaseResource, RecurringIncomeInput {}

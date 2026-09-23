@@ -43,6 +43,15 @@ test('settings API uses the correct endpoints, queries and mutation payloads wit
     assert.deepEqual(calls.at(-1), { path: '/api/payment-methods', options: { query: { sort_by: 'name', sort_order: 'asc', per_page: 100 } } })
     assert.equal(await api.budgets.list(), response)
     assert.deepEqual(calls.at(-1), { path: '/api/budgets', options: {} })
+    assert.equal(await api.recurringIncomes.list(), response)
+    assert.deepEqual(calls.at(-1), { path: '/api/recurring-incomes', options: {} })
+    const recurringInput = { name: '給与', amount: '300000', payment_day: 25, start_date: '2026-09-01', end_date: null, category_id: 'salary', is_active: false, is_variable: true, description: null }
+    await api.recurringIncomes.create(recurringInput)
+    assert.deepEqual(calls.at(-1), { path: '/api/recurring-incomes', options: { method: 'POST', body: recurringInput } })
+    await api.recurringIncomes.update('a/b', recurringInput)
+    assert.deepEqual(calls.at(-1), { path: '/api/recurring-incomes/a%2Fb', options: { method: 'PUT', body: recurringInput } })
+    await api.recurringIncomes.remove('a/b')
+    assert.deepEqual(calls.at(-1), { path: '/api/recurring-incomes/a%2Fb', options: { method: 'DELETE' } })
     for (const [resource, path, input] of [
       [api.paymentMethods, '/api/payment-methods', { name: '現金', description: null, initial_balance: '0' }],
       [api.budgets, '/api/budgets', { category_id: 'a', amount: '1000' }]

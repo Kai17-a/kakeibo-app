@@ -1,4 +1,4 @@
-import type { Budget, BudgetInput, Category, CategoryInput, CategoryKind, CategoryReorderInput, PaymentMethod, PaymentMethodInput } from '~/types/settings'
+import type { Budget, BudgetInput, Category, CategoryInput, CategoryKind, CategoryReorderInput, PaymentMethod, PaymentMethodInput, RecurringIncome, RecurringIncomeInput } from '~/types/settings'
 
 export function useSettingsApi() {
   const client = $fetch.create({ retry: 0, timeout: 15000 })
@@ -25,6 +25,10 @@ export function useSettingsApi() {
     paymentMethods: {
       ...resource<PaymentMethod, PaymentMethodInput>('/api/payment-methods'),
       list: async () => (await client<{ items: PaymentMethod[] }>('/api/payment-methods', { query: { sort_by: 'name', sort_order: 'asc', per_page: 100 } })).items
+    },
+    recurringIncomes: {
+      ...resource<RecurringIncome, RecurringIncomeInput>('/api/recurring-incomes'),
+      list: () => client<RecurringIncome[]>('/api/recurring-incomes')
     },
     budgets: {
       ...resource<Budget, BudgetInput>('/api/budgets'),
