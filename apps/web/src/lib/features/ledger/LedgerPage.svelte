@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { SvelteMap } from 'svelte/reactivity';
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
@@ -52,6 +53,7 @@
   let editingIncome = $state<Income | null>(null);
   let transactionPreset = $state<RecurringExpense | null>(null);
   let exchangePreview = $state<ExchangeRatePreview | null>(null);
+  let usdRecurringPreviews = $state(new SvelteMap<string, ExchangeRatePreview>());
   let incomeTransactionPreset = $state<RecurringIncome | null>(null);
   let recurringFormOpen = $state(false);
   let recurringIncomeFormOpen = $state(false);
@@ -77,6 +79,31 @@
       .sort()
       .reverse(),
   );
+
+  $effect(() => {
+    const month = selectedMonth;
+    const targets = recurringExpenses.filter(
+      (item) => item.is_active && !item.is_variable && item.currency_code === 'USD',
+    );
+    let cancelled = false;
+    usdRecurringPreviews = new SvelteMap();
+
+    void Promise.allSettled(
+      targets.map(
+        async (item) =>
+          [item.id, await api.previewRecurringExpenseExchangeRate(item.id, month)] as const,
+      ),
+    ).then((results) => {
+      if (cancelled) return;
+      usdRecurringPreviews = new SvelteMap(
+        results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : [])),
+      );
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  });
 
   onMount(loadAll);
 
@@ -422,6 +449,7 @@
         {paymentMethods}
         {recurringExpenses}
         {recurringIncomes}
+        {usdRecurringPreviews}
         onregistervariable={registerVariableRecurring}
         onregistervariableincome={registerVariableRecurringIncome}
       />{/if}

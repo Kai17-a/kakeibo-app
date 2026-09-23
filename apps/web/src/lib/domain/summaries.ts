@@ -22,6 +22,7 @@ export function recurringForecast(
   recurringExpenses: RecurringExpense[],
   recurringIncomes: RecurringIncome[],
   month: string,
+  usdRecurringPreviews: Map<string, { converted_amount: string }> = new Map(),
 ) {
   const postedExpenseIds = new Set(
     inPeriod(expenses, month).flatMap((item) =>
@@ -48,14 +49,22 @@ export function recurringForecast(
       !postedIncomeIds.has(item.id),
   );
   const expensesByCategory = new Map<string, number>();
+  let projectedExpenseTotal = 0;
   for (const item of projectedExpenses) {
+    const amount =
+      item.currency_code === 'USD'
+        ? usdRecurringPreviews.get(item.id)?.converted_amount
+        : item.amount;
+    if (amount === undefined) continue;
+    const numericAmount = Number(amount);
+    projectedExpenseTotal += numericAmount;
     expensesByCategory.set(
       item.category_id,
-      (expensesByCategory.get(item.category_id) ?? 0) + Number(item.amount),
+      (expensesByCategory.get(item.category_id) ?? 0) + numericAmount,
     );
   }
   return {
-    expense: sumAmounts(projectedExpenses),
+    expense: projectedExpenseTotal,
     income: sumAmounts(projectedIncomes),
     expensesByCategory,
   };
