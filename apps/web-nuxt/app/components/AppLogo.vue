@@ -1,0 +1,23 @@
+<template>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 32 32"
+    aria-hidden="true"
+  >
+    <rect
+      width="32"
+      height="32"
+      rx="8"
+      class="fill-primary"
+    />
+    <text
+      x="16"
+      y="23"
+      font-family="Arial, Helvetica, sans-serif"
+      font-weight="900"
+      font-size="20"
+      text-anchor="middle"
+      class="fill-(--primary-foreground)"
+    >K</text>
+  </svg>
+</template>
