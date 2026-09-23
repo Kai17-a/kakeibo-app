@@ -10,6 +10,15 @@ pub struct ExchangeRatePreview {
     pub exchange_rate_date: String,
     pub converted_amount: String,
 }
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct PendingMonthsResponse {
+    pub months: Vec<String>,
+}
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct BackfillResponse {
+    pub created: Vec<String>,
+    pub skipped: Vec<String>,
+}
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct RecurringExpense {
     pub id: String,

@@ -30,7 +30,9 @@ use crate::{
         PaymentMethod, PaymentMethodListResponse, PaymentMethodPagination, PaymentMethodSortBy,
         PaymentMethodSortOrder, PaymentMethodUpsertRequest,
     },
-    model::recurring_expenses::{RecurringExpense, RecurringExpenseUpsertRequest},
+    model::recurring_expenses::{
+        BackfillResponse, PendingMonthsResponse, RecurringExpense, RecurringExpenseUpsertRequest,
+    },
     model::recurring_incomes::{RecurringIncome, RecurringIncomeUpsertRequest},
     model::webhook_urls::{WebhookEvent, WebhookUrl, WebhookUrlUpsertRequest},
 };
@@ -70,6 +72,8 @@ use crate::{
         recurring_expenses::create,
         recurring_expenses::update,
         recurring_expenses::delete,
+        recurring_expenses::pending_months,
+        recurring_expenses::backfill,
         recurring_incomes::list,
         recurring_incomes::get,
         recurring_incomes::create,
@@ -114,6 +118,8 @@ use crate::{
         PaymentMethodSortOrder,
         RecurringExpense,
         RecurringExpenseUpsertRequest,
+        PendingMonthsResponse,
+        BackfillResponse,
         RecurringIncome,
         RecurringIncomeUpsertRequest,
         IncomeCategory,
@@ -191,7 +197,11 @@ fn tag_for_path(path: &str) -> &'static str {
             "インポート"
         }
         "/api/payment-methods" | "/api/payment-methods/{id}" => "支払方法",
-        "/api/recurring-expenses" | "/api/recurring-expenses/{id}" => "定期支出",
+        "/api/recurring-expenses"
+        | "/api/recurring-expenses/{id}"
+        | "/api/recurring-expenses/{id}/exchange-rate"
+        | "/api/recurring-expenses/{id}/pending-months"
+        | "/api/recurring-expenses/{id}/backfill" => "定期支出",
         "/api/recurring-incomes" | "/api/recurring-incomes/{id}" => "定期収入",
         "/api/webhook-urls" | "/api/webhook-urls/{id}" => "Webhook",
         "/api/budgets" | "/api/budgets/{id}" => "予算",
@@ -204,7 +214,10 @@ fn operation_summary(method: &str, path: &str) -> &'static str {
         ("GET", false) if path == "/api/backup" => "DBをバックアップ",
         ("GET", false) if path == "/health" => "稼働状態を確認",
         ("GET", false) if path.starts_with("/api/export/") => "CSVをエクスポート",
+        ("GET", false) if path.ends_with("/pending-months") => "未計上月を取得",
         ("GET", false) => "一覧を取得",
+        ("GET", true) if path.ends_with("/pending-months") => "未計上月を取得",
+        ("POST", _) if path.ends_with("/backfill") => "過去分を計上",
         ("GET", true) => "詳細を取得",
         ("POST", _) if path.starts_with("/api/import/") => "CSVをインポート",
         ("POST", _) => "新規登録",

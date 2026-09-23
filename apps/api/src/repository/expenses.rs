@@ -62,6 +62,15 @@ impl ExpenseRepository {
         .await
         .map_err(Into::into)
     }
+    pub async fn find_recurring_expense_months(&self, id: &str) -> AppResult<Vec<String>> {
+        let rows: Vec<(String,)> = sqlx::query_as(include_str!(
+            "../../queries/expenses/find_recurring_expense_months.sql"
+        ))
+        .bind(id)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows.into_iter().map(|(month,)| month).collect())
+    }
     pub async fn insert_recurring(
         &self,
         month: &str,
