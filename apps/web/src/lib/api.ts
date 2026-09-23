@@ -9,6 +9,9 @@ import type {
   IncomeCategory,
   IncomeInput,
   ImportResult,
+  ExpenseImportPreview,
+  IncomeImportPreview,
+  RecurringExpenseImportPreview,
   ListResponse,
   PaymentMethod,
   PaymentMethodInput,
@@ -165,14 +168,32 @@ export const api = {
       headers: { 'content-type': 'text/csv' },
       body: csv,
     }),
+  previewImportExpenses: (csv: string) =>
+    request<ExpenseImportPreview>('/api/import/expenses/preview', {
+      method: 'post',
+      headers: { 'content-type': 'text/csv' },
+      body: csv,
+    }),
   importIncomes: (csv: string) =>
     request<ImportResult>('/api/import/incomes', {
       method: 'post',
       headers: { 'content-type': 'text/csv' },
       body: csv,
     }),
+  previewImportIncomes: (csv: string) =>
+    request<IncomeImportPreview>('/api/import/incomes/preview', {
+      method: 'post',
+      headers: { 'content-type': 'text/csv' },
+      body: csv,
+    }),
   importRecurringExpenses: (csv: string) =>
     request<ImportResult>('/api/import/recurring-expenses', {
+      method: 'post',
+      headers: { 'content-type': 'text/csv' },
+      body: csv,
+    }),
+  previewImportRecurringExpenses: (csv: string) =>
+    request<RecurringExpenseImportPreview>('/api/import/recurring-expenses/preview', {
       method: 'post',
       headers: { 'content-type': 'text/csv' },
       body: csv,

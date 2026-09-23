@@ -14,12 +14,24 @@ pub fn create(pool: SqlitePool) -> Router {
     };
     Router::new()
         .route("/api/import/expenses", post(handler::expenses))
+        .route(
+            "/api/import/expenses/preview",
+            post(handler::preview_expenses),
+        )
         .route("/api/import/expenses/sample", get(handler::expense_sample))
         .route("/api/import/incomes", post(handler::incomes))
+        .route(
+            "/api/import/incomes/preview",
+            post(handler::preview_incomes),
+        )
         .route("/api/import/incomes/sample", get(handler::income_sample))
         .route(
             "/api/import/recurring-expenses",
             post(handler::recurring_expenses),
+        )
+        .route(
+            "/api/import/recurring-expenses/preview",
+            post(handler::preview_recurring_expenses),
         )
         .route(
             "/api/import/recurring-expenses/sample",

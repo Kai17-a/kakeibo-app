@@ -16,7 +16,9 @@ use crate::{
     },
     model::expenses::{Expense, ExpenseUpsertRequest},
     model::health::Health,
-    model::import::ImportResult,
+    model::import::{
+        ExpenseImportPreview, ImportResult, IncomeImportPreview, RecurringExpenseImportPreview,
+    },
     model::income_categories::{
         IncomeCategory, IncomeCategoryListResponse, IncomeCategoryPagination,
         IncomeCategoryReorderRequest, IncomeCategorySortBy, IncomeCategorySortOrder,
@@ -60,8 +62,11 @@ use crate::{
         export::expenses,
         export::incomes,
         import::expenses,
+        import::preview_expenses,
         import::incomes,
+        import::preview_incomes,
         import::recurring_expenses,
+        import::preview_recurring_expenses,
         payment_methods::list,
         payment_methods::get,
         payment_methods::create,
@@ -110,6 +115,9 @@ use crate::{
         Expense,
         ExpenseUpsertRequest,
         ImportResult,
+        ExpenseImportPreview,
+        IncomeImportPreview,
+        RecurringExpenseImportPreview,
         PaymentMethod,
         PaymentMethodUpsertRequest,
         PaymentMethodListResponse,
@@ -193,9 +201,12 @@ fn tag_for_path(path: &str) -> &'static str {
         "/api/expenses" | "/api/expenses/{id}" => "支出",
         "/api/expense-categories" | "/api/expense-categories/{id}" => "支出カテゴリ",
         "/api/export/expenses" | "/api/export/incomes" => "エクスポート",
-        "/api/import/expenses" | "/api/import/incomes" | "/api/import/recurring-expenses" => {
-            "インポート"
-        }
+        "/api/import/expenses"
+        | "/api/import/expenses/preview"
+        | "/api/import/incomes"
+        | "/api/import/incomes/preview"
+        | "/api/import/recurring-expenses"
+        | "/api/import/recurring-expenses/preview" => "インポート",
         "/api/payment-methods" | "/api/payment-methods/{id}" => "支払方法",
         "/api/recurring-expenses"
         | "/api/recurring-expenses/{id}"
@@ -219,6 +230,7 @@ fn operation_summary(method: &str, path: &str) -> &'static str {
         ("GET", true) if path.ends_with("/pending-months") => "未計上月を取得",
         ("POST", _) if path.ends_with("/backfill") => "過去分を計上",
         ("GET", true) => "詳細を取得",
+        ("POST", _) if path.ends_with("/preview") => "CSVをプレビュー",
         ("POST", _) if path.starts_with("/api/import/") => "CSVをインポート",
         ("POST", _) => "新規登録",
         ("PUT", _) => "更新",
