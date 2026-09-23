@@ -1,6 +1,7 @@
 use crate::{
     model::recurring_expenses::{
-        ExchangeRatePreview, RecurringExpense, RecurringExpenseUpsertRequest,
+        BackfillResponse, ExchangeRatePreview, PendingMonthsResponse, RecurringExpense,
+        RecurringExpenseUpsertRequest,
     },
     service::recurring_expenses::RecurringExpenseService,
     utils::error::AppResult,
@@ -79,4 +80,20 @@ pub async fn exchange_rate_preview(
             .exchange_rate_preview(&id, &query.month)
             .await?,
     ))
+}
+
+#[utoipa::path(get,path="/api/recurring-expenses/{id}/pending-months",params(("id"=String,Path)),responses((status=200,body=PendingMonthsResponse),(status=404)))]
+pub async fn pending_months(
+    State(s): State<AppState>,
+    Path(id): Path<String>,
+) -> AppResult<Json<PendingMonthsResponse>> {
+    Ok(Json(s.recurring_expenses.pending_months(&id).await?))
+}
+
+#[utoipa::path(post,path="/api/recurring-expenses/{id}/backfill",params(("id"=String,Path)),responses((status=200,body=BackfillResponse),(status=400),(status=404)))]
+pub async fn backfill(
+    State(s): State<AppState>,
+    Path(id): Path<String>,
+) -> AppResult<Json<BackfillResponse>> {
+    Ok(Json(s.recurring_expenses.backfill(&id).await?))
 }

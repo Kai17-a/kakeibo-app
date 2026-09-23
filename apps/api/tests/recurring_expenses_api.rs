@@ -166,6 +166,7 @@ async fn preview_pool() -> sqlx::SqlitePool {
         "CREATE TABLE expense_categories(id TEXT PRIMARY KEY); \
          CREATE TABLE payment_methods(id TEXT PRIMARY KEY); \
          CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY,created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,amount TEXT NOT NULL,payment_day INTEGER NOT NULL,start_date TEXT NOT NULL,end_date TEXT,category_id TEXT NOT NULL,payment_method_id TEXT NOT NULL,is_active INTEGER NOT NULL,is_variable INTEGER NOT NULL,description TEXT,foreign_amount TEXT,currency_code TEXT,exchange_rate TEXT); \
+         CREATE TABLE expenses(id TEXT PRIMARY KEY,created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,transaction_date TEXT NOT NULL,amount TEXT NOT NULL,category_id TEXT NOT NULL,payment_method_id TEXT NOT NULL,recurring_expense_id TEXT,description TEXT,foreign_amount TEXT,currency_code TEXT,exchange_rate TEXT,exchange_rate_date TEXT); \
          CREATE TABLE exchange_rates(target_date TEXT NOT NULL,base_currency TEXT NOT NULL,quote_currency TEXT NOT NULL,rate TEXT NOT NULL,effective_date TEXT NOT NULL,source TEXT NOT NULL,fetched_at TEXT NOT NULL DEFAULT current_timestamp,PRIMARY KEY(target_date,base_currency,quote_currency)); \
          INSERT INTO expense_categories VALUES('ec'); INSERT INTO payment_methods VALUES('pm')",
     )
@@ -180,6 +181,110 @@ async fn insert_usd_recurring(pool: &sqlx::SqlitePool) {
         .execute(pool)
         .await
         .unwrap();
+}
+
+#[tokio::test]
+async fn pending_months_excludes_existing_months_and_backfill_is_idempotent() {
+    let pool = preview_pool().await;
+    sqlx::query("INSERT INTO recurring_expenses(id,name,amount,payment_day,start_date,category_id,payment_method_id,is_active,is_variable) VALUES('jpy','Rent','80000',31,'2026-01-15','ec','pm',1,0)")
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("INSERT INTO expenses(id,transaction_date,amount,category_id,payment_method_id,recurring_expense_id) VALUES('existing','2026-03-31','80000','ec','pm','jpy')")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let app = recurring_expenses::create_with_exchange_rate_provider(
+        pool.clone(),
+        Arc::new(FixedRateProvider),
+    );
+
+    let (status, body) = call(
+        &app,
+        "GET",
+        "/api/recurring-expenses/jpy/pending-months",
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{body:?}");
+    let months = body.unwrap()["months"].as_array().unwrap().clone();
+    assert!(!months.iter().any(|month| month == "2026-03"));
+    assert_eq!(months.first().unwrap(), "2026-01");
+    assert_eq!(months.last().unwrap(), "2026-08");
+
+    let (status, body) = call(&app, "POST", "/api/recurring-expenses/jpy/backfill", None).await;
+    assert_eq!(status, StatusCode::OK, "{body:?}");
+    assert_eq!(body.unwrap()["created"].as_array().unwrap().len(), 7);
+    let (status, body) = call(&app, "POST", "/api/recurring-expenses/jpy/backfill", None).await;
+    assert_eq!(status, StatusCode::OK, "{body:?}");
+    assert!(body.unwrap()["created"].as_array().unwrap().is_empty());
+    let (count,): (i64,) =
+        sqlx::query_as("SELECT count(*) FROM expenses WHERE recurring_expense_id = 'jpy'")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(count, 8);
+}
+
+#[tokio::test]
+async fn usd_backfill_uses_exchange_rate_and_variable_backfill_is_rejected() {
+    let pool = preview_pool().await;
+    sqlx::query("INSERT INTO recurring_expenses(id,name,amount,payment_day,start_date,category_id,payment_method_id,is_active,is_variable,foreign_amount,currency_code) VALUES('usd','Cloud','0',1,'2026-07-01','ec','pm',1,0,'10','USD'),('variable','Variable','0',1,'2026-01-01','ec','pm',1,1,NULL,NULL)")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let app = recurring_expenses::create_with_exchange_rate_provider(
+        pool.clone(),
+        Arc::new(FixedRateProvider),
+    );
+    let (status, body) = call(&app, "POST", "/api/recurring-expenses/usd/backfill", None).await;
+    assert_eq!(status, StatusCode::OK, "{body:?}");
+    assert_eq!(body.unwrap()["created"].as_array().unwrap().len(), 2);
+    let rows: Vec<(String, String, Option<String>)> = sqlx::query_as(
+        "SELECT strftime('%Y-%m', transaction_date), amount, exchange_rate FROM expenses WHERE recurring_expense_id = 'usd' ORDER BY transaction_date",
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        rows,
+        vec![
+            ("2026-07".into(), "1505".into(), Some("150.5".into())),
+            ("2026-08".into(), "1505".into(), Some("150.5".into()))
+        ]
+    );
+
+    assert_eq!(
+        call(
+            &app,
+            "POST",
+            "/api/recurring-expenses/variable/backfill",
+            None
+        )
+        .await
+        .0,
+        StatusCode::BAD_REQUEST
+    );
+}
+
+#[tokio::test]
+async fn usd_backfill_skips_months_when_exchange_rate_resolution_fails() {
+    let pool = preview_pool().await;
+    insert_usd_recurring(&pool).await;
+    let app = recurring_expenses::create_with_exchange_rate_provider(
+        pool.clone(),
+        Arc::new(FailingRateProvider),
+    );
+    let (status, body) = call(&app, "POST", "/api/recurring-expenses/usd/backfill", None).await;
+    assert_eq!(status, StatusCode::OK, "{body:?}");
+    let body = body.unwrap();
+    assert!(body["created"].as_array().unwrap().is_empty());
+    assert_eq!(body["skipped"].as_array().unwrap().len(), 8);
+    let (count,): (i64,) = sqlx::query_as("SELECT count(*) FROM expenses")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(count, 0);
 }
 
 #[tokio::test]

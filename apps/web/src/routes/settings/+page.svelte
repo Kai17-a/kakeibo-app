@@ -63,6 +63,7 @@
   let incomeCategories = $state.raw<IncomeCategory[]>([]);
   let paymentMethods = $state.raw<PaymentMethod[]>([]);
   let recurringExpenses = $state.raw<RecurringExpense[]>([]);
+  let pendingRecurringMonths = $state.raw<Record<string, string[]>>({});
   let recurringIncomes = $state.raw<RecurringIncome[]>([]);
   let webhookUrls = $state.raw<WebhookUrl[]>([]);
   let budgets = $state.raw<Budget[]>([]);
@@ -115,6 +116,12 @@
       incomeCategories = incomeData.items;
       paymentMethods = paymentData.items;
       recurringExpenses = recurringData;
+      const pendingEntries = await Promise.all(
+        recurringData.map(
+          async (item) => [item.id, (await api.previewPendingMonths(item.id)).months] as const,
+        ),
+      );
+      pendingRecurringMonths = Object.fromEntries(pendingEntries);
       recurringIncomes = recurringIncomeData;
       webhookUrls = webhookData;
       budgets = budgetData;
@@ -305,6 +312,27 @@
       error =
         '定期支出を削除できませんでした。登録済みの明細で使用されている場合は削除できません。';
     }
+  }
+
+  async function backfillRecurringExpense(item: RecurringExpense) {
+    try {
+      const result = await api.backfillRecurringExpense(item.id);
+      toast.success(
+        result.created.length > 0
+          ? `${result.created.length}か月分を計上しました。`
+          : '計上対象の月はありませんでした。',
+      );
+      await loadAll();
+    } catch (caught) {
+      error = message(caught, '過去分を計上できませんでした。');
+    }
+  }
+
+  function monthLabel(month: string) {
+    const [, year, monthNumber] = month.match(/^(\d{4})-(\d{2})$/) ?? [];
+    return year && monthNumber
+      ? `${year}年${Number(monthNumber)}月分を登録する`
+      : `${month}分を登録する`;
   }
 
   async function saveRecurringIncome(input: RecurringIncomeInput) {
@@ -1056,6 +1084,42 @@
                   </div>
                 </Table.Cell>
               </Table.Row>
+              {#if (pendingRecurringMonths[item.id]?.length ?? 0) > 0}
+                <Table.Row>
+                  <Table.Cell colspan={6} class="bg-muted/30 py-2">
+                    <div class="flex flex-wrap items-center gap-2 text-sm">
+                      <Badge variant="secondary">
+                        未計上 {pendingRecurringMonths[item.id].length}件
+                      </Badge>
+                      {#if item.is_variable}
+                        <details>
+                          <summary class="cursor-pointer text-muted-foreground">
+                            過去月を登録
+                          </summary>
+                          <div class="mt-2 flex flex-wrap gap-2">
+                            {#each pendingRecurringMonths[item.id] as month (month)}
+                              <a
+                                class="text-primary underline underline-offset-4"
+                                href={resolve(`/monthly?month=${month}`)}
+                              >
+                                {monthLabel(month)}
+                              </a>
+                            {/each}
+                          </div>
+                        </details>
+                      {:else}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onclick={() => backfillRecurringExpense(item)}
+                        >
+                          まとめて計上する
+                        </Button>
+                      {/if}
+                    </div>
+                  </Table.Cell>
+                </Table.Row>
+              {/if}
             {/each}
           </Table.Body>
         </Table.Root>

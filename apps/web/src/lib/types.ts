@@ -128,6 +128,13 @@ export interface ExchangeRatePreview {
   exchange_rate_date: string;
   converted_amount: string;
 }
+export interface PendingMonthsResponse {
+  months: string[];
+}
+export interface BackfillResponse {
+  created: string[];
+  skipped: string[];
+}
 export interface IncomeInput {
   transaction_date: string;
   amount: string;

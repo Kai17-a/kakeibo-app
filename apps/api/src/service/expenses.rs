@@ -1,4 +1,5 @@
 use crate::{
+    database::models::recurring_expenses::RecurringExpenseRow,
     model::expenses::{Expense, ExpenseUpsertRequest},
     repository::expenses::{BudgetCrossing, ExpenseRepository},
     service::exchange_rate::ExchangeRateService,
@@ -21,46 +22,7 @@ impl ExpenseService {
         // 同月分が既にある定期支出は何もしない（冪等）。
         let month = self.repository.current_month().await?;
         for recurring in self.repository.find_recurring_for_month(&month).await? {
-            let conversion = if recurring.currency_code.as_deref() == Some("USD") {
-                match self.exchange_rate.resolve(&month).await {
-                    Ok(quote) => match recurring
-                        .foreign_amount
-                        .as_deref()
-                        .unwrap_or_default()
-                        .parse::<f64>()
-                    {
-                        Ok(foreign)
-                            if foreign.is_finite()
-                                && foreign > 0.0
-                                && quote.rate.is_finite()
-                                && quote.rate > 0.0 =>
-                        {
-                            let converted = foreign * quote.rate;
-                            if converted.is_finite() && converted > 0.0 {
-                                Some((
-                                    converted.round().to_string(),
-                                    recurring.foreign_amount.clone().unwrap_or_default(),
-                                    quote.rate.to_string(),
-                                    quote.effective_date,
-                                ))
-                            } else {
-                                tracing::error!(recurring_expense_id = %recurring.id, "Skipping recurring expense because converted USD amount overflowed");
-                                None
-                            }
-                        }
-                        _ => {
-                            tracing::error!(recurring_expense_id = %recurring.id, "Skipping recurring expense with invalid USD amount");
-                            None
-                        }
-                    },
-                    Err(error) => {
-                        tracing::error!(recurring_expense_id = %recurring.id, %error, "Skipping recurring USD expense because exchange rate resolution failed");
-                        None
-                    }
-                }
-            } else {
-                None
-            };
+            let conversion = recurring_conversion(&self.exchange_rate, &month, &recurring).await;
             if recurring.currency_code.as_deref() == Some("USD") && conversion.is_none() {
                 continue;
             }
@@ -118,6 +80,52 @@ impl ExpenseService {
             Ok(())
         } else {
             Err(AppError::not_found("expense", id))
+        }
+    }
+}
+
+pub(crate) async fn recurring_conversion(
+    exchange_rate: &ExchangeRateService,
+    month: &str,
+    recurring: &RecurringExpenseRow,
+) -> Option<(String, String, String, String)> {
+    if recurring.currency_code.as_deref() != Some("USD") {
+        return None;
+    }
+    match exchange_rate.resolve(month).await {
+        Ok(quote) => match recurring
+            .foreign_amount
+            .as_deref()
+            .unwrap_or_default()
+            .parse::<f64>()
+        {
+            Ok(foreign)
+                if foreign.is_finite()
+                    && foreign > 0.0
+                    && quote.rate.is_finite()
+                    && quote.rate > 0.0 =>
+            {
+                let converted = foreign * quote.rate;
+                if converted.is_finite() && converted > 0.0 {
+                    Some((
+                        converted.round().to_string(),
+                        recurring.foreign_amount.clone().unwrap_or_default(),
+                        quote.rate.to_string(),
+                        quote.effective_date,
+                    ))
+                } else {
+                    tracing::error!(recurring_expense_id = %recurring.id, month, "Skipping recurring expense because converted USD amount overflowed");
+                    None
+                }
+            }
+            _ => {
+                tracing::error!(recurring_expense_id = %recurring.id, month, "Skipping recurring expense with invalid USD amount");
+                None
+            }
+        },
+        Err(error) => {
+            tracing::error!(recurring_expense_id = %recurring.id, month, %error, "Skipping recurring USD expense because exchange rate resolution failed");
+            None
         }
     }
 }

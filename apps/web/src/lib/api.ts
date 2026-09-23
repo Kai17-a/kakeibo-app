@@ -21,6 +21,8 @@ import type {
   Budget,
   BudgetInput,
   ExchangeRatePreview,
+  PendingMonthsResponse,
+  BackfillResponse,
 } from './types';
 
 export class ApiError extends Error {
@@ -121,6 +123,10 @@ export const api = {
     request<ExchangeRatePreview>(
       `/api/recurring-expenses/${id}/exchange-rate?month=${encodeURIComponent(month)}`,
     ),
+  previewPendingMonths: (id: string) =>
+    request<PendingMonthsResponse>(`/api/recurring-expenses/${id}/pending-months`),
+  backfillRecurringExpense: (id: string) =>
+    request<BackfillResponse>(`/api/recurring-expenses/${id}/backfill`, { method: 'post' }),
   recurringIncomes: () => request<RecurringIncome[]>('/api/recurring-incomes'),
   createExpense: (input: ExpenseInput) =>
     request<Expense>('/api/expenses', { method: 'post', json: input }),
