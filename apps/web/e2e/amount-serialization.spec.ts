@@ -63,7 +63,7 @@ test('支出金額を文字列としてAPIへ送信する', async ({ page }) => 
     if (path === '/api/expenses') requestBody = body as Record<string, unknown>;
   });
 
-  await page.goto('/');
+  await page.goto('/monthly');
   await page.getByRole('button', { name: '収支を登録' }).click();
   await expect(page.getByRole('tab', { name: '支出' })).toHaveAttribute('data-state', 'active');
   await page.getByLabel('金額').fill('3333');
@@ -80,7 +80,7 @@ test('収入タブから収入金額を文字列としてAPIへ送信する', as
     if (path === '/api/incomes') requestBody = body as Record<string, unknown>;
   });
 
-  await page.goto('/');
+  await page.goto('/monthly');
   await page.getByRole('button', { name: '収支を登録' }).click();
   await page.getByRole('tab', { name: '収入' }).click();
   await page.getByLabel('金額').fill('50000');
@@ -97,7 +97,7 @@ test('固定費金額を文字列としてAPIへ送信する', async ({ page }) 
     if (path === '/api/recurring-expenses') requestBody = body as Record<string, unknown>;
   });
 
-  await page.goto('/');
+  await page.goto('/monthly');
   await page.getByRole('button', { name: '固定費' }).click();
   await page.getByLabel('名称').fill('家賃');
   await page.getByLabel('金額', { exact: true }).fill('61100');
@@ -112,7 +112,7 @@ test('小さい画面でも固定費登録ボタンまでスクロールでき�
   await page.setViewportSize({ width: 375, height: 480 });
   await mockApi(page, () => {});
 
-  await page.goto('/');
+  await page.goto('/monthly');
   await page.getByRole('button', { name: '固定費' }).click();
 
   const submitButton = page.getByRole('button', { name: '固定費を登録' });
@@ -122,7 +122,7 @@ test('小さい画面でも固定費登録ボタンまでスクロールでき�
 
 test('テーマを切り替えて選択を保存する', async ({ page }) => {
   await mockApi(page, () => {});
-  await page.goto('/');
+  await page.goto('/monthly');
 
   const initiallyDark = await page
     .locator('html')

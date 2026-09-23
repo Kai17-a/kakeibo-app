@@ -18,7 +18,7 @@
 
 <header class="border-b bg-background/95">
   <div class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-10">
-    <a class="flex items-center gap-3" href={resolve('/')} aria-label="Kakeibo ホーム">
+    <a class="flex items-center gap-3" href={resolve('/monthly')} aria-label="Kakeibo ホーム">
       <span
         class="grid size-10 place-items-center rounded-lg bg-primary text-lg font-black text-primary-foreground"
       >
@@ -31,7 +31,7 @@
         <SunIcon class="dark:hidden" />
         <MoonIcon class="hidden dark:block" />
       </Button>
-      <Button variant="outline" size="icon" href="/settings" aria-label="設定">
+      <Button variant="outline" size="icon" href={resolve('/settings')} aria-label="設定">
         <SettingsIcon />
       </Button>
       {#if onRecurring && onTransaction}

@@ -20,3 +20,12 @@ export const currentDate = () => {
 };
 
 export const currentMonth = () => currentDate().slice(0, 7);
+
+export const shiftMonth = (month: string, delta: number) => {
+  const [year, monthNumber] = month.split('-').map(Number);
+  const totalMonths = year * 12 + monthNumber - 1 + delta;
+  const shiftedYear = Math.floor(totalMonths / 12);
+  const shiftedMonth = (((totalMonths % 12) + 12) % 12) + 1;
+
+  return `${String(shiftedYear).padStart(4, '0')}-${String(shiftedMonth).padStart(2, '0')}`;
+};
