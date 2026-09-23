@@ -51,3 +51,42 @@ export interface RecurringIncomeInput {
   description: string | null
 }
 export interface RecurringIncome extends BaseResource, RecurringIncomeInput {}
+
+export interface RecurringExpenseInput {
+  name: string
+  amount: string
+  payment_day: number
+  start_date: string
+  end_date: string | null
+  category_id: string
+  payment_method_id: string
+  is_active: boolean
+  is_variable: boolean
+  description: string | null
+  foreign_amount?: string | null
+  currency_code?: string | null
+  exchange_rate?: string | null
+  sync_future_transactions?: boolean
+}
+export interface RecurringExpense extends BaseResource {
+  name: string
+  amount: string
+  payment_day: number
+  start_date: string
+  end_date: string | null
+  category_id: string
+  payment_method_id: string
+  is_active: boolean
+  is_variable: boolean
+  description: string | null
+  foreign_amount: string | null
+  currency_code: string | null
+  exchange_rate: string | null
+}
+export interface PendingMonthsResponse {
+  months: string[]
+}
+export interface BackfillResponse {
+  created: string[]
+  skipped: string[]
+}

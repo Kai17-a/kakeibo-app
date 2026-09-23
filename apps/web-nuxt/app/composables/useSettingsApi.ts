@@ -1,4 +1,4 @@
-import type { Budget, BudgetInput, Category, CategoryInput, CategoryKind, CategoryReorderInput, PaymentMethod, PaymentMethodInput, RecurringIncome, RecurringIncomeInput } from '~/types/settings'
+import type { BackfillResponse, Budget, BudgetInput, Category, CategoryInput, CategoryKind, CategoryReorderInput, PaymentMethod, PaymentMethodInput, PendingMonthsResponse, RecurringExpense, RecurringExpenseInput, RecurringIncome, RecurringIncomeInput } from '~/types/settings'
 
 export function useSettingsApi() {
   const client = $fetch.create({ retry: 0, timeout: 15000 })
@@ -29,6 +29,14 @@ export function useSettingsApi() {
     recurringIncomes: {
       ...resource<RecurringIncome, RecurringIncomeInput>('/api/recurring-incomes'),
       list: () => client<RecurringIncome[]>('/api/recurring-incomes')
+    },
+    recurringExpenses: {
+      ...resource<RecurringExpense, RecurringExpenseInput>('/api/recurring-expenses'),
+      list: () => client<RecurringExpense[]>('/api/recurring-expenses'),
+      pendingMonths: (id: string) =>
+        client<PendingMonthsResponse>(`/api/recurring-expenses/${encodeURIComponent(id)}/pending-months`),
+      backfill: (id: string) =>
+        client<BackfillResponse>(`/api/recurring-expenses/${encodeURIComponent(id)}/backfill`, { method: 'POST' })
     },
     budgets: {
       ...resource<Budget, BudgetInput>('/api/budgets'),
