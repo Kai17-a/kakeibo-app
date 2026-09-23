@@ -68,8 +68,8 @@
       <Button
         {...props}
         {id}
-        class="w-full justify-between border-b-input bg-transparent px-0 font-normal tracking-normal normal-case"
-        variant="outline"
+        class="w-full justify-between border border-transparent border-b-input bg-transparent px-0 font-normal tracking-normal normal-case"
+        variant="ghost"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-required={required}
