@@ -20,6 +20,7 @@ import type {
   WebhookUrlInput,
   Budget,
   BudgetInput,
+  ExchangeRatePreview,
 } from './types';
 
 export class ApiError extends Error {
@@ -115,6 +116,10 @@ export const api = {
   deletePaymentMethod: (id: string) =>
     request<void>(`/api/payment-methods/${id}`, { method: 'delete' }),
   recurringExpenses: () => request<RecurringExpense[]>('/api/recurring-expenses'),
+  previewRecurringExpenseExchangeRate: (id: string, month: string) =>
+    request<ExchangeRatePreview>(
+      `/api/recurring-expenses/${id}/exchange-rate?month=${encodeURIComponent(month)}`,
+    ),
   recurringIncomes: () => request<RecurringIncome[]>('/api/recurring-incomes'),
   createExpense: (input: ExpenseInput) =>
     request<Expense>('/api/expenses', { method: 'post', json: input }),

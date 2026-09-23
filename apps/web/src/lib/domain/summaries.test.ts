@@ -39,6 +39,10 @@ function expense(
     payment_method_id,
     recurring_expense_id: null,
     description: null,
+    foreign_amount: null,
+    currency_code: null,
+    exchange_rate: null,
+    exchange_rate_date: null,
   };
 }
 

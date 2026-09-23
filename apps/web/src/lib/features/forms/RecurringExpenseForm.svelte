@@ -35,18 +35,14 @@
   let active = $state(untrack(() => initial?.is_active ?? true));
   let variable = $state(untrack(() => initial?.is_variable ?? false));
   let foreignAmount = $state(untrack(() => initial?.foreign_amount ?? ''));
-  let currencyCode = $state(untrack(() => initial?.currency_code ?? ''));
-  let exchangeRate = $state(untrack(() => initial?.exchange_rate ?? ''));
+  let usdBased = $state(untrack(() => initial?.currency_code === 'USD'));
   let syncFutureTransactions = $state(false);
   const editing = $derived(Boolean(initial));
   function submit(event: SubmitEvent) {
     event.preventDefault();
     return onsubmit({
       name,
-      amount:
-        foreignAmount && exchangeRate
-          ? String(Math.round(Number(foreignAmount) * Number(exchangeRate)))
-          : String(amount),
+      amount: usdBased ? String(foreignAmount) : String(amount),
       payment_day: paymentDay,
       start_date: startDate,
       end_date: endDate || null,
@@ -55,9 +51,9 @@
       is_active: active,
       is_variable: variable,
       description: description || null,
-      foreign_amount: foreignAmount || null,
-      currency_code: currencyCode ? currencyCode.toUpperCase() : null,
-      exchange_rate: exchangeRate || null,
+      foreign_amount: usdBased && foreignAmount ? String(foreignAmount) : null,
+      currency_code: usdBased ? 'USD' : null,
+      exchange_rate: null,
       sync_future_transactions: syncFutureTransactions,
     });
   }
@@ -80,55 +76,40 @@
             bind:value={name}
           />
         </Field.Field>
-        <Field.Field>
-          <Field.FieldLabel for="recurring-amount">
-            {variable ? '金額（目安）' : '金額'}
-          </Field.FieldLabel><Input
-            id="recurring-amount"
-            type="number"
-            min="1"
-            required={!foreignAmount || !exchangeRate}
-            bind:value={amount}
-          />
-        </Field.Field>
+        {#if !usdBased}
+          <Field.Field>
+            <Field.FieldLabel for="recurring-amount">
+              {variable ? '金額（目安）' : '金額'}
+            </Field.FieldLabel><Input
+              id="recurring-amount"
+              type="number"
+              min="1"
+              required
+              bind:value={amount}
+            />
+          </Field.Field>
+        {/if}
         <Field.Field class="sm:col-span-2">
-          <Field.FieldLabel for="recurring-foreign-amount">
-            外貨建てサブスク（任意）
-          </Field.FieldLabel>
-          <Field.FieldGroup class="grid sm:grid-cols-3">
+          <Field.Field orientation="horizontal">
+            <Checkbox id="recurring-usd-based" bind:checked={usdBased} />
+            <Field.FieldLabel for="recurring-usd-based">外貨建て（USD）にする</Field.FieldLabel>
+          </Field.Field>
+          {#if usdBased}
             <Field.Field>
-              <Field.FieldLabel for="recurring-foreign-amount">外貨金額</Field.FieldLabel>
+              <Field.FieldLabel for="recurring-foreign-amount">毎月のUSD金額</Field.FieldLabel>
               <Input
                 id="recurring-foreign-amount"
                 type="number"
                 min="0.01"
                 step="any"
+                required
                 bind:value={foreignAmount}
               />
+              <Field.FieldDescription>
+                実際の引き落とし額は毎月の為替レートで自動計算されます。
+              </Field.FieldDescription>
             </Field.Field>
-            <Field.Field>
-              <Field.FieldLabel for="recurring-currency">通貨コード</Field.FieldLabel>
-              <Input
-                id="recurring-currency"
-                maxlength={3}
-                placeholder="USD"
-                bind:value={currencyCode}
-              />
-            </Field.Field>
-            <Field.Field>
-              <Field.FieldLabel for="recurring-rate">1通貨あたりの円レート</Field.FieldLabel>
-              <Input
-                id="recurring-rate"
-                type="number"
-                min="0.000001"
-                step="any"
-                bind:value={exchangeRate}
-              />
-            </Field.Field>
-          </Field.FieldGroup>
-          <Field.FieldDescription>
-            3項目を入力すると、円換算額を金額として登録します。
-          </Field.FieldDescription>
+          {/if}
         </Field.Field>
         <Field.Field>
           <Field.FieldLabel for="recurring-day">毎月の支払日</Field.FieldLabel><Input

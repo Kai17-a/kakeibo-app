@@ -23,6 +23,7 @@
     Expense,
     ExpenseCategory,
     ExpenseInput,
+    ExchangeRatePreview,
     Income,
     IncomeCategory,
     IncomeInput,
@@ -50,6 +51,7 @@
   let editingExpense = $state<Expense | null>(null);
   let editingIncome = $state<Income | null>(null);
   let transactionPreset = $state<RecurringExpense | null>(null);
+  let exchangePreview = $state<ExchangeRatePreview | null>(null);
   let incomeTransactionPreset = $state<RecurringIncome | null>(null);
   let recurringFormOpen = $state(false);
   let recurringIncomeFormOpen = $state(false);
@@ -173,6 +175,7 @@
         editingIncome = null;
         transactionPreset = null;
         incomeTransactionPreset = null;
+        exchangePreview = null;
       }
       return true;
     } catch (caught) {
@@ -188,14 +191,25 @@
     editingIncome = null;
     transactionPreset = null;
     incomeTransactionPreset = null;
+    exchangePreview = null;
     transactionFormOpen = true;
   }
 
-  function registerVariableRecurring(item: RecurringExpense) {
+  async function registerVariableRecurring(item: RecurringExpense) {
     editingExpense = null;
     editingIncome = null;
     incomeTransactionPreset = null;
     transactionPreset = item;
+    exchangePreview = null;
+    if (item.currency_code === 'USD') {
+      try {
+        exchangePreview = await api.previewRecurringExpenseExchangeRate(item.id, selectedMonth);
+      } catch (caught) {
+        toast.error(
+          message(caught, '為替レートを取得できませんでした。金額を手動で入力してください。'),
+        );
+      }
+    }
     transactionFormOpen = true;
   }
 
@@ -204,6 +218,7 @@
     editingIncome = null;
     transactionPreset = null;
     incomeTransactionPreset = item;
+    exchangePreview = null;
     transactionFormOpen = true;
   }
 
@@ -212,6 +227,7 @@
     editingIncome = null;
     transactionPreset = null;
     incomeTransactionPreset = null;
+    exchangePreview = null;
     transactionFormOpen = true;
   }
 
@@ -220,6 +236,7 @@
     editingIncome = income;
     transactionPreset = null;
     incomeTransactionPreset = null;
+    exchangePreview = null;
     transactionFormOpen = true;
   }
 
@@ -229,6 +246,7 @@
     editingIncome = null;
     transactionPreset = null;
     incomeTransactionPreset = null;
+    exchangePreview = null;
   }
 
   async function saveRecurring(input: RecurringExpenseInput) {
@@ -419,6 +437,7 @@
     initialIncome={editingIncome ?? undefined}
     initialRecurring={transactionPreset ?? undefined}
     initialRecurringIncome={incomeTransactionPreset ?? undefined}
+    {exchangePreview}
     initialDate={`${selectedMonth}-${String(Math.min(new Date().getDate(), 28)).padStart(2, '0')}`}
     onclose={closeTransaction}
     onsubmit={saveTransaction}
