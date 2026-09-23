@@ -1,0 +1,80 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+@import '@fontsource-variable/noto-sans';
+@import '@fontsource-variable/playfair-display';
+
+@theme static {
+  --font-sans: 'Noto Sans Variable', sans-serif;
+  --font-heading: 'Playfair Display Variable', serif;
+  --font-serif: 'Playfair Display Variable', serif;
+}
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.147 0.004 49.3);
+  --card: oklch(1 0 0);
+  --popover: oklch(1 0 0);
+  --primary: oklch(0.214 0.009 43.1);
+  --primary-foreground: oklch(0.986 0.002 67.8);
+  --secondary: oklch(0.96 0.002 17.2);
+  --muted: oklch(0.96 0.002 17.2);
+  --muted-foreground: oklch(0.547 0.021 43.1);
+  --accent: oklch(0.96 0.002 17.2);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0.005 34.3);
+  --input: oklch(0.922 0.005 34.3);
+  --ring: oklch(0.714 0.014 41.2);
+}
+
+.dark {
+  --background: oklch(0.147 0.004 49.3);
+  --foreground: oklch(0.986 0.002 67.8);
+  --card: oklch(0.214 0.009 43.1);
+  --popover: oklch(0.214 0.009 43.1);
+  --primary: oklch(0.922 0.005 34.3);
+  --primary-foreground: oklch(0.214 0.009 43.1);
+  --secondary: oklch(0.268 0.011 36.5);
+  --muted: oklch(0.268 0.011 36.5);
+  --muted-foreground: oklch(0.714 0.014 41.2);
+  --accent: oklch(0.268 0.011 36.5);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.547 0.021 43.1);
+}
+
+/* Nuxt UI semantic tokens follow the existing Kakeibo light/dark palette. */
+:root, .light, .dark {
+  --ui-primary: var(--primary);
+  --ui-secondary: var(--secondary);
+  --ui-error: var(--destructive);
+  --ui-bg: var(--background);
+  --ui-bg-muted: var(--muted);
+  --ui-bg-elevated: var(--card);
+  --ui-bg-accented: var(--accent);
+  --ui-bg-inverted: var(--primary);
+  --ui-text: var(--foreground);
+  --ui-text-highlighted: var(--foreground);
+  --ui-text-toned: var(--foreground);
+  --ui-text-muted: var(--muted-foreground);
+  --ui-text-dimmed: var(--muted-foreground);
+  --ui-text-inverted: var(--primary-foreground);
+  --ui-border: var(--border);
+  --ui-border-muted: var(--border);
+  --ui-border-accented: var(--input);
+  --ui-border-inverted: var(--primary);
+  --radius: 0.625rem;
+  /* Nuxt UI rounded-lg is twice the base radius. */
+  --ui-radius: calc(var(--radius) / 2);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  font-synthesis: none;
+}
+
+*:focus-visible {
+  outline-color: var(--ring);
+}
