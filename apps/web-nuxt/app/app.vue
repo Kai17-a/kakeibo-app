@@ -14,30 +14,9 @@ useSeoMeta({
 
 <template>
   <UApp :locale="ja">
-    <UHeader :toggle="false">
-      <template #left>
-        <NuxtLink
-          to="/"
-          class="flex items-center gap-2 rounded-md focus-visible:outline-2"
-          aria-label="Kakeibo ホーム"
-        >
-          <AppLogo class="size-8 shrink-0" />
-          <span class="font-heading text-xl font-bold">Kakeibo</span>
-        </NuxtLink>
-      </template>
-      <template #right>
-        <UColorModeButton />
-        <UButton
-          to="/settings/webhook"
-          icon="i-lucide-settings"
-          aria-label="設定"
-          color="neutral"
-          variant="ghost"
-        />
-      </template>
-    </UHeader>
-    <UMain>
+    <NuxtLoadingIndicator />
+    <NuxtLayout>
       <NuxtPage />
-    </UMain>
+    </NuxtLayout>
   </UApp>
 </template>

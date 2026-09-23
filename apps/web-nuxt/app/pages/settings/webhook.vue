@@ -95,13 +95,16 @@ async function remove() {
 </script>
 
 <template>
-  <UContainer class="max-w-5xl py-8 sm:py-12 space-y-6">
+  <section
+    class="space-y-6"
+    aria-labelledby="webhook-heading"
+  >
     <div class="flex items-start justify-between gap-4">
       <div class="space-y-2">
-        <p class="text-sm text-muted">
-          設定
-        </p>
-        <h1 class="text-2xl font-semibold flex items-center gap-3">
+        <h2
+          id="webhook-heading"
+          class="text-lg font-semibold flex items-center gap-3"
+        >
           Webhook
           <UBadge
             v-if="!loading && !loadError"
@@ -110,7 +113,7 @@ async function remove() {
           >
             {{ items.length }}件
           </UBadge>
-        </h1>
+        </h2>
         <p class="text-sm text-muted">
           支出・収入の登録時や予算超過時に通知を送信するWebhook URLを管理します。
         </p>
@@ -351,5 +354,5 @@ async function remove() {
         </UButton>
       </template>
     </UModal>
-  </UContainer>
+  </section>
 </template>
