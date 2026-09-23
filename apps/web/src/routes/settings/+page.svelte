@@ -655,16 +655,20 @@
       </Alert.Root>
     {/if}
     <Tabs.Root value={activeKind} onValueChange={updateSettingsTab} class="w-full">
-      <Tabs.List variant="line" class="w-full justify-start sm:w-fit">
-        <Tabs.Trigger value="expense">支出カテゴリ</Tabs.Trigger>
-        <Tabs.Trigger value="income">収入カテゴリ</Tabs.Trigger>
-        <Tabs.Trigger value="payment">支払方法</Tabs.Trigger>
-        <Tabs.Trigger value="budget">予算</Tabs.Trigger>
-        <Tabs.Trigger value="recurring">定期支出</Tabs.Trigger>
-        <Tabs.Trigger value="recurring-income">定期収入</Tabs.Trigger>
-        <Tabs.Trigger value="webhook">Webhook</Tabs.Trigger>
-        <Tabs.Trigger value="data">データ管理</Tabs.Trigger>
-      </Tabs.List>
+      <div
+        class="relative min-w-0 overflow-x-auto after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-8 after:bg-gradient-to-l after:from-background after:to-transparent"
+      >
+        <Tabs.List variant="line" class="w-max min-w-full justify-start sm:w-fit sm:min-w-0">
+          <Tabs.Trigger value="expense">支出カテゴリ</Tabs.Trigger>
+          <Tabs.Trigger value="income">収入カテゴリ</Tabs.Trigger>
+          <Tabs.Trigger value="payment">支払方法</Tabs.Trigger>
+          <Tabs.Trigger value="budget">予算</Tabs.Trigger>
+          <Tabs.Trigger value="recurring">定期支出</Tabs.Trigger>
+          <Tabs.Trigger value="recurring-income">定期収入</Tabs.Trigger>
+          <Tabs.Trigger value="webhook">Webhook</Tabs.Trigger>
+          <Tabs.Trigger value="data">データ管理</Tabs.Trigger>
+        </Tabs.List>
+      </div>
       <Tabs.Content value="expense">
         {@render categoryPanel('支出カテゴリ', expenseCategories)}
       </Tabs.Content>
@@ -1049,7 +1053,9 @@
                       </Badge>{/if}
                   </span>
                 </Table.Cell>
-                <Table.Cell class="text-muted-foreground">
+                <Table.Cell
+                  class="max-w-32 break-words whitespace-normal text-muted-foreground sm:max-w-none sm:whitespace-nowrap"
+                >
                   {expenseCategoryNames.get(item.category_id) ?? ''} / {paymentMethodNames.get(
                     item.payment_method_id,
                   ) ?? ''}

@@ -125,12 +125,16 @@
   </Card.Header>
   <Card.Content class="px-0">
     <Tabs.Root bind:value={tab}>
-      <Tabs.List class="mx-4" aria-label="家計簿シート">
-        <Tabs.Trigger value="summary">収支・明細</Tabs.Trigger>
-        <Tabs.Trigger value="details">支出明細</Tabs.Trigger>
-        <Tabs.Trigger value="income-details">収入明細</Tabs.Trigger>
-        <Tabs.Trigger value="categories">月ごとのカテゴリ別支出</Tabs.Trigger>
-      </Tabs.List>
+      <div
+        class="relative overflow-x-auto after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-8 after:bg-gradient-to-l after:from-card after:to-transparent"
+      >
+        <Tabs.List class="mx-4 min-w-max" aria-label="家計簿シート">
+          <Tabs.Trigger value="summary">収支・明細</Tabs.Trigger>
+          <Tabs.Trigger value="details">支出明細</Tabs.Trigger>
+          <Tabs.Trigger value="income-details">収入明細</Tabs.Trigger>
+          <Tabs.Trigger value="categories">月ごとのカテゴリ別支出</Tabs.Trigger>
+        </Tabs.List>
+      </div>
 
       {#if tab === 'categories'}
         <DailyCategoryTable {month} {expenses} categories={expenseCategories} />
