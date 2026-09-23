@@ -159,3 +159,22 @@ test('テーマを切り替えて選択を保存する', async ({ page }) => {
     .poll(() => page.locator('html').evaluate((element) => element.classList.contains('dark')))
     .toBe(!initiallyDark);
 });
+
+test('収支タブを切り替えても支払方法の選択が正しく保持・リセットされる', async ({ page }) => {
+  await mockApi(page, () => {});
+
+  await page.goto('/monthly');
+  await page.getByRole('button', { name: '収支を登録' }).click();
+
+  const paymentSelect = page.locator('#transaction-payment');
+  await expect(paymentSelect).toHaveValue(paymentMethod.id);
+
+  await page.getByRole('tab', { name: '収入' }).click();
+  await expect(paymentSelect).toHaveValue('');
+
+  await paymentSelect.selectOption(paymentMethod.id);
+  await expect(paymentSelect).toHaveValue(paymentMethod.id);
+
+  await page.getByRole('tab', { name: '支出' }).click();
+  await expect(paymentSelect).toHaveValue(paymentMethod.id);
+});

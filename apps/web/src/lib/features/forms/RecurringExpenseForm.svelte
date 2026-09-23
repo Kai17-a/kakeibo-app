@@ -1,6 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { Button } from '$lib/components/ui/button';
+  import CategoryCombobox from '$lib/components/CategoryCombobox.svelte';
   import { Checkbox } from '$lib/components/ui/checkbox';
   import * as Dialog from '$lib/components/ui/dialog';
   import * as Field from '$lib/components/ui/field';
@@ -21,16 +22,27 @@
     saving: boolean;
     initial?: RecurringExpense;
     onclose(): void;
+    oncreateexpensecategory?(category: ExpenseCategory): void;
     onsubmit(input: RecurringExpenseInput): Promise<void>;
   }
-  let { categories, paymentMethods, saving, initial, onclose, onsubmit }: Props = $props();
+  let {
+    categories,
+    paymentMethods,
+    saving,
+    initial,
+    onclose,
+    oncreateexpensecategory,
+    onsubmit,
+  }: Props = $props();
   let name = $state(untrack(() => initial?.name ?? ''));
   let amount = $state(untrack(() => initial?.amount ?? ''));
   let paymentDay = $state(untrack(() => initial?.payment_day ?? 1));
   let startDate = $state(untrack(() => initial?.start_date ?? currentDate()));
   let endDate = $state(untrack(() => initial?.end_date ?? ''));
-  let categoryId = $derived(initial?.category_id ?? categories[0]?.id ?? '');
-  let paymentMethodId = $derived(initial?.payment_method_id ?? paymentMethods[0]?.id ?? '');
+  let categoryId = $state(untrack(() => initial?.category_id ?? categories[0]?.id ?? ''));
+  let paymentMethodId = $state(
+    untrack(() => initial?.payment_method_id ?? paymentMethods[0]?.id ?? ''),
+  );
   let description = $state(untrack(() => initial?.description ?? ''));
   let active = $state(untrack(() => initial?.is_active ?? true));
   let variable = $state(untrack(() => initial?.is_variable ?? false));
@@ -122,15 +134,14 @@
           />
         </Field.Field>
         <Field.Field>
-          <Field.FieldLabel for="recurring-category">カテゴリ</Field.FieldLabel><NativeSelect.Root
+          <Field.FieldLabel for="recurring-category">カテゴリ</Field.FieldLabel><CategoryCombobox
             id="recurring-category"
+            {categories}
+            kind="expense"
             required
             bind:value={categoryId}
-          >
-            {#each categories as category (category.id)}<NativeSelect.Option value={category.id}>
-                {category.name}
-              </NativeSelect.Option>{/each}
-          </NativeSelect.Root>
+            oncreate={(category) => oncreateexpensecategory?.(category as ExpenseCategory)}
+          />
         </Field.Field>
         <Field.Field>
           <Field.FieldLabel for="recurring-payment">支払方法</Field.FieldLabel><NativeSelect.Root

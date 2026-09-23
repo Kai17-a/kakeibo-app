@@ -1,11 +1,11 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { Button } from '$lib/components/ui/button';
+  import CategoryCombobox from '$lib/components/CategoryCombobox.svelte';
   import { Checkbox } from '$lib/components/ui/checkbox';
   import * as Dialog from '$lib/components/ui/dialog';
   import * as Field from '$lib/components/ui/field';
   import { Input } from '$lib/components/ui/input';
-  import * as NativeSelect from '$lib/components/ui/native-select';
   import { Spinner } from '$lib/components/ui/spinner';
   import { Textarea } from '$lib/components/ui/textarea';
   import { currentDate } from '../../format';
@@ -16,15 +16,16 @@
     saving: boolean;
     initial?: RecurringIncome;
     onclose(): void;
+    oncreateincomecategory?(category: IncomeCategory): void;
     onsubmit(input: RecurringIncomeInput): Promise<void>;
   }
-  let { categories, saving, initial, onclose, onsubmit }: Props = $props();
+  let { categories, saving, initial, onclose, oncreateincomecategory, onsubmit }: Props = $props();
   let name = $state(untrack(() => initial?.name ?? ''));
   let amount = $state(untrack(() => initial?.amount ?? ''));
   let paymentDay = $state(untrack(() => initial?.payment_day ?? 1));
   let startDate = $state(untrack(() => initial?.start_date ?? currentDate()));
   let endDate = $state(untrack(() => initial?.end_date ?? ''));
-  let categoryId = $derived(initial?.category_id ?? categories[0]?.id ?? '');
+  let categoryId = $state(untrack(() => initial?.category_id ?? categories[0]?.id ?? ''));
   let description = $state(untrack(() => initial?.description ?? ''));
   let active = $state(untrack(() => initial?.is_active ?? true));
   let variable = $state(untrack(() => initial?.is_variable ?? false));
@@ -79,11 +80,14 @@
         </Field.Field>
         <Field.Field class="sm:col-span-2">
           <Field.FieldLabel for="recurring-income-category">カテゴリ</Field.FieldLabel>
-          <NativeSelect.Root id="recurring-income-category" required bind:value={categoryId}>
-            {#each categories as category (category.id)}
-              <NativeSelect.Option value={category.id}>{category.name}</NativeSelect.Option>
-            {/each}
-          </NativeSelect.Root>
+          <CategoryCombobox
+            id="recurring-income-category"
+            {categories}
+            kind="income"
+            required
+            bind:value={categoryId}
+            oncreate={(category) => oncreateincomecategory?.(category as IncomeCategory)}
+          />
         </Field.Field>
         <Field.Field>
           <Field.FieldLabel for="recurring-income-start">開始日</Field.FieldLabel>

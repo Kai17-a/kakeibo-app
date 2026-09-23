@@ -173,6 +173,14 @@
     }
   }
 
+  function addExpenseCategory(category: ExpenseCategory) {
+    expenseCategories = [...expenseCategories, category];
+  }
+
+  function addIncomeCategory(category: IncomeCategory) {
+    incomeCategories = [...incomeCategories, category];
+  }
+
   async function saveTransaction(
     kind: 'expense' | 'income',
     input: ExpenseInput | IncomeInput,
@@ -468,12 +476,15 @@
     {exchangePreview}
     initialDate={`${selectedMonth}-${String(Math.min(new Date().getDate(), 28)).padStart(2, '0')}`}
     onclose={closeTransaction}
+    oncreateexpensecategory={addExpenseCategory}
+    oncreateincomecategory={addIncomeCategory}
     onsubmit={saveTransaction}
   />{/if}
 {#if recurringIncomeFormOpen}<RecurringIncomeForm
     categories={incomeCategories}
     {saving}
     onclose={closeRecurringIncomeForm}
+    oncreateincomecategory={addIncomeCategory}
     onsubmit={saveRecurringIncome}
   />{/if}
 {#if recurringFormOpen}<RecurringExpenseForm
@@ -481,6 +492,7 @@
     {paymentMethods}
     {saving}
     onclose={closeRecurringForm}
+    oncreateexpensecategory={addExpenseCategory}
     onsubmit={saveRecurring}
   />{/if}
 <ConfirmDialog
