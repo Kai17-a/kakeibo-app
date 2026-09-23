@@ -1,11 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import type { Budget, Expense, ExpenseCategory, Income, PaymentMethod } from '../types';
+import type {
+  Budget,
+  Expense,
+  ExpenseCategory,
+  Income,
+  PaymentMethod,
+  RecurringExpense,
+  RecurringIncome,
+} from '../types';
 import {
   budgetActuals,
   categoryMonthlyTotals,
   dailyCategoryTotals,
   inPeriod,
   paymentMethodBalanceTrend,
+  recurringForecast,
   sumAmounts,
 } from './summaries';
 
@@ -174,5 +183,48 @@ describe('summary calculations', () => {
     });
     expect(result[1].values[0].balance).toBe(-100);
     expect(result[11].total).toBe(-100);
+  });
+
+  it('forecasts active fixed recurring items without duplicating posted transactions', () => {
+    const recurringExpense = {
+      ...resourceFields,
+      id: 'rent',
+      name: '家賃',
+      amount: '80000',
+      payment_day: 27,
+      start_date: '2026-01-01',
+      end_date: null,
+      category_id: 'housing',
+      payment_method_id: 'bank',
+      is_active: true,
+      is_variable: false,
+      description: null,
+      foreign_amount: null,
+      currency_code: null,
+      exchange_rate: null,
+    } satisfies RecurringExpense;
+    const recurringIncome = {
+      ...resourceFields,
+      id: 'salary',
+      name: '給料',
+      amount: '300000',
+      payment_day: 25,
+      start_date: '2026-01-01',
+      end_date: null,
+      category_id: 'salary',
+      is_active: true,
+      is_variable: false,
+      description: null,
+    } satisfies RecurringIncome;
+    const posted = expense('posted', '2026-02-27', '80000', 'housing', 'bank');
+    posted.recurring_expense_id = 'rent';
+
+    expect(recurringForecast([], [], [recurringExpense], [recurringIncome], '2026-03')).toEqual({
+      expense: 80000,
+      income: 300000,
+      expensesByCategory: new Map([['housing', 80000]]),
+    });
+    expect(recurringForecast([posted], [], [recurringExpense], [], '2026-02').expense).toBe(0);
+    expect(recurringForecast([], [], [recurringExpense], [], '2025-12').expense).toBe(0);
   });
 });

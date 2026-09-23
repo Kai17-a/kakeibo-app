@@ -48,6 +48,10 @@ async function mockPaymentMethodApi(page: Page) {
       '/api/expense-categories': { items: [], pagination },
       '/api/income-categories': { items: [], pagination },
       '/api/payment-methods': { items: paymentMethods, pagination },
+      '/api/recurring-expenses': [],
+      '/api/recurring-incomes': [],
+      '/api/webhook-urls': [],
+      '/api/budgets': [],
     };
     await route.fulfill({
       status: responses[path] === undefined ? 404 : 200,
@@ -66,12 +70,12 @@ test('支払方法を登録する', async ({ page }) => {
   await mockPaymentMethodApi(page);
   await openPaymentMethodTab(page);
 
-  await page.getByRole('button', { name: '追加' }).click();
+  await page.getByRole('button', { name: '追加', exact: true }).click();
   await page.getByLabel('支払方法名').fill('電子マネー');
   await page.getByRole('button', { name: '支払方法を追加' }).click();
 
   await expect(page.getByText('支払方法を追加しました。')).toBeVisible();
-  await expect(page.getByRole('cell', { name: '電子マネー' })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '電子マネー', exact: true })).toBeVisible();
 });
 
 test('支払方法を更新する', async ({ page }) => {
@@ -85,7 +89,7 @@ test('支払方法を更新する', async ({ page }) => {
   await page.getByRole('button', { name: '支払方法を更新' }).click();
 
   await expect(page.getByText('支払方法を更新しました。')).toBeVisible();
-  await expect(page.getByRole('cell', { name: 'VISAカード' })).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'VISAカード', exact: true })).toBeVisible();
 });
 
 test('支払方法を削除する', async ({ page }) => {
@@ -96,5 +100,5 @@ test('支払方法を削除する', async ({ page }) => {
   await page.getByRole('alertdialog').getByRole('button', { name: '削除' }).click();
 
   await expect(page.getByText('支払方法を削除しました。')).toBeVisible();
-  await expect(page.getByRole('cell', { name: 'VISA' })).not.toBeVisible();
+  await expect(page.getByRole('cell', { name: 'VISA', exact: true })).not.toBeVisible();
 });

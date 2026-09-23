@@ -22,6 +22,9 @@ const recurringExpense = {
   updated_at: now,
   name: '家賃',
   amount: '98000',
+  foreign_amount: null,
+  currency_code: null,
+  exchange_rate: null,
   payment_day: 27,
   start_date: '2026-01-01',
   end_date: null,
@@ -60,6 +63,9 @@ async function mockRecurringApi(page: Page) {
       '/api/income-categories': { items: [], pagination },
       '/api/payment-methods': { items: [paymentMethod], pagination },
       '/api/recurring-expenses': recurringExpenses,
+      '/api/recurring-incomes': [],
+      '/api/webhook-urls': [],
+      '/api/budgets': [],
     };
     await route.fulfill({
       status: responses[path] === undefined ? 404 : 200,

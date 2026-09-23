@@ -1,4 +1,65 @@
-import type { Budget, Expense, ExpenseCategory, Income, PaymentMethod } from '../types';
+import type {
+  Budget,
+  Expense,
+  ExpenseCategory,
+  Income,
+  PaymentMethod,
+  RecurringExpense,
+  RecurringIncome,
+} from '../types';
+
+function activeInMonth(item: { start_date: string; end_date: string | null }, month: string) {
+  const first = `${month}-01`;
+  const last = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0))
+    .toISOString()
+    .slice(0, 10);
+  return item.start_date <= last && (!item.end_date || item.end_date >= first);
+}
+
+export function recurringForecast(
+  expenses: Expense[],
+  incomes: Income[],
+  recurringExpenses: RecurringExpense[],
+  recurringIncomes: RecurringIncome[],
+  month: string,
+) {
+  const postedExpenseIds = new Set(
+    inPeriod(expenses, month).flatMap((item) =>
+      item.recurring_expense_id ? [item.recurring_expense_id] : [],
+    ),
+  );
+  const postedIncomeIds = new Set(
+    inPeriod(incomes, month).flatMap((item) =>
+      item.recurring_income_id ? [item.recurring_income_id] : [],
+    ),
+  );
+  const projectedExpenses = recurringExpenses.filter(
+    (item) =>
+      item.is_active &&
+      !item.is_variable &&
+      activeInMonth(item, month) &&
+      !postedExpenseIds.has(item.id),
+  );
+  const projectedIncomes = recurringIncomes.filter(
+    (item) =>
+      item.is_active &&
+      !item.is_variable &&
+      activeInMonth(item, month) &&
+      !postedIncomeIds.has(item.id),
+  );
+  const expensesByCategory = new Map<string, number>();
+  for (const item of projectedExpenses) {
+    expensesByCategory.set(
+      item.category_id,
+      (expensesByCategory.get(item.category_id) ?? 0) + Number(item.amount),
+    );
+  }
+  return {
+    expense: sumAmounts(projectedExpenses),
+    income: sumAmounts(projectedIncomes),
+    expensesByCategory,
+  };
+}
 
 export type Transaction = (Expense & { kind: 'expense' }) | (Income & { kind: 'income' });
 

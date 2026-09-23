@@ -9,6 +9,7 @@ const webhookUrl = {
   url: 'https://example.com/hook',
   description: '通知先1',
   is_active: true,
+  events: ['expense.created', 'income.created', 'budget.exceeded'],
 };
 
 async function mockWebhookApi(page: Page) {
@@ -40,7 +41,9 @@ async function mockWebhookApi(page: Page) {
       '/api/income-categories': { items: [], pagination },
       '/api/payment-methods': { items: [], pagination },
       '/api/recurring-expenses': [],
+      '/api/recurring-incomes': [],
       '/api/webhook-urls': webhookUrls,
+      '/api/budgets': [],
     };
     await route.fulfill({
       status: responses[path] === undefined ? 404 : 200,
@@ -59,12 +62,16 @@ test('設定画面でWebhook URLを登録する', async ({ page }) => {
   await mockWebhookApi(page);
   await openWebhookTab(page);
 
-  await page.getByRole('button', { name: '追加' }).click();
-  await page.getByLabel('Webhook URL').fill('https://example.com/another-hook');
+  await page.getByRole('button', { name: '追加', exact: true }).click();
+  await page
+    .getByRole('textbox', { name: 'Webhook URL', exact: true })
+    .fill('https://example.com/another-hook');
   await page.getByRole('button', { name: 'Webhook URLを追加' }).click();
 
   await expect(page.getByText('Webhook URLを登録しました。')).toBeVisible();
-  await expect(page.getByRole('cell', { name: 'https://example.com/another-hook' })).toBeVisible();
+  await expect(
+    page.getByRole('cell', { name: 'https://example.com/another-hook', exact: true }),
+  ).toBeVisible();
 });
 
 test('設定画面でWebhook URLを削除する', async ({ page }) => {
@@ -75,5 +82,7 @@ test('設定画面でWebhook URLを削除する', async ({ page }) => {
   await page.getByRole('alertdialog').getByRole('button', { name: '削除' }).click();
 
   await expect(page.getByText('Webhook URLを削除しました。')).toBeVisible();
-  await expect(page.getByRole('cell', { name: 'https://example.com/hook' })).not.toBeVisible();
+  await expect(
+    page.getByRole('cell', { name: 'https://example.com/hook', exact: true }),
+  ).not.toBeVisible();
 });

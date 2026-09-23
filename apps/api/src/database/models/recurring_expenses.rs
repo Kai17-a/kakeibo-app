@@ -14,4 +14,7 @@ pub struct RecurringExpenseRow {
     pub is_active: bool,
     pub is_variable: bool,
     pub description: Option<String>,
+    pub foreign_amount: Option<String>,
+    pub currency_code: Option<String>,
+    pub exchange_rate: Option<String>,
 }

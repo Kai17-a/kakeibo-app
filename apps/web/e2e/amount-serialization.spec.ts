@@ -45,6 +45,8 @@ async function mockApi(page: Page, onPost: (path: string, body: unknown) => void
       '/api/income-categories': { items: [incomeCategory], pagination },
       '/api/payment-methods': { items: [paymentMethod], pagination },
       '/api/recurring-expenses': [],
+      '/api/recurring-incomes': [],
+      '/api/budgets': [],
     };
     const response = responses[path];
     await route.fulfill({
@@ -98,7 +100,7 @@ test('固定費金額を文字列としてAPIへ送信する', async ({ page }) 
   await page.goto('/');
   await page.getByRole('button', { name: '固定費' }).click();
   await page.getByLabel('名称').fill('家賃');
-  await page.getByLabel('金額').fill('61100');
+  await page.getByLabel('金額', { exact: true }).fill('61100');
   await page.getByRole('button', { name: '固定費を登録' }).click();
 
   await expect(page.getByText('固定費を登録しました。')).toBeVisible();

@@ -6,6 +6,8 @@ const expenseCategory = {
   id: 'expense-category-1',
   name: '食費',
   description: '日常の食費',
+  parent_category_id: null,
+  display_order: 0,
   created_at: now,
   updated_at: now,
 };
@@ -13,6 +15,8 @@ const incomeCategory = {
   id: 'income-category-1',
   name: '給与',
   description: null,
+  parent_category_id: null,
+  display_order: 0,
   created_at: now,
   updated_at: now,
 };
@@ -49,6 +53,11 @@ async function mockCategoryApi(page: Page) {
     const responses: Record<string, unknown> = {
       '/api/expense-categories': { items: expenseCategories, pagination },
       '/api/income-categories': { items: incomeCategories, pagination },
+      '/api/payment-methods': { items: [], pagination },
+      '/api/recurring-expenses': [],
+      '/api/recurring-incomes': [],
+      '/api/webhook-urls': [],
+      '/api/budgets': [],
     };
     await route.fulfill({
       status: responses[path] === undefined ? 404 : 200,
@@ -69,7 +78,7 @@ test('支出カテゴリを更新する', async ({ page }) => {
   await page.getByRole('button', { name: '支出カテゴリを更新' }).click();
 
   await expect(page.getByText('支出カテゴリを更新しました。')).toBeVisible();
-  await expect(page.getByRole('cell', { name: '食費（外食含む）' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '食費（外食含む）を編集' })).toBeVisible();
 });
 
 test('支出カテゴリを削除する', async ({ page }) => {
@@ -80,7 +89,7 @@ test('支出カテゴリを削除する', async ({ page }) => {
   await page.getByRole('alertdialog').getByRole('button', { name: '削除' }).click();
 
   await expect(page.getByText('カテゴリを削除しました。')).toBeVisible();
-  await expect(page.getByRole('cell', { name: '食費' })).not.toBeVisible();
+  await expect(page.getByRole('cell', { name: '食費', exact: true })).not.toBeVisible();
 });
 
 test('収入カテゴリを削除する', async ({ page }) => {
@@ -92,5 +101,5 @@ test('収入カテゴリを削除する', async ({ page }) => {
   await page.getByRole('alertdialog').getByRole('button', { name: '削除' }).click();
 
   await expect(page.getByText('カテゴリを削除しました。')).toBeVisible();
-  await expect(page.getByRole('cell', { name: '給与' })).not.toBeVisible();
+  await expect(page.getByRole('cell', { name: '給与', exact: true })).not.toBeVisible();
 });
