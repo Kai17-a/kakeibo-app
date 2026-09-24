@@ -21,7 +21,6 @@ const monthLabel = computed(() =>
   ),
 );
 
-const transactionsApi = useTransactionsApi();
 const {
   expenses,
   incomes,
@@ -39,34 +38,9 @@ const {
 const monthExpenses = computed(() => inPeriod(expenses.value, month.value));
 const monthIncomes = computed(() => inPeriod(incomes.value, month.value));
 
-const usdRecurringPreviews = ref(new Map<string, ExchangeRatePreview>());
-let usdPreviewRequestId = 0;
-watch(
-  [month, recurringExpenses],
-  async ([currentMonthValue]) => {
-    const requestId = ++usdPreviewRequestId;
-    const targets = recurringExpenses.value.filter(
-      (item) => item.is_active && !item.is_variable && item.currency_code === "USD",
-    );
-    if (!targets.length) {
-      if (requestId === usdPreviewRequestId) usdRecurringPreviews.value = new Map();
-      return;
-    }
-    const results = await Promise.allSettled(
-      targets.map(
-        async (item) =>
-          [
-            item.id,
-            await transactionsApi.previewRecurringExpenseExchangeRate(item.id, currentMonthValue),
-          ] as const,
-      ),
-    );
-    if (requestId !== usdPreviewRequestId) return;
-    usdRecurringPreviews.value = new Map(
-      results.flatMap((result) => (result.status === "fulfilled" ? [result.value] : [])),
-    );
-  },
-  { immediate: true },
+const usdPreviewsByMonth = useUsdRecurringPreviews(() => [month.value], recurringExpenses);
+const usdRecurringPreviews = computed(
+  () => usdPreviewsByMonth.value.get(month.value) ?? new Map<string, ExchangeRatePreview>(),
 );
 
 const expenseTotal = computed(() => sumAmounts(monthExpenses.value));
