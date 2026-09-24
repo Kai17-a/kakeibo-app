@@ -1,83 +1,34 @@
 import { expect, test, type Page } from "@playwright/test";
+import { mockApi, type MockResponses } from "./support/api";
+import {
+  category,
+  currentYear as year,
+  expense,
+  income,
+  listOf,
+  paymentMethod,
+} from "./support/fixtures";
 
-const isoNow = new Date().toISOString();
-const pagination = { page: 1, per_page: 100, total: 1, total_pages: 1 };
-const year = String(new Date().getFullYear());
-
-const expenseCategory = {
-  id: "expense-category-1",
-  name: "食費",
-  description: null,
-  parent_category_id: null,
-  display_order: 0,
-  created_at: isoNow,
-  updated_at: isoNow,
-};
-const paymentMethod = {
-  id: "payment-method-1",
-  name: "現金",
-  description: null,
-  initial_balance: "10000",
-  balance: "10000",
-  created_at: isoNow,
-  updated_at: isoNow,
-};
 const expenses = [
-  {
-    id: "expense-1",
-    created_at: isoNow,
-    updated_at: isoNow,
-    transaction_date: `${year}-01-15`,
-    amount: "5000",
-    category_id: "expense-category-1",
-    payment_method_id: "payment-method-1",
-    recurring_expense_id: null,
-    description: "食料品",
-  },
-  {
+  expense({ transaction_date: `${year}-01-15`, amount: "5000", description: "食料品" }),
+  expense({
     id: "expense-2",
-    created_at: isoNow,
-    updated_at: isoNow,
     transaction_date: `${year}-02-10`,
     amount: "3000",
-    category_id: "expense-category-1",
-    payment_method_id: "payment-method-1",
-    recurring_expense_id: null,
     description: "外食",
-  },
+  }),
 ];
-const incomes = [
-  {
-    id: "income-1",
-    created_at: isoNow,
-    updated_at: isoNow,
-    transaction_date: `${year}-01-25`,
-    amount: "250000",
-    category_id: "income-category-1",
-    payment_method_id: "payment-method-1",
-    recurring_income_id: null,
-    description: "給与",
-  },
-];
+const incomes = [income({ transaction_date: `${year}-01-25` })];
 
-async function mockAnnualApi(page: Page, overrides: Partial<Record<string, unknown>> = {}) {
-  await page.route("**/api/**", async (route) => {
-    const request = route.request();
-    const path = new URL(request.url()).pathname;
-    const responses: Record<string, unknown> = {
-      "/api/expenses": expenses,
-      "/api/incomes": { items: incomes, pagination },
-      "/api/expense-categories": { items: [expenseCategory], pagination },
-      "/api/payment-methods": { items: [paymentMethod], pagination },
-      "/api/recurring-expenses": [],
-      "/api/recurring-incomes": [],
-      ...overrides,
-    };
-    await route.fulfill({
-      status: responses[path] === undefined ? 404 : 200,
-      contentType: "application/json",
-      body: JSON.stringify(responses[path] ?? { message: "Not found" }),
-    });
+async function mockAnnualApi(page: Page, overrides: MockResponses = {}) {
+  await mockApi(page, {
+    "/api/expenses": expenses,
+    "/api/incomes": listOf(incomes),
+    "/api/expense-categories": listOf([category()]),
+    "/api/payment-methods": listOf([paymentMethod({ initial_balance: "10000", balance: "10000" })]),
+    "/api/recurring-expenses": [],
+    "/api/recurring-incomes": [],
+    ...overrides,
   });
 }
 
@@ -113,7 +64,7 @@ test("年選択を切り替えるとURLに反映される", async ({ page }) => 
 });
 
 test("データがない年は空状態を表示する", async ({ page }) => {
-  await mockAnnualApi(page, { "/api/expenses": [], "/api/incomes": { items: [], pagination } });
+  await mockAnnualApi(page, { "/api/expenses": [], "/api/incomes": listOf([]) });
   await page.goto("/annual");
 
   await expect(page.getByText("この年の支出はまだありません。")).toBeVisible();

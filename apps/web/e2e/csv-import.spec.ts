@@ -1,131 +1,92 @@
 import { expect, test, type Page } from "@playwright/test";
-
-const pagination = { page: 1, per_page: 100, total: 1, total_pages: 1 };
+import { mockApi } from "./support/api";
+import { listOf } from "./support/fixtures";
 
 async function mockDataApi(page: Page) {
-  await page.route("**/api/**", async (route) => {
-    const request = route.request();
-    const path = new URL(request.url()).pathname;
-
-    if (path === "/api/import/expenses/preview" && request.method() === "POST") {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          rows: [
-            {
-              transaction_date: "2026-01-15",
-              amount: "1200",
-              category: "食費",
-              category_is_new: true,
-              payment_method: "現金",
-              payment_method_is_new: true,
-              description: "昼食",
-            },
-          ],
-          created_categories: ["食費"],
-          created_payment_methods: ["現金"],
-        }),
-      });
-      return;
-    }
-    if (path === "/api/import/expenses" && request.method() === "POST") {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          imported: 1,
-          created_categories: ["食費"],
-          created_payment_methods: ["現金"],
-        }),
-      });
-      return;
-    }
-    if (path === "/api/import/incomes/preview" && request.method() === "POST") {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          rows: [
-            {
-              transaction_date: "2026-01-15",
-              amount: "300000",
-              category: "給与",
-              category_is_new: true,
-              description: "1月分",
-            },
-          ],
-          created_categories: ["給与"],
-        }),
-      });
-      return;
-    }
-    if (path === "/api/import/incomes" && request.method() === "POST") {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          imported: 1,
-          created_categories: ["給与"],
-          created_payment_methods: [],
-        }),
-      });
-      return;
-    }
-    if (path === "/api/import/recurring-expenses/preview" && request.method() === "POST") {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          rows: [
-            {
-              name: "家賃",
-              amount: "61100",
-              currency: "",
-              foreign_amount: "",
-              payment_day: "1",
-              start_date: "2026-01-01",
-              end_date: null,
-              category: "住居費",
-              category_is_new: true,
-              payment_method: "口座振替",
-              payment_method_is_new: true,
-              is_variable: "",
-              description: null,
-            },
-          ],
-          created_categories: ["住居費"],
-          created_payment_methods: ["口座振替"],
-        }),
-      });
-      return;
-    }
-    if (path === "/api/import/recurring-expenses" && request.method() === "POST") {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          imported: 1,
-          created_categories: ["住居費"],
-          created_payment_methods: ["口座振替"],
-        }),
-      });
-      return;
-    }
-
-    const responses: Record<string, unknown> = {
-      "/api/expense-categories": { items: [], pagination },
-      "/api/income-categories": { items: [], pagination },
-      "/api/payment-methods": { items: [], pagination },
-      "/api/recurring-expenses": [],
-      "/api/recurring-incomes": [],
-      "/api/budgets": [],
-    };
-    await route.fulfill({
-      status: responses[path] === undefined ? 404 : 200,
-      contentType: "application/json",
-      body: JSON.stringify(responses[path] ?? { message: "Not found" }),
-    });
+  const responses = {
+    "/api/expense-categories": listOf([]),
+    "/api/income-categories": listOf([]),
+    "/api/payment-methods": listOf([]),
+    "/api/recurring-expenses": [],
+    "/api/recurring-incomes": [],
+    "/api/budgets": [],
+  };
+  await mockApi(page, responses, {
+    "POST /api/import/expenses/preview": () => ({
+      body: {
+        rows: [
+          {
+            transaction_date: "2026-01-15",
+            amount: "1200",
+            category: "食費",
+            category_is_new: true,
+            payment_method: "現金",
+            payment_method_is_new: true,
+            description: "昼食",
+          },
+        ],
+        created_categories: ["食費"],
+        created_payment_methods: ["現金"],
+      },
+    }),
+    "POST /api/import/expenses": () => ({
+      body: {
+        imported: 1,
+        created_categories: ["食費"],
+        created_payment_methods: ["現金"],
+      },
+    }),
+    "POST /api/import/incomes/preview": () => ({
+      body: {
+        rows: [
+          {
+            transaction_date: "2026-01-15",
+            amount: "300000",
+            category: "給与",
+            category_is_new: true,
+            description: "1月分",
+          },
+        ],
+        created_categories: ["給与"],
+      },
+    }),
+    "POST /api/import/incomes": () => ({
+      body: {
+        imported: 1,
+        created_categories: ["給与"],
+        created_payment_methods: [],
+      },
+    }),
+    "POST /api/import/recurring-expenses/preview": () => ({
+      body: {
+        rows: [
+          {
+            name: "家賃",
+            amount: "61100",
+            currency: "",
+            foreign_amount: "",
+            payment_day: "1",
+            start_date: "2026-01-01",
+            end_date: null,
+            category: "住居費",
+            category_is_new: true,
+            payment_method: "口座振替",
+            payment_method_is_new: true,
+            is_variable: "",
+            description: null,
+          },
+        ],
+        created_categories: ["住居費"],
+        created_payment_methods: ["口座振替"],
+      },
+    }),
+    "POST /api/import/recurring-expenses": () => ({
+      body: {
+        imported: 1,
+        created_categories: ["住居費"],
+        created_payment_methods: ["口座振替"],
+      },
+    }),
   });
 }
 

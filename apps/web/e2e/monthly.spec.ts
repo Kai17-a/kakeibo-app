@@ -1,124 +1,67 @@
 import { expect, test, type Page } from "@playwright/test";
+import { jsonBody, mockApi, type MockHandlers, type MockResponses } from "./support/api";
+import {
+  budget,
+  category,
+  currentMonth as month,
+  expense,
+  incomeCategory,
+  isoNow,
+  listOf,
+  paymentMethod,
+  recurringExpense,
+} from "./support/fixtures";
 
 const now = new Date();
-const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-const pagination = { page: 1, per_page: 100, total: 1, total_pages: 1 };
-const isoNow = new Date().toISOString();
-
-const expenseCategory = {
-  id: "expense-category-1",
-  name: "食費",
-  description: null,
-  parent_category_id: null,
-  display_order: 0,
-  created_at: isoNow,
-  updated_at: isoNow,
-};
-const incomeCategory = {
-  id: "income-category-1",
-  name: "給与",
-  description: null,
-  parent_category_id: null,
-  display_order: 0,
-  created_at: isoNow,
-  updated_at: isoNow,
-};
-const paymentMethod = {
-  id: "payment-method-1",
-  name: "現金",
-  description: null,
-  initial_balance: null,
-  balance: null,
-  created_at: isoNow,
-  updated_at: isoNow,
-};
-const budget = {
-  id: "budget-1",
-  category_id: "expense-category-1",
-  amount: "30000",
-  created_at: isoNow,
-  updated_at: isoNow,
-};
-const variableRecurring = {
-  id: "recurring-1",
-  created_at: isoNow,
-  updated_at: isoNow,
-  name: "電気代",
-  amount: "8000",
-  foreign_amount: null,
-  currency_code: null,
-  exchange_rate: null,
-  payment_day: 15,
-  start_date: "2026-01-01",
-  end_date: null,
-  category_id: "expense-category-1",
-  payment_method_id: "payment-method-1",
-  is_active: true,
-  is_variable: true,
-  description: null,
-};
-const usdVariableRecurring = {
-  ...variableRecurring,
+const variableRecurring = recurringExpense({ is_variable: true });
+const usdVariableRecurring = recurringExpense({
   id: "recurring-usd-1",
   name: "動画サービス",
   amount: "10",
+  is_variable: true,
   foreign_amount: "10",
   currency_code: "USD",
-};
+});
 
-function baseResponses(overrides: Partial<Record<string, unknown>> = {}) {
+function baseResponses(overrides: MockResponses = {}): MockResponses {
   return {
     "/api/expenses": [],
-    "/api/incomes": { items: [], pagination },
-    "/api/expense-categories": { items: [expenseCategory], pagination },
-    "/api/income-categories": { items: [incomeCategory], pagination },
-    "/api/payment-methods": { items: [paymentMethod], pagination },
+    "/api/incomes": listOf([]),
+    "/api/expense-categories": listOf([category()]),
+    "/api/income-categories": listOf([incomeCategory()]),
+    "/api/payment-methods": listOf([paymentMethod()]),
     "/api/recurring-expenses": [variableRecurring],
     "/api/recurring-incomes": [],
-    "/api/budgets": [budget],
+    "/api/budgets": [budget()],
     ...overrides,
   };
 }
 
-async function mockMonthlyApi(page: Page, overrides: Partial<Record<string, unknown>> = {}) {
-  await page.route("**/api/**", async (route) => {
-    const request = route.request();
-    const path = new URL(request.url()).pathname;
-    const responses = baseResponses(overrides);
-    await route.fulfill({
-      status: responses[path] === undefined ? 404 : 200,
-      contentType: "application/json",
-      body: JSON.stringify(responses[path] ?? { message: "Not found" }),
-    });
-  });
+async function mockMonthlyApi(
+  page: Page,
+  overrides: MockResponses = {},
+  handlers: MockHandlers = {},
+) {
+  await mockApi(page, baseResponses(overrides), handlers);
+}
+
+/** Records the posted expense and echoes it back like the API does. */
+function captureExpenseCreation() {
+  const captured: { body?: Record<string, unknown> } = {};
+  const handlers: MockHandlers = {
+    "POST /api/expenses": (request) => {
+      captured.body = jsonBody(request);
+      return {
+        body: { id: "expense-1", created_at: isoNow, updated_at: isoNow, ...captured.body },
+      };
+    },
+  };
+  return { captured, handlers };
 }
 
 test("収支を登録する", async ({ page }) => {
-  let created: Record<string, unknown> | undefined;
-  await page.route("**/api/**", async (route) => {
-    const request = route.request();
-    const path = new URL(request.url()).pathname;
-    if (path === "/api/expenses" && request.method() === "POST") {
-      created = {
-        id: "expense-1",
-        created_at: isoNow,
-        updated_at: isoNow,
-        ...(request.postDataJSON() as Record<string, unknown>),
-      };
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(created),
-      });
-      return;
-    }
-    const responses = baseResponses();
-    await route.fulfill({
-      status: responses[path] === undefined ? 404 : 200,
-      contentType: "application/json",
-      body: JSON.stringify(responses[path] ?? { message: "Not found" }),
-    });
-  });
+  const { captured, handlers } = captureExpenseCreation();
+  await mockMonthlyApi(page, {}, handlers);
 
   await page.goto("/");
   await page.getByRole("button", { name: "記録する" }).first().click();
@@ -131,7 +74,7 @@ test("収支を登録する", async ({ page }) => {
   await page.getByRole("button", { name: "登録する" }).click();
 
   await expect(page.getByText("支出を登録しました", { exact: true })).toBeVisible();
-  expect(created).toMatchObject({
+  expect(captured.body).toMatchObject({
     amount: "1500",
     category_id: "expense-category-1",
     payment_method_id: "payment-method-1",
@@ -139,31 +82,8 @@ test("収支を登録する", async ({ page }) => {
 });
 
 test("準固定費の今月分を登録する", async ({ page }) => {
-  let created: Record<string, unknown> | undefined;
-  await page.route("**/api/**", async (route) => {
-    const request = route.request();
-    const path = new URL(request.url()).pathname;
-    if (path === "/api/expenses" && request.method() === "POST") {
-      created = {
-        id: "expense-1",
-        created_at: isoNow,
-        updated_at: isoNow,
-        ...(request.postDataJSON() as Record<string, unknown>),
-      };
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(created),
-      });
-      return;
-    }
-    const responses = baseResponses();
-    await route.fulfill({
-      status: responses[path] === undefined ? 404 : 200,
-      contentType: "application/json",
-      body: JSON.stringify(responses[path] ?? { message: "Not found" }),
-    });
-  });
+  const { captured, handlers } = captureExpenseCreation();
+  await mockMonthlyApi(page, {}, handlers);
 
   await page.goto("/");
   await expect(page.getByText("準固定費（金額変動）")).toBeVisible();
@@ -174,49 +94,27 @@ test("準固定費の今月分を登録する", async ({ page }) => {
   await page.getByRole("button", { name: "登録する" }).click();
 
   await expect(page.getByText("支出を登録しました", { exact: true })).toBeVisible();
-  expect(created).toMatchObject({ amount: "7500", recurring_expense_id: "recurring-1" });
+  expect(captured.body).toMatchObject({ amount: "7500", recurring_expense_id: "recurring-1" });
 });
 
 test("USD建て準固定費は為替プレビューを表示し、換算後の金額を送信する", async ({ page }) => {
-  let created: Record<string, unknown> | undefined;
-  await page.route("**/api/**", async (route) => {
-    const request = route.request();
-    const path = new URL(request.url()).pathname;
-    if (path === "/api/recurring-expenses/recurring-usd-1/exchange-rate") {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
+  const { captured, handlers } = captureExpenseCreation();
+  await mockMonthlyApi(
+    page,
+    { "/api/recurring-expenses": [usdVariableRecurring] },
+    {
+      ...handlers,
+      "GET /api/recurring-expenses/recurring-usd-1/exchange-rate": () => ({
+        body: {
           foreign_amount: "10",
           currency_code: "USD",
           exchange_rate: "150.5",
           exchange_rate_date: "2026-08-31",
           converted_amount: "1505",
-        }),
-      });
-      return;
-    }
-    if (path === "/api/expenses" && request.method() === "POST") {
-      created = request.postDataJSON() as Record<string, unknown>;
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          id: "expense-usd-1",
-          created_at: isoNow,
-          updated_at: isoNow,
-          ...created,
-        }),
-      });
-      return;
-    }
-    const responses = baseResponses({ "/api/recurring-expenses": [usdVariableRecurring] });
-    await route.fulfill({
-      status: responses[path] === undefined ? 404 : 200,
-      contentType: "application/json",
-      body: JSON.stringify(responses[path] ?? { message: "Not found" }),
-    });
-  });
+        },
+      }),
+    },
+  );
 
   await page.goto("/");
   await page.getByRole("button", { name: "動画サービスの今月分を登録" }).click();
@@ -225,7 +123,7 @@ test("USD建て準固定費は為替プレビューを表示し、換算後の�
   await page.getByRole("button", { name: "登録する" }).click();
 
   await expect(page.getByText("支出を登録しました", { exact: true })).toBeVisible();
-  expect(created).toMatchObject({
+  expect(captured.body).toMatchObject({
     amount: "1505",
     foreign_amount: "10",
     currency_code: "USD",
@@ -234,42 +132,22 @@ test("USD建て準固定費は為替プレビューを表示し、換算後の�
 });
 
 test("最近の明細から支出を編集・削除する", async ({ page }) => {
-  const expense = {
-    id: "expense-1",
-    created_at: isoNow,
-    updated_at: isoNow,
-    transaction_date: `${month}-02`,
-    amount: "2000",
-    category_id: "expense-category-1",
-    payment_method_id: "payment-method-1",
-    recurring_expense_id: null,
-    description: "電車代",
-  };
-  let expenses: unknown[] = [expense];
-  await page.route("**/api/**", async (route) => {
-    const request = route.request();
-    const path = new URL(request.url()).pathname;
-    if (path === "/api/expenses/expense-1" && request.method() === "PUT") {
-      expenses = [{ ...expense, ...(request.postDataJSON() as Record<string, unknown>) }];
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(expenses[0]),
-      });
-      return;
-    }
-    if (path === "/api/expenses/expense-1" && request.method() === "DELETE") {
-      expenses = [];
-      await route.fulfill({ status: 204 });
-      return;
-    }
-    const responses = baseResponses({ "/api/expenses": expenses, "/api/recurring-expenses": [] });
-    await route.fulfill({
-      status: responses[path] === undefined ? 404 : 200,
-      contentType: "application/json",
-      body: JSON.stringify(responses[path] ?? { message: "Not found" }),
-    });
-  });
+  const original = expense();
+  let expenses = [original];
+  await mockApi(
+    page,
+    () => baseResponses({ "/api/expenses": expenses, "/api/recurring-expenses": [] }),
+    {
+      "PUT /api/expenses/expense-1": (request) => {
+        expenses = [{ ...original, ...jsonBody(request) }];
+        return { body: expenses[0] };
+      },
+      "DELETE /api/expenses/expense-1": () => {
+        expenses = [];
+        return { status: 204 };
+      },
+    },
+  );
 
   await page.goto("/");
   await expect(page.getByText("電車代")).toBeVisible();

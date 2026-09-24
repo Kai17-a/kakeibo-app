@@ -1,41 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
-
-const isoNow = new Date().toISOString();
-const pagination = { page: 1, per_page: 100, total: 1, total_pages: 1 };
-const expenseCategory = {
-  id: "expense-category-1",
-  name: "住居費",
-  description: null,
-  parent_category_id: null,
-  display_order: 0,
-  created_at: isoNow,
-  updated_at: isoNow,
-};
-const paymentMethod = {
-  id: "payment-method-1",
-  name: "口座振替",
-  description: null,
-  initial_balance: null,
-  balance: null,
-  created_at: isoNow,
-  updated_at: isoNow,
-};
+import { mockApi } from "./support/api";
+import { category, listOf, paymentMethod } from "./support/fixtures";
 
 async function mockRecurringApi(page: Page) {
-  await page.route("**/api/**", async (route) => {
-    const request = route.request();
-    const path = new URL(request.url()).pathname;
-    const responses: Record<string, unknown> = {
-      "/api/expense-categories": { items: [expenseCategory], pagination },
-      "/api/income-categories": { items: [], pagination },
-      "/api/payment-methods": { items: [paymentMethod], pagination },
-      "/api/recurring-expenses": [],
-    };
-    await route.fulfill({
-      status: responses[path] === undefined ? 404 : 200,
-      contentType: "application/json",
-      body: JSON.stringify(responses[path] ?? { message: "Not found" }),
-    });
+  await mockApi(page, {
+    "/api/expense-categories": listOf([category({ name: "住居費" })]),
+    "/api/income-categories": listOf([]),
+    "/api/payment-methods": listOf([paymentMethod({ name: "口座振替" })]),
+    "/api/recurring-expenses": [],
   });
 }
 
