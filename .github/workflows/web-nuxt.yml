@@ -1,0 +1,54 @@
+name: Web Nuxt CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web-nuxt/**"
+      - ".github/workflows/web-nuxt.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/web-nuxt/**"
+      - ".github/workflows/web-nuxt.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Lint, typecheck, and test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web-nuxt
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/web-nuxt/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check lint
+        run: npm run lint
+
+      - name: Check TypeScript
+        run: npm run typecheck
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run end-to-end tests
+        run: npm run test:e2e
