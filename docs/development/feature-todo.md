@@ -1,6 +1,6 @@
 # 追加機能 実装TODO
 
-`docs/development/feature-rollout-progress.md` の仕様棚卸しから出た8機能（資産・口座残高管理／収入明細一覧UI・フィルタ／予算管理／Webhookイベント種別フィルタ／グラフ分析の強化・資産推移グラフ／DBバックアップ）は、6つの実装単位としてすべて完了した。各単位の設計判断・実装内容・レビュー指摘の詳細は `docs/development/feature-rollout-progress.md` の「単位1」〜「単位6」セクションを参照。
+`docs/development/feature-rollout-progress.md` の仕様棚卸しから出た機能（資産・口座残高管理／収入明細一覧UI・フィルタ／予算管理／グラフ分析の強化・資産推移グラフ／DBバックアップ）は、実装単位へ分割してすべて完了した。各単位の設計判断・実装内容・レビュー指摘の詳細は `docs/development/feature-rollout-progress.md` を参照。
 
 対象外（実装しない）: レシート画像添付、定期支出の支払日リマインド、認証・マルチユーザー対応、DB復元のアプリ内実装（運用手順はREADME参照）、貯蓄目標金額を登録する専用機能（残高推移グラフのみ実装）。
 
