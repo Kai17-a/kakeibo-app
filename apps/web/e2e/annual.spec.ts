@@ -1,10 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
-import { mockApi, type MockResponses } from "./support/api";
+import { jsonBody, mockApi, type MockHandlers, type MockResponses } from "./support/api";
 import {
   category,
   currentYear as year,
   expense,
   income,
+  incomeCategory,
+  isoNow,
   listOf,
   paymentMethod,
 } from "./support/fixtures";
@@ -20,16 +22,27 @@ const expenses = [
 ];
 const incomes = [income({ transaction_date: `${year}-01-25` })];
 
-async function mockAnnualApi(page: Page, overrides: MockResponses = {}) {
-  await mockApi(page, {
-    "/api/expenses": expenses,
-    "/api/incomes": listOf(incomes),
-    "/api/expense-categories": listOf([category()]),
-    "/api/payment-methods": listOf([paymentMethod({ initial_balance: "10000", balance: "10000" })]),
-    "/api/recurring-expenses": [],
-    "/api/recurring-incomes": [],
-    ...overrides,
-  });
+async function mockAnnualApi(
+  page: Page,
+  overrides: MockResponses = {},
+  handlers: MockHandlers = {},
+) {
+  await mockApi(
+    page,
+    {
+      "/api/expenses": expenses,
+      "/api/incomes": listOf(incomes),
+      "/api/expense-categories": listOf([category()]),
+      "/api/income-categories": listOf([incomeCategory()]),
+      "/api/payment-methods": listOf([
+        paymentMethod({ initial_balance: "10000", balance: "10000" }),
+      ]),
+      "/api/recurring-expenses": [],
+      "/api/recurring-incomes": [],
+      ...overrides,
+    },
+    handlers,
+  );
 }
 
 test("年間サマリー・内訳・テーブルが表示される", async ({ page }) => {
@@ -77,4 +90,28 @@ test("旧URLの/annualは年間集計へリダイレクトする", async ({ page
 
   await expect(page).toHaveURL(new RegExp(`/\\?year=${year}$`));
   await expect(page.getByText("年間収入", { exact: true })).toBeVisible();
+});
+
+test("年間集計から収支を記録するとグラフの集計に反映される", async ({ page }) => {
+  let created: Record<string, unknown> | undefined;
+  await mockAnnualApi(
+    page,
+    {},
+    {
+      "POST /api/expenses": (request) => {
+        created = jsonBody(request);
+        return { body: { id: "expense-new", created_at: isoNow, updated_at: isoNow, ...created } };
+      },
+    },
+  );
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "記録する" }).click();
+  await expect(page.getByRole("heading", { name: "収支を登録" })).toBeVisible();
+  await page.getByLabel("金額").fill("2000");
+  await page.getByRole("button", { name: "登録する" }).click();
+
+  await expect(page.getByText("支出を登録しました", { exact: true })).toBeVisible();
+  expect(created).toMatchObject({ amount: "2000", category_id: "expense-category-1" });
+  await expect(page.getByText(/10,000/).first()).toBeVisible();
 });

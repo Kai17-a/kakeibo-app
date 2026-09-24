@@ -157,9 +157,7 @@ const {
           </template>
           <template #right>
             <MonthNavigator :model-value="month" @update:model-value="setMonth" />
-            <UButton icon="i-lucide-plus" aria-label="記録する" @click="openNew">
-              <span class="hidden sm:inline">記録する</span>
-            </UButton>
+            <RecordTransactionButton @click="openNew" />
           </template>
         </UDashboardNavbar>
       </template>
