@@ -133,7 +133,7 @@ async function submit(keepOpen: boolean) {
     description="日付や金額、カテゴリを入力してください。"
     :dismissible="!saving"
     :close="!saving"
-    :ui="{ footer: 'justify-end' }"
+    :ui="{ content: 'max-w-xl', body: 'sm:p-6', footer: 'flex-wrap justify-end gap-2' }"
     @update:open="(value) => emit('update:open', value)"
   >
     <template #body>
@@ -141,11 +141,12 @@ async function submit(keepOpen: boolean) {
         v-if="!editing && !preset"
         v-model="kind"
         :items="[{ label: '支出', value: 'expense' }, { label: '収入', value: 'income' }]"
-        class="mb-4"
+        variant="link"
+        class="mb-5 w-fit"
       />
       <form
         id="transaction-form"
-        class="flex flex-col gap-5"
+        class="grid grid-cols-1 gap-5 sm:grid-cols-2"
         @submit.prevent="handleSubmit"
       >
         <UFormField
@@ -160,7 +161,10 @@ async function submit(keepOpen: boolean) {
             class="w-full"
           />
         </UFormField>
-        <UFormField label="金額">
+        <UFormField
+          label="金額"
+          required
+        >
           <UInput
             :model-value="state.amount"
             type="number"
@@ -192,7 +196,10 @@ async function submit(keepOpen: boolean) {
             @update:model-value="state.paymentMethodId = $event == null || $event === NO_PAYMENT_METHOD_VALUE ? '' : String($event)"
           />
         </UFormField>
-        <UFormField label="メモ（任意）">
+        <UFormField
+          label="メモ（任意）"
+          class="sm:col-span-2"
+        >
           <UTextarea
             v-model="state.description"
             class="w-full"

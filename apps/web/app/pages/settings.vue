@@ -7,7 +7,7 @@ const links = [settingsNavigation]
 <template>
   <UDashboardPanel
     id="settings"
-    :ui="{ body: 'lg:py-12' }"
+    :ui="{ body: 'py-6 sm:py-8' }"
   >
     <template #header>
       <UDashboardNavbar title="設定">
@@ -25,7 +25,7 @@ const links = [settingsNavigation]
       </UDashboardToolbar>
     </template>
     <template #body>
-      <div class="flex flex-col gap-4 sm:gap-6 lg:gap-12 w-full max-w-5xl mx-auto">
+      <div class="mx-auto flex w-full max-w-4xl min-w-0 flex-col gap-6">
         <NuxtPage />
       </div>
     </template>

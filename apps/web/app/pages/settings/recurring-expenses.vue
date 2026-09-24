@@ -19,12 +19,12 @@ const categoryOptions = computed(() => categories.value.map(item => ({ label: it
 const paymentMethodOptions = computed(() => paymentMethods.value.map(item => ({ label: item.name, value: item.id })))
 const sortedItems = computed(() => [...items.value].sort((a, b) => a.name.localeCompare(b.name, 'ja')))
 const columns: TableColumn<RecurringExpense>[] = [
-  { accessorKey: 'name', header: '名称' },
-  { id: 'category', header: 'カテゴリ / 支払方法' },
-  { accessorKey: 'payment_day', header: '支払日', cell: ({ row }) => `毎月${row.original.payment_day}日` },
-  { accessorKey: 'amount', header: '金額', cell: ({ row }) => formatYen(row.original.amount), meta: { class: { th: 'text-right', td: 'text-right tabular-nums' } } },
-  { accessorKey: 'is_active', header: '状態' },
-  { id: 'actions', header: '操作' }
+  { accessorKey: 'name', header: '名称', meta: { class: { th: 'w-full min-w-0', td: 'w-full min-w-0' } } },
+  { id: 'category', header: 'カテゴリ / 支払方法', meta: { class: { th: 'hidden sm:table-cell', td: 'hidden sm:table-cell' } } },
+  { accessorKey: 'payment_day', header: '支払日', cell: ({ row }) => `毎月${row.original.payment_day}日`, meta: { class: { th: 'hidden whitespace-nowrap md:table-cell', td: 'hidden whitespace-nowrap md:table-cell' } } },
+  { accessorKey: 'amount', header: '金額', cell: ({ row }) => formatYen(row.original.amount), meta: { class: { th: 'w-24 whitespace-nowrap text-right', td: 'w-24 whitespace-nowrap text-right tabular-nums' } } },
+  { accessorKey: 'is_active', header: '状態', meta: { class: { th: 'hidden whitespace-nowrap lg:table-cell', td: 'hidden whitespace-nowrap lg:table-cell' } } },
+  { id: 'actions', header: '操作', meta: { class: { th: 'w-14 whitespace-nowrap text-right', td: 'w-14 whitespace-nowrap text-right' } } }
 ]
 
 function categoryName(id: string) {
@@ -104,6 +104,12 @@ function askDelete(item: RecurringExpense) {
   deleteError.value = ''
   deleteOpen.value = true
 }
+function recurringExpenseActions(item: RecurringExpense) {
+  return [[
+    { label: '編集', icon: 'i-lucide-pencil', onSelect: () => openForm(item) },
+    { label: '削除', icon: 'i-lucide-trash-2', color: 'error' as const, onSelect: () => askDelete(item) }
+  ]]
+}
 async function remove() {
   if (!deleting.value || removing.value) return
   removing.value = true
@@ -143,11 +149,11 @@ async function backfill(item: RecurringExpense) {
     class="space-y-6"
     aria-labelledby="recurring-expense-heading"
   >
-    <div class="flex items-start justify-between gap-4">
-      <div class="space-y-2">
+    <div class="flex min-w-0 items-start justify-between gap-3 sm:gap-4">
+      <div class="min-w-0 space-y-1">
         <h2
           id="recurring-expense-heading"
-          class="text-lg font-semibold flex items-center gap-3"
+          class="flex flex-wrap items-center gap-2 text-xl font-semibold text-highlighted"
         >
           {{ label }}
           <UBadge
@@ -205,62 +211,76 @@ async function backfill(item: RecurringExpense) {
           {{ label }}がありません
         </h3>
         <p class="text-sm text-muted">
-          右上の「追加」から定期支出を登録してください。
+          毎月の固定費を登録すると、ここに一覧が表示されます。
         </p>
+        <UButton
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-plus"
+          @click="openForm()"
+        >
+          定期支出を追加
+        </UButton>
       </div>
     </UCard>
     <template v-else>
-      <UTable
-        :data="sortedItems"
-        :columns="columns"
-        :aria-label="`${label}一覧`"
-      >
-        <template #name-cell="{ row }">
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="whitespace-normal break-words">{{ row.original.name }}</span>
+      <div class="min-w-0 overflow-hidden rounded-lg border border-default">
+        <UTable
+          :data="sortedItems"
+          :columns="columns"
+          :aria-label="`${label}一覧`"
+          class="w-full"
+          :ui="{ root: 'overflow-hidden', base: 'w-full table-fixed', th: 'px-3 py-2 sm:px-4', td: 'px-3 py-2 whitespace-normal sm:px-4' }"
+        >
+          <template #name-cell="{ row }">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="whitespace-normal break-words font-medium text-default">{{ row.original.name }}</span>
+                <UBadge
+                  v-if="row.original.is_variable"
+                  color="neutral"
+                  variant="soft"
+                >
+                  準固定費
+                </UBadge>
+              </div>
+              <p
+                v-if="row.original.description"
+                class="mt-0.5 whitespace-pre-wrap break-words text-xs text-muted"
+              >
+                {{ row.original.description }}
+              </p>
+              <p class="mt-0.5 break-words text-xs text-muted sm:hidden">
+                {{ categoryName(row.original.category_id) }} / {{ paymentMethodName(row.original.payment_method_id) }} · 毎月{{ row.original.payment_day }}日 · {{ row.original.is_active ? '有効' : '無効' }}
+              </p>
+            </div>
+          </template>
+          <template #category-cell="{ row }">
+            <span class="text-sm text-muted whitespace-normal break-words">
+              {{ categoryName(row.original.category_id) }} / {{ paymentMethodName(row.original.payment_method_id) }}
+            </span>
+          </template>
+          <template #is_active-cell="{ row }">
             <UBadge
-              v-if="row.original.is_variable"
-              color="neutral"
+              :color="row.original.is_active ? 'success' : 'neutral'"
               variant="soft"
             >
-              準固定費
+              {{ row.original.is_active ? '有効' : '無効' }}
             </UBadge>
-          </div>
-        </template>
-        <template #category-cell="{ row }">
-          <span class="text-sm text-muted whitespace-normal break-words">
-            {{ categoryName(row.original.category_id) }} / {{ paymentMethodName(row.original.payment_method_id) }}
-          </span>
-        </template>
-        <template #is_active-cell="{ row }">
-          <UBadge
-            :color="row.original.is_active ? 'success' : 'neutral'"
-            variant="soft"
-          >
-            {{ row.original.is_active ? '有効' : '無効' }}
-          </UBadge>
-        </template>
-        <template #actions-cell="{ row }">
-          <div class="flex gap-2">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              :aria-label="`${row.original.name}を編集`"
-              @click="openForm(row.original)"
-            >
-              編集
-            </UButton>
-            <UButton
-              color="error"
-              variant="soft"
-              :aria-label="`${row.original.name}を削除`"
-              @click="askDelete(row.original)"
-            >
-              削除
-            </UButton>
-          </div>
-        </template>
-      </UTable>
+          </template>
+          <template #actions-cell="{ row }">
+            <UDropdownMenu :items="recurringExpenseActions(row.original)">
+              <UButton
+                icon="i-lucide-ellipsis"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                :aria-label="`${row.original.name}の操作`"
+              />
+            </UDropdownMenu>
+          </template>
+        </UTable>
+      </div>
       <div class="flex flex-col gap-3">
         <template
           v-for="item in sortedItems"

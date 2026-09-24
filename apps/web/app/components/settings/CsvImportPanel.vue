@@ -32,7 +32,7 @@ const columns = computed<TableColumn<Row>[]>(() => {
   if (props.kind === 'recurring-expense') {
     return [
       { accessorKey: 'name', header: '名称' },
-      { accessorKey: 'amount', header: '金額' },
+      { accessorKey: 'amount', header: '金額', meta: { class: { th: 'text-right', td: 'text-right tabular-nums whitespace-nowrap' } } },
       { accessorKey: 'currency', header: '通貨' },
       { accessorKey: 'payment_day', header: '支払日' },
       { accessorKey: 'start_date', header: '開始日' },
@@ -45,7 +45,7 @@ const columns = computed<TableColumn<Row>[]>(() => {
   if (props.kind === 'expense') {
     return [
       { accessorKey: 'transaction_date', header: '日付' },
-      { accessorKey: 'amount', header: '金額' },
+      { accessorKey: 'amount', header: '金額', meta: { class: { th: 'text-right', td: 'text-right tabular-nums whitespace-nowrap' } } },
       { accessorKey: 'category', header: 'カテゴリ' },
       { accessorKey: 'payment_method', header: '支払方法' },
       { accessorKey: 'description', header: 'メモ' }
@@ -53,7 +53,7 @@ const columns = computed<TableColumn<Row>[]>(() => {
   }
   return [
     { accessorKey: 'transaction_date', header: '日付' },
-    { accessorKey: 'amount', header: '金額' },
+    { accessorKey: 'amount', header: '金額', meta: { class: { th: 'text-right', td: 'text-right tabular-nums whitespace-nowrap' } } },
     { accessorKey: 'category', header: 'カテゴリ' },
     { accessorKey: 'description', header: 'メモ' }
   ]
@@ -126,7 +126,7 @@ async function importPreview() {
 
 <template>
   <div class="flex min-w-0 flex-col gap-3">
-    <div class="flex flex-wrap items-center gap-2">
+    <div class="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center">
       <UButton
         icon="i-lucide-upload"
         color="neutral"
@@ -164,13 +164,13 @@ async function importPreview() {
 
     <div
       v-if="hasPreview"
-      class="flex flex-col gap-3 rounded-md border border-default p-3"
+      class="flex min-w-0 flex-col gap-4 rounded-lg border border-default p-3 sm:p-4"
     >
-      <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
         <p class="text-sm font-medium">
           {{ rows.length }}件をインポートします
         </p>
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2">
           <UButton
             color="neutral"
             variant="outline"
@@ -201,14 +201,21 @@ async function importPreview() {
       </div>
       <div class="max-h-[28rem] min-w-0 overflow-auto rounded-md border border-default">
         <UTable
+          :ui="{ th: 'px-4 py-2', td: 'px-4 py-2' }"
           :data="rows"
           :columns="columns"
         >
           <template #amount-cell="{ row }">
-            <span v-if="kind === 'recurring-expense'">
+            <span
+              v-if="kind === 'recurring-expense'"
+              class="tabular-nums"
+            >
               {{ recurringRow(row.original).amount }}{{ recurringRow(row.original).foreign_amount ? ` / ${recurringRow(row.original).foreign_amount}` : '' }}
             </span>
-            <span v-else>{{ row.original.amount }}</span>
+            <span
+              v-else
+              class="tabular-nums"
+            >{{ row.original.amount }}</span>
           </template>
           <template
             v-if="kind === 'recurring-expense'"

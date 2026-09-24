@@ -16,9 +16,9 @@ const unassignedCategories = computed(() => availableBudgetCategories(categories
 const budgetCategories = computed(() => availableBudgetCategories(categories.value, items.value, items.value.find(item => item.id === editingId.value)?.category_id))
 const categoryOptions = computed(() => budgetCategories.value.map(item => ({ label: item.name, value: item.id })))
 const columns: TableColumn<Budget>[] = [
-  { accessorKey: 'category_id', header: 'カテゴリ名', cell: ({ row }) => categoryName(row.original.category_id) },
-  { accessorKey: 'amount', header: '月額予算', cell: ({ row }) => formatYen(row.original.amount) },
-  { id: 'actions', header: '操作' }
+  { accessorKey: 'category_id', header: 'カテゴリ名', cell: ({ row }) => categoryName(row.original.category_id), meta: { class: { th: 'w-full min-w-0', td: 'w-full min-w-0' } } },
+  { accessorKey: 'amount', header: '月額予算', cell: ({ row }) => formatYen(row.original.amount), meta: { class: { th: 'w-28 whitespace-nowrap text-right', td: 'w-28 whitespace-nowrap text-right tabular-nums' } } },
+  { id: 'actions', header: '操作', meta: { class: { th: 'w-14 whitespace-nowrap text-right', td: 'w-14 whitespace-nowrap text-right' } } }
 ]
 function categoryName(id: string) {
   return categories.value.find(item => item.id === id)?.name ?? '不明なカテゴリ'
@@ -84,6 +84,12 @@ function askDelete(item: Budget) {
   deleteError.value = ''
   deleteOpen.value = true
 }
+function budgetActions(item: Budget) {
+  return [[
+    { label: '編集', icon: 'i-lucide-pencil', onSelect: () => openForm(item) },
+    { label: '削除', icon: 'i-lucide-trash-2', color: 'error' as const, onSelect: () => askDelete(item) }
+  ]]
+}
 async function remove() {
   if (!deleting.value || removing.value) return
   removing.value = true
@@ -107,11 +113,11 @@ async function remove() {
     class="space-y-6"
     aria-labelledby="budget-heading"
   >
-    <div class="flex items-start justify-between gap-4">
-      <div class="space-y-2">
+    <div class="flex min-w-0 items-start justify-between gap-3 sm:gap-4">
+      <div class="min-w-0 space-y-1">
         <h2
           id="budget-heading"
-          class="text-lg font-semibold flex items-center gap-3"
+          class="flex flex-wrap items-center gap-2 text-xl font-semibold text-highlighted"
         >
           {{ label }}
           <UBadge
@@ -174,37 +180,46 @@ async function remove() {
           {{ label }}がありません
         </h3>
         <p class="text-sm text-muted">
-          支出カテゴリを登録してから、右上の「追加」で月額予算を設定してください。
+          カテゴリごとの月額予算を設定すると、ここに一覧が表示されます。
         </p>
+        <UButton
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-plus"
+          :disabled="!unassignedCategories.length"
+          @click="openForm()"
+        >
+          予算を追加
+        </UButton>
       </div>
     </UCard>
-    <UTable
+    <div
       v-else
-      :data="sortedItems"
-      :columns="columns"
-      :aria-label="`${label}一覧`"
+      class="min-w-0 overflow-hidden rounded-lg border border-default"
     >
-      <template #actions-cell="{ row }">
-        <div class="flex gap-2">
-          <UButton
-            color="neutral"
-            variant="ghost"
-            :aria-label="`${categoryName(row.original.category_id)}を編集`"
-            @click="openForm(row.original)"
-          >
-            編集
-          </UButton>
-          <UButton
-            color="error"
-            variant="soft"
-            :aria-label="`${categoryName(row.original.category_id)}を削除`"
-            @click="askDelete(row.original)"
-          >
-            削除
-          </UButton>
-        </div>
-      </template>
-    </UTable>
+      <UTable
+        :data="sortedItems"
+        :columns="columns"
+        :aria-label="`${label}一覧`"
+        class="w-full"
+        :ui="{ root: 'overflow-hidden', base: 'w-full table-fixed', th: 'px-3 py-2 sm:px-4', td: 'px-3 py-2 whitespace-normal sm:px-4' }"
+      >
+        <template #category_id-cell="{ row }">
+          <span class="break-words font-medium text-default">{{ categoryName(row.original.category_id) }}</span>
+        </template>
+        <template #actions-cell="{ row }">
+          <UDropdownMenu :items="budgetActions(row.original)">
+            <UButton
+              icon="i-lucide-ellipsis"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              :aria-label="`${categoryName(row.original.category_id)}の操作`"
+            />
+          </UDropdownMenu>
+        </template>
+      </UTable>
+    </div>
     <UModal
       v-model:open="formOpen"
       :title="`${label}を${editingId ? '編集' : '追加'}`"

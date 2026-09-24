@@ -18,9 +18,8 @@ const parentOptions = computed(() => [
   ...sortedItems.value.filter(item => item.parent_category_id === null && item.id !== editingId.value).map(item => ({ label: item.name, value: item.id }))
 ])
 const columns: TableColumn<Category>[] = [
-  { accessorKey: 'name', header: 'カテゴリ名' },
-  { accessorKey: 'description', header: '説明' },
-  { id: 'actions', header: '操作' }
+  { accessorKey: 'name', header: 'カテゴリ名', meta: { class: { th: 'w-full min-w-0', td: 'w-full min-w-0' } } },
+  { id: 'actions', header: '操作', meta: { class: { th: 'w-32 whitespace-nowrap text-right', td: 'w-32 whitespace-nowrap text-right' } } }
 ]
 const validate = validateNamed
 function openForm(item?: Category) {
@@ -96,6 +95,15 @@ function askDelete(item: Category) {
   deleteError.value = ''
   deleteOpen.value = true
 }
+function categoryActions(item: Category) {
+  return [[
+    { label: '編集', icon: 'i-lucide-pencil', onSelect: () => openForm(item) },
+    { label: '削除', icon: 'i-lucide-trash-2', color: 'error' as const, onSelect: () => askDelete(item) }
+  ]]
+}
+function parentName(item: Category) {
+  return items.value.find(candidate => candidate.id === item.parent_category_id)?.name
+}
 async function remove() {
   if (!deleting.value || removing.value) return
   removing.value = true
@@ -119,11 +127,11 @@ async function remove() {
     class="space-y-6"
     aria-labelledby="category-heading"
   >
-    <div class="flex items-start justify-between gap-4">
-      <div class="space-y-2">
+    <div class="flex min-w-0 items-start justify-between gap-3 sm:gap-4">
+      <div class="min-w-0 space-y-1">
         <h2
           id="category-heading"
-          class="text-lg font-semibold flex items-center gap-3"
+          class="flex flex-wrap items-center gap-2 text-xl font-semibold text-highlighted"
         >
           {{ label }}
           <UBadge
@@ -186,71 +194,78 @@ async function remove() {
           {{ label }}がありません
         </h3>
         <p class="text-sm text-muted">
-          右上の「追加」からカテゴリを登録してください。
+          収支を整理するカテゴリを登録すると、ここに一覧が表示されます。
         </p>
+        <UButton
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-plus"
+          @click="openForm()"
+        >
+          カテゴリを追加
+        </UButton>
       </div>
     </UCard>
-    <UTable
+    <div
       v-else
-      :data="sortedItems"
-      :columns="columns"
-      :aria-label="`${label}一覧`"
+      class="min-w-0 overflow-hidden rounded-lg border border-default"
     >
-      <template #name-cell="{ row }">
-        <div :class="['flex items-center gap-2', row.original.parent_category_id !== null ? 'pl-6' : '']">
-          <span class="whitespace-normal break-words">{{ row.original.name }}</span>
-          <UBadge
-            color="neutral"
-            variant="soft"
-          >
-            {{ row.original.parent_category_id === null ? '親カテゴリ' : '子カテゴリ' }}
-          </UBadge>
-        </div>
-      </template>
-      <template #description-cell="{ row }">
-        <p class="whitespace-pre-wrap break-words">
-          {{ row.original.description || '—' }}
-        </p>
-      </template>
-      <template #actions-cell="{ row }">
-        <div class="flex gap-2">
-          <UButton
-            icon="i-lucide-arrow-up"
-            color="neutral"
-            variant="ghost"
-            :aria-label="`${row.original.name}を上へ移動`"
-            :disabled="reordering || !canMove(row.original, -1)"
-            @click="move(row.original, -1)"
-          />
-          <UButton
-            icon="i-lucide-arrow-down"
-            color="neutral"
-            variant="ghost"
-            :aria-label="`${row.original.name}を下へ移動`"
-            :disabled="reordering || !canMove(row.original, 1)"
-            @click="move(row.original, 1)"
-          />
-          <UButton
-            color="neutral"
-            variant="ghost"
-            :aria-label="`${row.original.name}を編集`"
-            :disabled="reordering"
-            @click="openForm(row.original)"
-          >
-            編集
-          </UButton>
-          <UButton
-            color="error"
-            variant="soft"
-            :aria-label="`${row.original.name}を削除`"
-            :disabled="reordering"
-            @click="askDelete(row.original)"
-          >
-            削除
-          </UButton>
-        </div>
-      </template>
-    </UTable>
+      <UTable
+        :data="sortedItems"
+        :columns="columns"
+        :aria-label="`${label}一覧`"
+        class="w-full"
+        :ui="{ root: 'overflow-hidden', base: 'w-full table-fixed', th: 'px-3 py-2 sm:px-4', td: 'px-3 py-2 whitespace-normal sm:px-4' }"
+      >
+        <template #name-cell="{ row }">
+          <div :class="['min-w-0', row.original.parent_category_id !== null ? 'pl-6' : '']">
+            <p class="whitespace-normal break-words font-medium text-default">
+              {{ row.original.name }}
+            </p>
+            <p
+              v-if="row.original.parent_category_id !== null || row.original.description"
+              class="mt-0.5 whitespace-normal text-xs text-muted"
+            >
+              <span v-if="row.original.parent_category_id !== null">親: {{ parentName(row.original) }}</span>
+              <span v-if="row.original.parent_category_id !== null && row.original.description"> · </span>
+              <span class="whitespace-pre-wrap break-words">{{ row.original.description }}</span>
+            </p>
+          </div>
+        </template>
+        <template #actions-cell="{ row }">
+          <div class="flex items-center justify-end gap-1">
+            <UButton
+              icon="i-lucide-arrow-up"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              :aria-label="`${row.original.name}を上へ移動`"
+              :disabled="reordering || !canMove(row.original, -1)"
+              @click="move(row.original, -1)"
+            />
+            <UButton
+              icon="i-lucide-arrow-down"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              :aria-label="`${row.original.name}を下へ移動`"
+              :disabled="reordering || !canMove(row.original, 1)"
+              @click="move(row.original, 1)"
+            />
+            <UDropdownMenu :items="categoryActions(row.original)">
+              <UButton
+                icon="i-lucide-ellipsis"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                :aria-label="`${row.original.name}の操作`"
+                :disabled="reordering"
+              />
+            </UDropdownMenu>
+          </div>
+        </template>
+      </UTable>
+    </div>
     <UModal
       v-model:open="formOpen"
       :title="`${label}を${editingId ? '編集' : '追加'}`"

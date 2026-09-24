@@ -77,6 +77,13 @@ function askDelete(item: WebhookUrl) {
   deleteOpen.value = true
 }
 
+function webhookActions(item: WebhookUrl) {
+  return [[
+    { label: '編集', icon: 'i-lucide-pencil', onSelect: () => openForm(item) },
+    { label: '削除', icon: 'i-lucide-trash-2', color: 'error' as const, onSelect: () => askDelete(item) }
+  ]]
+}
+
 async function remove() {
   if (!deleting.value || removing.value) return
   removing.value = true
@@ -99,11 +106,11 @@ async function remove() {
     class="space-y-6"
     aria-labelledby="webhook-heading"
   >
-    <div class="flex items-start justify-between gap-4">
-      <div class="space-y-2">
+    <div class="flex min-w-0 items-start justify-between gap-3 sm:gap-4">
+      <div class="min-w-0 space-y-1">
         <h2
           id="webhook-heading"
-          class="text-lg font-semibold flex items-center gap-3"
+          class="flex flex-wrap items-center gap-2 text-xl font-semibold text-highlighted"
         >
           Webhook
           <UBadge
@@ -161,65 +168,64 @@ async function remove() {
           Webhook URLがありません
         </h2>
         <p class="text-sm text-muted">
-          右上の「追加」から通知を送信するURLを登録してください。
+          通知先のURLを登録すると、イベント発生時にWebhookを送信できます。
         </p>
+        <UButton
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-plus"
+          @click="openForm()"
+        >
+          Webhook URLを追加
+        </UButton>
       </div>
     </UCard>
     <ul
       v-else
-      class="space-y-4"
+      class="min-w-0 divide-y divide-default overflow-hidden rounded-lg border border-default"
       aria-label="登録済みのWebhook URL一覧"
     >
       <li
         v-for="item in items"
         :key="item.id"
+        class="flex min-w-0 items-start gap-3 p-4"
       >
-        <UCard>
-          <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div class="min-w-0 space-y-3">
-              <p class="font-medium break-all">
-                {{ item.url }}
-              </p>
-              <p class="text-sm text-muted whitespace-pre-wrap break-words">
-                {{ item.description || '説明はありません' }}
-              </p>
-              <div class="flex flex-wrap gap-2">
-                <UBadge
-                  color="neutral"
-                  :variant="item.is_active ? 'outline' : 'soft'"
-                >
-                  {{ item.is_active ? '有効' : '無効' }}
-                </UBadge>
-                <UBadge
-                  v-for="event in item.events"
-                  :key="event"
-                  color="neutral"
-                  variant="soft"
-                >
-                  {{ webhookEvents.find(option => option.value === event)?.label ?? event }}
-                </UBadge>
-              </div>
-            </div>
-            <div class="flex gap-2 shrink-0 self-end sm:self-start">
-              <UButton
-                color="neutral"
-                variant="ghost"
-                :aria-label="`${item.url}を編集`"
-                @click="openForm(item)"
-              >
-                編集
-              </UButton>
-              <UButton
-                color="error"
-                variant="soft"
-                :aria-label="`${item.url}を削除`"
-                @click="askDelete(item)"
-              >
-                削除
-              </UButton>
-            </div>
+        <div class="min-w-0 flex-1 space-y-2">
+          <p class="break-all font-medium text-default">
+            {{ item.url }}
+          </p>
+          <p
+            v-if="item.description"
+            class="whitespace-pre-wrap break-words text-sm text-muted"
+          >
+            {{ item.description }}
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <UBadge
+              color="neutral"
+              :variant="item.is_active ? 'outline' : 'soft'"
+            >
+              {{ item.is_active ? '有効' : '無効' }}
+            </UBadge>
+            <UBadge
+              v-for="event in item.events"
+              :key="event"
+              color="neutral"
+              variant="soft"
+            >
+              {{ webhookEvents.find(option => option.value === event)?.label ?? event }}
+            </UBadge>
           </div>
-        </UCard>
+        </div>
+        <UDropdownMenu :items="webhookActions(item)">
+          <UButton
+            icon="i-lucide-ellipsis"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="`${item.url}の操作`"
+          />
+        </UDropdownMenu>
       </li>
     </ul>
 
