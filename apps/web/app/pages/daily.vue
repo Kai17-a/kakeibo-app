@@ -224,6 +224,14 @@ async function confirmDelete() {
           </template>
         </UDashboardNavbar>
         <UDashboardToolbar>
+          <template #left>
+            <div class="flex min-w-0 items-baseline gap-2">
+              <h2 class="truncate font-semibold">
+                {{ monthLabel }} 家計簿
+              </h2>
+              <span class="hidden shrink-0 text-sm text-muted sm:inline">単位：円</span>
+            </div>
+          </template>
           <template #right>
             <UFieldGroup class="shrink-0">
               <UButton
@@ -268,15 +276,6 @@ async function confirmDelete() {
           <USkeleton class="h-28 w-full" />
         </div>
         <UCard v-else>
-          <template #header>
-            <h2 class="text-lg font-semibold">
-              {{ monthLabel }} 家計簿
-            </h2>
-            <p class="text-sm text-muted">
-              単位：円
-            </p>
-          </template>
-
           <UTabs
             v-model="tab"
             :items="tabItems"
