@@ -47,6 +47,9 @@ jobs:
       - name: Run unit tests
         run: npm test
 
+      - name: Generate static frontend
+        run: npm run generate
+
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 

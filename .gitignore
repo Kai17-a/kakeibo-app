@@ -1,9 +1,10 @@
 /target
 /apps/api/target
 /apps/api/.env
-/apps/web/node_modules
-/apps/web/dist
-/apps/web/.env
+/apps/web-nuxt/node_modules
+/apps/web-nuxt/.nuxt
+/apps/web-nuxt/.output
+/apps/web-nuxt/.env
 
 *.db
 *.sqlite

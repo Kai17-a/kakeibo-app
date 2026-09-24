@@ -105,7 +105,7 @@ mise run test-data-clear
 │   │   │   └── utils/       # エラー処理、ロギングなどの共通処理
 │   │   ├── tests/       # API統合テスト
 │   │   └── Cargo.toml   # Rustパッケージ設定
-│   └── web/             # SvelteKit + shadcn-svelteフロントエンド
+│   └── web-nuxt/        # Nuxt 4 + Nuxt UIフロントエンド
 ├── scripts/          # 開発・運用補助スクリプト
 └── mise.toml         # ツールとタスクの定義
 ```

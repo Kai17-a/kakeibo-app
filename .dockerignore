@@ -10,7 +10,7 @@
 **/*.db
 **/*.sqlite
 apps/api/tests
-apps/web/e2e
+apps/web-nuxt/e2e
 docs
 playwright-report
 test-results

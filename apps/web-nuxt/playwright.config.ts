@@ -17,7 +17,7 @@ export default defineConfig({
     }
   ],
   webServer: {
-    command: 'npm run build && PORT=4174 HOST=127.0.0.1 node .output/server/index.mjs',
+    command: 'npm run generate && python3 -m http.server 4174 --bind 127.0.0.1 --directory .output/public',
     url: 'http://127.0.0.1:4174',
     reuseExistingServer: !process.env.CI,
     timeout: 120000

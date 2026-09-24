@@ -1,13 +1,11 @@
-# apps/web-nuxt
+# Web frontend
 
-Nuxt 4 + Nuxt UI 4への移行用フロントエンド。詳しい経緯は`docs/design/nuxt-ui-migration-evaluation.md`を参照。
-
-既存の`apps/web`(SvelteKit)は動かしたまま、画面を1つずつこちらへ移植していく。全画面の移植が完了するまで、両方のディレクトリが並行して存在する。
+Nuxt 4 + Nuxt UI 4で実装したフロントエンド。移行の経緯は`docs/design/nuxt-ui-migration-evaluation.md`を参照。
 
 ## セットアップ
 
 ```bash
-npm install
+npm ci
 ```
 
 ## 開発サーバー
@@ -24,6 +22,11 @@ npm run dev
 
 ```bash
 npm run build
+npm run generate
 npm run typecheck
 npm run lint
+npm test
+npm run test:e2e
 ```
+
+本番用のDockerイメージでは`npm run generate`が生成する`.output/public`をRust APIから静的配信する。
