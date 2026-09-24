@@ -348,7 +348,6 @@ async function backfill(item: RecurringExpense) {
             <UInput
               v-model="state.name"
               class="w-full"
-              autofocus
             />
           </UFormField>
           <UFormField name="usdBased">
