@@ -42,7 +42,6 @@ async fn main() -> ExitCode {
         .merge(router::recurring_incomes::create(pool.clone()))
         .merge(router::expenses::create(pool.clone()))
         .merge(router::export::create(pool.clone()))
-        .merge(router::webhook_urls::create(pool.clone()))
         .merge(router::import::create(pool))
         .merge(router::health::create())
         .merge(router::redoc::create())

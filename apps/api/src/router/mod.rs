@@ -11,4 +11,3 @@ pub mod payment_methods;
 pub mod recurring_expenses;
 pub mod recurring_incomes;
 pub mod redoc;
-pub mod webhook_urls;

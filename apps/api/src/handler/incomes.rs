@@ -6,15 +6,13 @@ use axum::{
 
 use crate::{
     model::incomes::{Income, IncomeListResponse, IncomeQuery, IncomeUpsertRequest},
-    model::webhook_urls::WebhookEvent,
-    service::{incomes::IncomeService, webhook_urls::WebhookUrlService},
+    service::incomes::IncomeService,
     utils::error::AppResult,
 };
 
 #[derive(Clone)]
 pub struct AppState {
     pub incomes: IncomeService,
-    pub webhook_urls: WebhookUrlService,
 }
 
 #[utoipa::path(
@@ -43,15 +41,10 @@ pub async fn create(
     State(state): State<AppState>,
     Json(input): Json<IncomeUpsertRequest>,
 ) -> AppResult<(StatusCode, Json<Income>)> {
-    let income = state.incomes.create(&input).await?;
-    state
-        .webhook_urls
-        .notify(
-            WebhookEvent::IncomeCreated,
-            serde_json::to_value(&income).unwrap_or_default(),
-        )
-        .await;
-    Ok((StatusCode::CREATED, Json(income)))
+    Ok((
+        StatusCode::CREATED,
+        Json(state.incomes.create(&input).await?),
+    ))
 }
 
 #[utoipa::path(put, path = "/api/incomes/{id}", params(("id" = String, Path)), request_body = IncomeUpsertRequest, responses((status = 200, body = Income), (status = 404)))]

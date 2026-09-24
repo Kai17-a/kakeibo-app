@@ -1,10 +1,7 @@
 use crate::{
     handler::expenses::{self as handler, AppState},
-    repository::{expenses::ExpenseRepository, webhook_urls::WebhookUrlRepository},
-    service::{
-        exchange_rate::ExchangeRateService, expenses::ExpenseService,
-        webhook_urls::WebhookUrlService,
-    },
+    repository::expenses::ExpenseRepository,
+    service::{exchange_rate::ExchangeRateService, expenses::ExpenseService},
 };
 use axum::{Router, routing::get};
 use sqlx::SqlitePool;
@@ -26,7 +23,6 @@ pub fn create_with_exchange_rate_provider(
             ExpenseRepository::new(pool.clone()),
             ExchangeRateService::with_provider(pool.clone(), provider),
         ),
-        webhook_urls: WebhookUrlService::new(WebhookUrlRepository::new(pool)),
     };
     Router::new()
         .route("/api/expenses", get(handler::list).post(handler::create))

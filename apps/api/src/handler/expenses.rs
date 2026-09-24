@@ -1,7 +1,6 @@
 use crate::{
     model::expenses::{Expense, ExpenseUpsertRequest},
-    model::webhook_urls::WebhookEvent,
-    service::{expenses::ExpenseService, webhook_urls::WebhookUrlService},
+    service::expenses::ExpenseService,
     utils::error::AppResult,
 };
 use axum::{
@@ -12,7 +11,6 @@ use axum::{
 #[derive(Clone)]
 pub struct AppState {
     pub expenses: ExpenseService,
-    pub webhook_urls: WebhookUrlService,
 }
 #[utoipa::path(get,path="/api/expenses",responses((status=200,body=Vec<Expense>)))]
 pub async fn list(State(s): State<AppState>) -> AppResult<Json<Vec<Expense>>> {
@@ -27,21 +25,7 @@ pub async fn create(
     State(s): State<AppState>,
     Json(v): Json<ExpenseUpsertRequest>,
 ) -> AppResult<(StatusCode, Json<Expense>)> {
-    let (expense, crossing) = s.expenses.create(&v).await?;
-    s.webhook_urls
-        .notify(
-            WebhookEvent::ExpenseCreated,
-            serde_json::to_value(&expense).unwrap_or_default(),
-        )
-        .await;
-    if let Some(crossing) = crossing {
-        s.webhook_urls.notify(WebhookEvent::BudgetExceeded, serde_json::json!({
-            "category_id": crossing.category_id, "category_name": crossing.category_name,
-            "budget_amount": crossing.budget_amount, "actual_amount": crossing.actual_amount.to_string(),
-            "target_month": crossing.target_month
-        })).await;
-    }
-    Ok((StatusCode::CREATED, Json(expense)))
+    Ok((StatusCode::CREATED, Json(s.expenses.create(&v).await?)))
 }
 #[utoipa::path(put,path="/api/expenses/{id}",params(("id"=String,Path)),request_body=ExpenseUpsertRequest,responses((status=200,body=Expense),(status=400),(status=404)))]
 pub async fn update(
@@ -49,15 +33,7 @@ pub async fn update(
     Path(id): Path<String>,
     Json(v): Json<ExpenseUpsertRequest>,
 ) -> AppResult<Json<Expense>> {
-    let (expense, crossing) = s.expenses.update(&id, &v).await?;
-    if let Some(crossing) = crossing {
-        s.webhook_urls.notify(WebhookEvent::BudgetExceeded, serde_json::json!({
-            "category_id": crossing.category_id, "category_name": crossing.category_name,
-            "budget_amount": crossing.budget_amount, "actual_amount": crossing.actual_amount.to_string(),
-            "target_month": crossing.target_month
-        })).await;
-    }
-    Ok(Json(expense))
+    Ok(Json(s.expenses.update(&id, &v).await?))
 }
 #[utoipa::path(delete,path="/api/expenses/{id}",params(("id"=String,Path)),responses((status=204),(status=404)))]
 pub async fn delete(State(s): State<AppState>, Path(id): Path<String>) -> AppResult<StatusCode> {

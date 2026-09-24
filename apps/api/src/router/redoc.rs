@@ -6,7 +6,7 @@ use utoipa_redoc::{Redoc, Servable};
 use crate::{
     handler::{
         backup, budgets, expense_categories, expenses, export, health, import, income_categories,
-        incomes, payment_methods, recurring_expenses, recurring_incomes, webhook_urls,
+        incomes, payment_methods, recurring_expenses, recurring_incomes,
     },
     model::budgets::{Budget, BudgetUpsertRequest},
     model::expense_categories::{
@@ -36,7 +36,6 @@ use crate::{
         BackfillResponse, PendingMonthsResponse, RecurringExpense, RecurringExpenseUpsertRequest,
     },
     model::recurring_incomes::{RecurringIncome, RecurringIncomeUpsertRequest},
-    model::webhook_urls::{WebhookEvent, WebhookUrl, WebhookUrlUpsertRequest},
 };
 
 #[derive(OpenApi)]
@@ -95,11 +94,6 @@ use crate::{
         incomes::create,
         incomes::update,
         incomes::delete,
-        webhook_urls::list,
-        webhook_urls::get,
-        webhook_urls::create,
-        webhook_urls::update,
-        webhook_urls::delete,
         health::get
     ),
     components(schemas(
@@ -144,9 +138,6 @@ use crate::{
         Pagination,
         IncomeSortBy,
         SortOrder,
-        WebhookUrl,
-        WebhookUrlUpsertRequest,
-        WebhookEvent,
         Health
     )),
     modifiers(&Documentation),
@@ -165,7 +156,6 @@ use crate::{
         (name = "支払方法", description = "支払方法の管理"),
         (name = "定期支出", description = "定期支出の管理"),
         (name = "定期収入", description = "定期収入の管理"),
-        (name = "Webhook", description = "Webhook通知先URLの管理"),
         (name = "予算", description = "カテゴリ別月額予算の管理"),
         (name = "システム", description = "稼働状態の確認")
     )
@@ -214,7 +204,6 @@ fn tag_for_path(path: &str) -> &'static str {
         | "/api/recurring-expenses/{id}/pending-months"
         | "/api/recurring-expenses/{id}/backfill" => "定期支出",
         "/api/recurring-incomes" | "/api/recurring-incomes/{id}" => "定期収入",
-        "/api/webhook-urls" | "/api/webhook-urls/{id}" => "Webhook",
         "/api/budgets" | "/api/budgets/{id}" => "予算",
         _ => "システム",
     }

@@ -6,11 +6,6 @@ use axum::{
 use kakeibo_app::{repository::incomes::IncomeRepository, router::incomes};
 use serde_json::{Value, json};
 use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
-use std::{
-    io::Write,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
 use tower::ServiceExt;
 
 async fn pool() -> SqlitePool {
@@ -300,81 +295,4 @@ async fn updating_auto_posted_income_preserves_list_idempotency() {
     assert_eq!(items.len(), 1, "{items:?}");
     assert_eq!(items[0]["amount"], "310000");
     assert_eq!(items[0]["recurring_income_id"], "salary-rule");
-}
-
-#[tokio::test]
-async fn recurring_auto_post_does_not_notify_income_created_webhook() {
-    let pool = pool().await;
-    sqlx::query("CREATE TABLE webhook_urls(id TEXT PRIMARY KEY,created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,url TEXT NOT NULL,description TEXT,is_active INTEGER NOT NULL DEFAULT 1)")
-        .execute(&pool).await.unwrap();
-    sqlx::query("CREATE TABLE webhook_url_events(webhook_url_id TEXT NOT NULL REFERENCES webhook_urls(id) ON DELETE CASCADE,event TEXT NOT NULL,PRIMARY KEY(webhook_url_id,event))")
-        .execute(&pool).await.unwrap();
-    let logs = Arc::new(Mutex::new(Vec::new()));
-    let writer_logs = logs.clone();
-    let subscriber = tracing_subscriber::fmt()
-        .without_time()
-        .with_ansi(false)
-        .with_writer(move || LogWriter(writer_logs.clone()))
-        .finish();
-    tracing::subscriber::set_global_default(subscriber).unwrap();
-    sqlx::query("INSERT INTO webhook_urls(id,url,is_active) VALUES('hook',?1,1)")
-        .bind("http://127.0.0.1:1/income-created-test")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query(
-        "INSERT INTO webhook_url_events(webhook_url_id,event) VALUES('hook','income.created')",
-    )
-    .execute(&pool)
-    .await
-    .unwrap();
-    let month: String = sqlx::query_scalar("SELECT strftime('%Y-%m','now','localtime')")
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-    sqlx::query("INSERT INTO recurring_incomes(id,name,amount,payment_day,start_date,category_id,is_active,is_variable) VALUES ('salary-rule','給与','300000',25,?1,'salary',1,0)")
-        .bind(format!("{month}-01")).execute(&pool).await.unwrap();
-    let app = incomes::create(pool);
-
-    let (status, _) = call(&app, "GET", "/api/incomes", None).await;
-    assert_eq!(status, StatusCode::OK);
-    tokio::time::sleep(Duration::from_millis(100)).await;
-    assert!(!logged(&logs, "income-created-test"));
-
-    let manual = json!({
-        "category_id": "salary",
-        "transaction_date": format!("{month}-15"),
-        "amount": "1000",
-        "description": "manual"
-    });
-    let (status, body) = call(&app, "POST", "/api/incomes", Some(manual)).await;
-    assert_eq!(status, StatusCode::CREATED, "{body:?}");
-    for _ in 0..240 {
-        if logged(&logs, "income-created-test") {
-            return;
-        }
-        tokio::time::sleep(Duration::from_millis(25)).await;
-    }
-    panic!(
-        "manual income creation did not attempt the configured webhook notification: {}",
-        String::from_utf8_lossy(&logs.lock().unwrap())
-    );
-}
-
-#[derive(Clone)]
-struct LogWriter(Arc<Mutex<Vec<u8>>>);
-
-impl Write for LogWriter {
-    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
-        self.0.lock().unwrap().extend_from_slice(bytes);
-        Ok(bytes.len())
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-
-fn logged(logs: &Arc<Mutex<Vec<u8>>>, needle: &str) -> bool {
-    String::from_utf8_lossy(&logs.lock().unwrap()).contains(needle)
 }

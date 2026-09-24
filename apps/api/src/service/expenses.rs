@@ -1,7 +1,7 @@
 use crate::{
     database::models::recurring_expenses::RecurringExpenseRow,
     model::expenses::{Expense, ExpenseUpsertRequest},
-    repository::expenses::{BudgetCrossing, ExpenseRepository},
+    repository::expenses::ExpenseRepository,
     service::exchange_rate::ExchangeRateService,
     utils::error::{AppError, AppResult},
 };
@@ -53,26 +53,18 @@ impl ExpenseService {
             .map(Into::into)
             .ok_or_else(|| AppError::not_found("expense", id))
     }
-    pub async fn create(
-        &self,
-        v: &ExpenseUpsertRequest,
-    ) -> AppResult<(Expense, Option<BudgetCrossing>)> {
+    pub async fn create(&self, v: &ExpenseUpsertRequest) -> AppResult<Expense> {
         validate(v)?;
         let v = normalized(v);
-        let result = self.repository.insert_with_budget_check(&v).await?;
-        Ok((result.expense.into(), result.budget_crossing))
+        self.repository.insert(&v).await.map(Into::into)
     }
-    pub async fn update(
-        &self,
-        id: &str,
-        v: &ExpenseUpsertRequest,
-    ) -> AppResult<(Expense, Option<BudgetCrossing>)> {
+    pub async fn update(&self, id: &str, v: &ExpenseUpsertRequest) -> AppResult<Expense> {
         validate(v)?;
         let v = normalized(v);
         self.repository
-            .update_with_budget_check(id, &v)
+            .update(id, &v)
             .await?
-            .map(|result| (result.expense.into(), result.budget_crossing))
+            .map(Into::into)
             .ok_or_else(|| AppError::not_found("expense", id))
     }
     pub async fn delete(&self, id: &str) -> AppResult<()> {
