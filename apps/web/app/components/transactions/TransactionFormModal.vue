@@ -51,6 +51,7 @@ const state = reactive({
 })
 
 const categories = computed(() => kind.value === 'expense' ? props.expenseCategories : props.incomeCategories)
+const NO_PAYMENT_METHOD_VALUE = '__NONE__'
 const categoryOptions = computed(() => groupCategories(categories.value).map(category => ({
   label: category.parent_category_id === null ? category.name : `  ${category.name}`,
   value: category.id
@@ -174,9 +175,10 @@ async function submit(keepOpen: boolean) {
         </UFormField>
         <UFormField :label="`支払方法${kind === 'income' ? '（任意）' : ''}`">
           <USelect
-            v-model="state.paymentMethodId"
-            :items="kind === 'income' ? [{ label: '未選択', value: '' }, ...paymentMethodOptions] : paymentMethodOptions"
+            :model-value="state.paymentMethodId || NO_PAYMENT_METHOD_VALUE"
+            :items="kind === 'income' ? [{ label: '未選択', value: NO_PAYMENT_METHOD_VALUE }, ...paymentMethodOptions] : paymentMethodOptions"
             class="w-full"
+            @update:model-value="state.paymentMethodId = $event == null || $event === NO_PAYMENT_METHOD_VALUE ? '' : String($event)"
           />
         </UFormField>
         <UFormField label="メモ（任意）">

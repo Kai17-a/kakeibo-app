@@ -69,6 +69,7 @@ const paymentMethodId = ref('')
 const incomeKeyword = ref('')
 const incomeCategoryId = ref('')
 const incomePaymentMethodId = ref('')
+const ALL_FILTER_VALUE = '__ALL__'
 
 function clearFilters() {
   keyword.value = ''
@@ -379,16 +380,18 @@ async function confirmDelete() {
               </UFormField>
               <UFormField label="カテゴリ">
                 <USelect
-                  v-model="categoryId"
-                  :items="[{ label: 'すべて', value: '' }, ...expenseCategories.map(category => ({ label: category.name, value: category.id }))]"
+                  :model-value="categoryId || ALL_FILTER_VALUE"
+                  :items="[{ label: 'すべて', value: ALL_FILTER_VALUE }, ...expenseCategories.map(category => ({ label: category.name, value: category.id }))]"
                   class="w-full"
+                  @update:model-value="categoryId = $event == null || $event === ALL_FILTER_VALUE ? '' : String($event)"
                 />
               </UFormField>
               <UFormField label="支払方法">
                 <USelect
-                  v-model="paymentMethodId"
-                  :items="[{ label: 'すべて', value: '' }, ...paymentMethods.map(method => ({ label: method.name, value: method.id }))]"
+                  :model-value="paymentMethodId || ALL_FILTER_VALUE"
+                  :items="[{ label: 'すべて', value: ALL_FILTER_VALUE }, ...paymentMethods.map(method => ({ label: method.name, value: method.id }))]"
                   class="w-full"
+                  @update:model-value="paymentMethodId = $event == null || $event === ALL_FILTER_VALUE ? '' : String($event)"
                 />
               </UFormField>
               <UButton
@@ -496,16 +499,18 @@ async function confirmDelete() {
               </UFormField>
               <UFormField label="カテゴリ">
                 <USelect
-                  v-model="incomeCategoryId"
-                  :items="[{ label: 'すべて', value: '' }, ...incomeCategories.map(category => ({ label: category.name, value: category.id }))]"
+                  :model-value="incomeCategoryId || ALL_FILTER_VALUE"
+                  :items="[{ label: 'すべて', value: ALL_FILTER_VALUE }, ...incomeCategories.map(category => ({ label: category.name, value: category.id }))]"
                   class="w-full"
+                  @update:model-value="incomeCategoryId = $event == null || $event === ALL_FILTER_VALUE ? '' : String($event)"
                 />
               </UFormField>
               <UFormField label="支払方法">
                 <USelect
-                  v-model="incomePaymentMethodId"
-                  :items="[{ label: 'すべて', value: '' }, ...paymentMethods.map(method => ({ label: method.name, value: method.id }))]"
+                  :model-value="incomePaymentMethodId || ALL_FILTER_VALUE"
+                  :items="[{ label: 'すべて', value: ALL_FILTER_VALUE }, ...paymentMethods.map(method => ({ label: method.name, value: method.id }))]"
                   class="w-full"
+                  @update:model-value="incomePaymentMethodId = $event == null || $event === ALL_FILTER_VALUE ? '' : String($event)"
                 />
               </UFormField>
               <UButton
