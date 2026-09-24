@@ -1,15 +1,6 @@
 <template>
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 32 32"
-    aria-hidden="true"
-  >
-    <rect
-      width="32"
-      height="32"
-      rx="8"
-      class="fill-primary"
-    />
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true">
+    <rect width="32" height="32" rx="8" class="fill-primary" />
     <text
       x="16"
       y="23"
@@ -18,6 +9,8 @@
       font-size="20"
       text-anchor="middle"
       class="fill-(--ui-bg)"
-    >K</text>
+    >
+      K
+    </text>
   </svg>
 </template>

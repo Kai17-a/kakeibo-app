@@ -1,132 +1,170 @@
 <script setup lang="ts">
-import type { TableColumn } from '@nuxt/ui'
-import type { Category, CategoryKind } from '~/types/settings'
-import { categoryMove, groupCategories, validateNamed } from '~/utils/settings'
+import type { TableColumn } from "@nuxt/ui";
+import type { Category, CategoryKind } from "~/types/settings";
+import { categoryMove, groupCategories, validateNamed } from "~/utils/settings";
 
-const props = defineProps<{ kind: CategoryKind }>()
-const label = computed(() => props.kind === 'expense' ? '支出カテゴリ' : '収入カテゴリ')
-const api = useSettingsApi().categories(props.kind)
-const items = ref<Category[]>([])
-const deleting = ref<Category | null>(null)
-const reordering = ref(false)
-const orderError = ref('')
-const state = reactive({ name: '', description: '', parent_category_id: 'none' })
-const sortedItems = computed(() => groupCategories(items.value))
-const editingHasChildren = computed(() => !!editingId.value && items.value.some(item => item.parent_category_id === editingId.value))
+const props = defineProps<{ kind: CategoryKind }>();
+const label = computed(() => (props.kind === "expense" ? "支出カテゴリ" : "収入カテゴリ"));
+const api = useSettingsApi().categories(props.kind);
+const items = ref<Category[]>([]);
+const deleting = ref<Category | null>(null);
+const reordering = ref(false);
+const orderError = ref("");
+const state = reactive({ name: "", description: "", parent_category_id: "none" });
+const sortedItems = computed(() => groupCategories(items.value));
+const editingHasChildren = computed(
+  () =>
+    !!editingId.value && items.value.some((item) => item.parent_category_id === editingId.value),
+);
 const parentOptions = computed(() => [
-  { label: '親カテゴリなし', value: 'none' },
-  ...sortedItems.value.filter(item => item.parent_category_id === null && item.id !== editingId.value).map(item => ({ label: item.name, value: item.id }))
-])
+  { label: "親カテゴリなし", value: "none" },
+  ...sortedItems.value
+    .filter((item) => item.parent_category_id === null && item.id !== editingId.value)
+    .map((item) => ({ label: item.name, value: item.id })),
+]);
 const columns: TableColumn<Category>[] = [
-  { accessorKey: 'name', header: 'カテゴリ名', meta: { class: { th: 'w-full min-w-0', td: 'w-full min-w-0' } } },
-  { id: 'actions', header: '操作', meta: { class: { th: 'w-32 whitespace-nowrap text-right', td: 'w-32 whitespace-nowrap text-right' } } }
-]
-const validate = validateNamed
+  {
+    accessorKey: "name",
+    header: "カテゴリ名",
+    meta: { class: { th: "w-full min-w-0", td: "w-full min-w-0" } },
+  },
+  {
+    id: "actions",
+    header: "操作",
+    meta: {
+      class: { th: "w-32 whitespace-nowrap text-right", td: "w-32 whitespace-nowrap text-right" },
+    },
+  },
+];
+const validate = validateNamed;
 function openForm(item?: Category) {
-  editingId.value = item?.id ?? null
-  Object.assign(state, { name: item?.name ?? '', description: item?.description ?? '', parent_category_id: item?.parent_category_id ?? 'none' })
-  formError.value = ''
-  formOpen.value = true
+  editingId.value = item?.id ?? null;
+  Object.assign(state, {
+    name: item?.name ?? "",
+    description: item?.description ?? "",
+    parent_category_id: item?.parent_category_id ?? "none",
+  });
+  formError.value = "";
+  formOpen.value = true;
 }
 function canMove(item: Category, direction: -1 | 1) {
-  return categoryMove(items.value, item.id, direction) !== null
+  return categoryMove(items.value, item.id, direction) !== null;
 }
 async function move(item: Category, direction: -1 | 1) {
-  if (reordering.value) return
-  const result = categoryMove(items.value, item.id, direction)
-  if (!result) return
-  const previous = items.value
-  items.value = result.items
-  reordering.value = true
-  orderError.value = ''
+  if (reordering.value) return;
+  const result = categoryMove(items.value, item.id, direction);
+  if (!result) return;
+  const previous = items.value;
+  items.value = result.items;
+  reordering.value = true;
+  orderError.value = "";
   try {
-    await api.reorder(result.input)
-    toast.add({ title: 'カテゴリの表示順を更新しました', color: 'success' })
+    await api.reorder(result.input);
+    toast.add({ title: "カテゴリの表示順を更新しました", color: "success" });
   } catch (error) {
-    items.value = previous
-    orderError.value = apiErrorMessage(error)
+    items.value = previous;
+    orderError.value = apiErrorMessage(error);
   } finally {
-    reordering.value = false
+    reordering.value = false;
   }
 }
 
-const toast = useToast()
-const loading = ref(true)
-const loadError = ref('')
-const formOpen = ref(false)
-const deleteOpen = ref(false)
-const editingId = ref<string | null>(null)
-const saving = ref(false)
-const removing = ref(false)
-const formError = ref('')
-const deleteError = ref('')
+const toast = useToast();
+const loading = ref(true);
+const loadError = ref("");
+const formOpen = ref(false);
+const deleteOpen = ref(false);
+const editingId = ref<string | null>(null);
+const saving = ref(false);
+const removing = ref(false);
+const formError = ref("");
+const deleteError = ref("");
 
 async function load() {
-  loading.value = true
-  loadError.value = ''
+  loading.value = true;
+  loadError.value = "";
   try {
-    items.value = await api.list()
+    items.value = await api.list();
   } catch (error) {
-    loadError.value = apiErrorMessage(error)
+    loadError.value = apiErrorMessage(error);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
-onMounted(load)
+onMounted(load);
 
 async function save() {
-  if (saving.value) return
-  saving.value = true
-  formError.value = ''
+  if (saving.value) return;
+  saving.value = true;
+  formError.value = "";
   try {
-    const input = { name: state.name.trim(), description: state.description.trim() || null, parent_category_id: editingHasChildren.value || state.parent_category_id === 'none' ? null : state.parent_category_id }
-    const result = editingId.value ? await api.update(editingId.value, input) : await api.create(input)
-    items.value = editingId.value ? items.value.map(item => item.id === result.id ? result : item) : [...items.value, result]
-    formOpen.value = false
-    toast.add({ title: `${label.value}を${editingId.value ? '更新' : '追加'}しました`, color: 'success' })
+    const input = {
+      name: state.name.trim(),
+      description: state.description.trim() || null,
+      parent_category_id:
+        editingHasChildren.value || state.parent_category_id === "none"
+          ? null
+          : state.parent_category_id,
+    };
+    const result = editingId.value
+      ? await api.update(editingId.value, input)
+      : await api.create(input);
+    items.value = editingId.value
+      ? items.value.map((item) => (item.id === result.id ? result : item))
+      : [...items.value, result];
+    formOpen.value = false;
+    toast.add({
+      title: `${label.value}を${editingId.value ? "更新" : "追加"}しました`,
+      color: "success",
+    });
   } catch (error) {
-    formError.value = apiErrorMessage(error)
+    formError.value = apiErrorMessage(error);
   } finally {
-    saving.value = false
+    saving.value = false;
   }
 }
 function askDelete(item: Category) {
-  deleting.value = item
-  deleteError.value = ''
-  deleteOpen.value = true
+  deleting.value = item;
+  deleteError.value = "";
+  deleteOpen.value = true;
 }
 function categoryActions(item: Category) {
-  return [[
-    { label: '編集', icon: 'i-lucide-pencil', onSelect: () => openForm(item) },
-    { label: '削除', icon: 'i-lucide-trash-2', color: 'error' as const, onSelect: () => askDelete(item) }
-  ]]
+  return [
+    [
+      { label: "編集", icon: "i-lucide-pencil", onSelect: () => openForm(item) },
+      {
+        label: "削除",
+        icon: "i-lucide-trash-2",
+        color: "error" as const,
+        onSelect: () => askDelete(item),
+      },
+    ],
+  ];
 }
 function parentName(item: Category) {
-  return items.value.find(candidate => candidate.id === item.parent_category_id)?.name
+  return items.value.find((candidate) => candidate.id === item.parent_category_id)?.name;
 }
 async function remove() {
-  if (!deleting.value || removing.value) return
-  removing.value = true
-  deleteError.value = ''
-  const id = deleting.value.id
+  if (!deleting.value || removing.value) return;
+  removing.value = true;
+  deleteError.value = "";
+  const id = deleting.value.id;
   try {
-    await api.remove(id)
-    items.value = items.value.filter(item => item.id !== id)
-    deleteOpen.value = false
-    toast.add({ title: `${label.value}を削除しました`, color: 'success' })
+    await api.remove(id);
+    items.value = items.value.filter((item) => item.id !== id);
+    deleteOpen.value = false;
+    toast.add({ title: `${label.value}を削除しました`, color: "success" });
   } catch {
-    deleteError.value = 'カテゴリを削除できませんでした。登録済みの明細で使用されているか、子カテゴリが存在するため削除できません。'
+    deleteError.value =
+      "カテゴリを削除できませんでした。登録済みの明細で使用されているか、子カテゴリが存在するため削除できません。";
   } finally {
-    removing.value = false
+    removing.value = false;
   }
 }
 </script>
 
 <template>
-  <section
-    class="space-y-6"
-    aria-labelledby="category-heading"
-  >
+  <section class="space-y-6" aria-labelledby="category-heading">
     <div class="flex min-w-0 items-start justify-between gap-3 sm:gap-4">
       <div class="min-w-0 space-y-1">
         <h2
@@ -134,17 +172,11 @@ async function remove() {
           class="flex flex-wrap items-center gap-2 text-xl font-semibold text-highlighted"
         >
           {{ label }}
-          <UBadge
-            v-if="!loading && !loadError"
-            color="neutral"
-            variant="soft"
-          >
+          <UBadge v-if="!loading && !loadError" color="neutral" variant="soft">
             {{ items.length }}件
           </UBadge>
         </h2>
-        <p class="text-sm text-muted">
-          収支の登録時に選択するカテゴリと表示順を管理します。
-        </p>
+        <p class="text-sm text-muted">収支の登録時に選択するカテゴリと表示順を管理します。</p>
       </div>
       <UButton
         icon="i-lucide-plus"
@@ -161,17 +193,8 @@ async function remove() {
       title="表示順を更新できませんでした"
       :description="orderError"
     />
-    <div
-      v-if="loading"
-      role="status"
-      :aria-label="`${label}を読み込み中`"
-      class="space-y-3"
-    >
-      <USkeleton
-        v-for="i in 3"
-        :key="i"
-        class="h-16 w-full"
-      />
+    <div v-if="loading" role="status" :aria-label="`${label}を読み込み中`" class="space-y-3">
+      <USkeleton v-for="i in 3" :key="i" class="h-16 w-full" />
       <span class="sr-only">読み込み中…</span>
     </div>
     <UAlert
@@ -181,54 +204,47 @@ async function remove() {
       :description="loadError"
       :actions="[{ label: '再試行', color: 'error', variant: 'outline', onClick: load }]"
     />
-    <UCard
-      v-else-if="!items.length"
-      class="text-center"
-    >
-      <div class="py-10 space-y-3">
-        <UIcon
-          name="i-lucide-tags"
-          class="size-8 text-muted"
-        />
-        <h3 class="font-semibold">
-          {{ label }}がありません
-        </h3>
+    <UCard v-else-if="!items.length" class="text-center">
+      <div class="space-y-3 py-10">
+        <UIcon name="i-lucide-tags" class="size-8 text-muted" />
+        <h3 class="font-semibold">{{ label }}がありません</h3>
         <p class="text-sm text-muted">
           収支を整理するカテゴリを登録すると、ここに一覧が表示されます。
         </p>
-        <UButton
-          color="neutral"
-          variant="outline"
-          icon="i-lucide-plus"
-          @click="openForm()"
-        >
+        <UButton color="neutral" variant="outline" icon="i-lucide-plus" @click="openForm()">
           カテゴリを追加
         </UButton>
       </div>
     </UCard>
-    <div
-      v-else
-      class="min-w-0 overflow-hidden rounded-lg border border-default"
-    >
+    <div v-else class="min-w-0 overflow-hidden rounded-lg border border-default">
       <UTable
         :data="sortedItems"
         :columns="columns"
         :aria-label="`${label}一覧`"
         class="w-full"
-        :ui="{ root: 'overflow-hidden', base: 'w-full table-fixed', th: 'px-3 py-2 sm:px-4', td: 'px-3 py-2 whitespace-normal sm:px-4' }"
+        :ui="{
+          root: 'overflow-hidden',
+          base: 'w-full table-fixed',
+          th: 'px-3 py-2 sm:px-4',
+          td: 'px-3 py-2 whitespace-normal sm:px-4',
+        }"
       >
         <template #name-cell="{ row }">
           <div :class="['min-w-0', row.original.parent_category_id !== null ? 'pl-6' : '']">
-            <p class="whitespace-normal break-words font-medium text-default">
+            <p class="font-medium break-words whitespace-normal text-default">
               {{ row.original.name }}
             </p>
             <p
               v-if="row.original.parent_category_id !== null || row.original.description"
-              class="mt-0.5 whitespace-normal text-xs text-muted"
+              class="mt-0.5 text-xs whitespace-normal text-muted"
             >
-              <span v-if="row.original.parent_category_id !== null">親: {{ parentName(row.original) }}</span>
-              <span v-if="row.original.parent_category_id !== null && row.original.description"> · </span>
-              <span class="whitespace-pre-wrap break-words">{{ row.original.description }}</span>
+              <span v-if="row.original.parent_category_id !== null"
+                >親: {{ parentName(row.original) }}</span
+              >
+              <span v-if="row.original.parent_category_id !== null && row.original.description">
+                ·
+              </span>
+              <span class="break-words whitespace-pre-wrap">{{ row.original.description }}</span>
             </p>
           </div>
         </template>
@@ -289,22 +305,17 @@ async function remove() {
             title="保存できませんでした"
             :description="formError"
           />
-          <UFormField
-            name="name"
-            label="カテゴリ名"
-            required
-          >
-            <UInput
-              v-model="state.name"
-              :maxlength="100"
-              class="w-full"
-              autofocus
-            />
+          <UFormField name="name" label="カテゴリ名" required>
+            <UInput v-model="state.name" :maxlength="100" class="w-full" autofocus />
           </UFormField>
           <UFormField
             name="parent_category_id"
             label="親カテゴリ（任意）"
-            :description="editingHasChildren ? '子カテゴリが存在するため、このカテゴリには親を設定できません。' : undefined"
+            :description="
+              editingHasChildren
+                ? '子カテゴリが存在するため、このカテゴリには親を設定できません。'
+                : undefined
+            "
           >
             <USelect
               v-model="state.parent_category_id"
@@ -313,34 +324,17 @@ async function remove() {
               class="w-full"
             />
           </UFormField>
-          <UFormField
-            name="description"
-            label="説明（任意）"
-          >
-            <UTextarea
-              v-model="state.description"
-              :maxlength="500"
-              class="w-full"
-            />
+          <UFormField name="description" label="説明（任意）">
+            <UTextarea v-model="state.description" :maxlength="500" class="w-full" />
           </UFormField>
         </UForm>
       </template>
       <template #footer>
-        <UButton
-          color="neutral"
-          variant="outline"
-          :disabled="saving"
-          @click="formOpen = false"
-        >
+        <UButton color="neutral" variant="outline" :disabled="saving" @click="formOpen = false">
           キャンセル
         </UButton>
-        <UButton
-          type="submit"
-          form="category-form"
-          :loading="saving"
-          :disabled="saving"
-        >
-          {{ editingId ? '更新' : '追加' }}
+        <UButton type="submit" form="category-form" :loading="saving" :disabled="saving">
+          {{ editingId ? "更新" : "追加" }}
         </UButton>
       </template>
     </UModal>
@@ -365,20 +359,10 @@ async function remove() {
         />
       </template>
       <template #footer>
-        <UButton
-          color="neutral"
-          variant="outline"
-          :disabled="removing"
-          @click="deleteOpen = false"
-        >
+        <UButton color="neutral" variant="outline" :disabled="removing" @click="deleteOpen = false">
           キャンセル
         </UButton>
-        <UButton
-          color="error"
-          :loading="removing"
-          :disabled="removing"
-          @click="remove"
-        >
+        <UButton color="error" :loading="removing" :disabled="removing" @click="remove">
           削除
         </UButton>
       </template>
