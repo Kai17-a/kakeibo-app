@@ -304,6 +304,7 @@ async function confirmDelete() {
             :ui="{
               root: 'min-w-0 items-start',
               list: 'w-fit max-w-full self-start justify-start overflow-x-auto',
+              indicator: 'bottom-0 h-0.5',
               trigger: 'shrink-0',
               label: 'overflow-visible text-clip whitespace-nowrap'
             }"
