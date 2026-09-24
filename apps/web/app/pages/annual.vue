@@ -107,7 +107,7 @@ const categoryRows = computed(() => expenseCategories.value.map((category) => {
 }).filter(row => row.total !== 0))
 const spending = computed(() => [...categoryRows.value].sort((a, b) => b.total - a.total))
 
-const chartColors = ['bg-primary', 'bg-secondary', 'bg-warning', 'bg-error', 'bg-info']
+const chartColors = ['bg-primary', 'bg-info', 'bg-error', 'bg-warning', 'bg-success', 'bg-neutral-500']
 
 // カテゴリ別月次推移
 const categoryMonths = computed(() => categoryMonthlyTotals(expenses.value, expenseCategories.value, year.value))
@@ -133,7 +133,7 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
       </UDashboardNavbar>
       <UDashboardToolbar>
         <template #left>
-          <UButtonGroup>
+          <UFieldGroup>
             <UButton
               color="neutral"
               variant="outline"
@@ -155,10 +155,10 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
             >
               年間
             </UButton>
-          </UButtonGroup>
+          </UFieldGroup>
         </template>
         <template #right>
-          <UButtonGroup>
+          <UFieldGroup>
             <UButton
               icon="i-lucide-chevron-left"
               color="neutral"
@@ -180,7 +180,7 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
               aria-label="翌年"
               @click="setYear(String(Number(year) + 1))"
             />
-          </UButtonGroup>
+          </UFieldGroup>
         </template>
       </UDashboardToolbar>
     </template>
@@ -247,25 +247,25 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
                 月別の収支推移
               </h2>
             </template>
-            <div class="flex h-72 items-end gap-2 border-b border-default">
+            <div class="flex h-72 items-end gap-1 border-b border-default sm:gap-2">
               <div
                 v-for="item in projectedMonths"
                 :key="item.month"
-                class="flex h-full flex-1 flex-col justify-end"
+                class="flex h-full min-w-0 flex-1 flex-col justify-end"
               >
-                <div class="flex h-[calc(100%_-_2rem)] items-end justify-center gap-1">
+                <div class="flex h-[calc(100%_-_2rem)] items-end justify-center gap-0.5 sm:gap-1">
                   <div
-                    class="w-3 bg-primary"
+                    class="w-1.5 bg-primary sm:w-3"
                     :style="{ height: `${(item.income / chartMax) * 100}%` }"
                     :title="formatCurrency(item.income)"
                   />
                   <div
-                    class="w-3 bg-error"
+                    class="w-1.5 bg-error sm:w-3"
                     :style="{ height: `${(item.expense / chartMax) * 100}%` }"
                     :title="formatCurrency(item.expense)"
                   />
                 </div>
-                <span class="mt-2 block text-center text-xs">{{ item.month }}月</span>
+                <span class="mt-2 block text-center text-[10px] whitespace-nowrap sm:text-xs">{{ item.month }}月</span>
               </div>
             </div>
             <div class="mt-4 flex gap-4 text-xs text-muted">
@@ -309,11 +309,11 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
               </p>
             </template>
             <template v-if="visibleCategories.length">
-              <div class="flex h-72 items-end gap-2 border-b border-default">
+              <div class="flex h-72 items-end gap-1 border-b border-default sm:gap-2">
                 <div
                   v-for="item in categoryMonths"
                   :key="item.month"
-                  class="flex h-full flex-1 flex-col justify-end"
+                  class="flex h-full min-w-0 flex-1 flex-col justify-end"
                 >
                   <div class="flex h-[calc(100%_-_2rem)] flex-col-reverse justify-start">
                     <div
@@ -325,7 +325,7 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
                       :title="`${value.name}: ${formatCurrency(value.total)}`"
                     />
                   </div>
-                  <span class="mt-2 block text-center text-xs">{{ item.month }}月</span>
+                  <span class="mt-2 block text-center text-[10px] whitespace-nowrap sm:text-xs">{{ item.month }}月</span>
                 </div>
               </div>
               <div class="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted">
@@ -357,11 +357,11 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
               </p>
             </template>
             <template v-if="visibleMethods.length">
-              <div class="relative flex h-72 gap-2">
+              <div class="relative flex h-72 gap-1 sm:gap-2">
                 <div
                   v-for="item in balanceMonths"
                   :key="item.month"
-                  class="flex h-full flex-1 flex-col"
+                  class="flex h-full min-w-0 flex-1 flex-col"
                 >
                   <div class="relative h-[calc(100%_-_2rem)]">
                     <div
@@ -381,7 +381,7 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
                       :title="`${value.name}: ${formatCurrency(value.balance)}`"
                     />
                   </div>
-                  <span class="mt-2 block text-center text-xs">{{ item.month }}月</span>
+                  <span class="mt-2 block text-center text-[10px] whitespace-nowrap sm:text-xs">{{ item.month }}月</span>
                 </div>
               </div>
               <div class="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted">
@@ -414,22 +414,22 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
             :data="projectedMonths"
             :columns="[
               { accessorKey: 'month', header: '月' },
-              { accessorKey: 'income', header: '収入' },
-              { accessorKey: 'expense', header: '支出' },
-              { accessorKey: 'balance', header: '収支' }
+              { accessorKey: 'income', header: '収入', meta: { class: { th: 'text-right', td: 'text-right tabular-nums' } } },
+              { accessorKey: 'expense', header: '支出', meta: { class: { th: 'text-right', td: 'text-right tabular-nums' } } },
+              { accessorKey: 'balance', header: '収支', meta: { class: { th: 'text-right', td: 'text-right font-bold tabular-nums' } } }
             ]"
           >
             <template #month-cell="{ row }">
               {{ row.original.month }}月
             </template>
             <template #income-cell="{ row }">
-              <span class="block text-right">{{ formatCurrency(row.original.income) }}</span>
+              {{ formatCurrency(row.original.income) }}
             </template>
             <template #expense-cell="{ row }">
-              <span class="block text-right">{{ formatCurrency(row.original.expense) }}</span>
+              {{ formatCurrency(row.original.expense) }}
             </template>
             <template #balance-cell="{ row }">
-              <span class="block text-right font-bold">{{ formatCurrency(row.original.balance) }}</span>
+              {{ formatCurrency(row.original.balance) }}
             </template>
           </UTable>
         </UCard>
