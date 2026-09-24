@@ -267,6 +267,26 @@ async fn import_recurring_expenses_supports_yen_and_creates_names() {
 }
 
 #[tokio::test]
+async fn import_recurring_expenses_allows_empty_yen_amount_only_for_variable_rows() {
+    let p = pool(RECURRING_EXPENSE_SCHEMA).await;
+    let app = import::create(p.clone());
+    let variable = "名称,金額,通貨,外貨金額,支払日,開始日,終了日,カテゴリ,支払方法,金額変動,備考\n電気代,,,,15,2026-01-01,,住居費,口座振替,true,\n";
+    let (status, body) = call(&app, "/api/import/recurring-expenses", variable).await;
+    assert_eq!(status, StatusCode::CREATED, "{body:?}");
+    let stored: (String, i64) =
+        sqlx::query_as("SELECT amount, is_variable FROM recurring_expenses")
+            .fetch_one(&p)
+            .await
+            .unwrap();
+    assert_eq!(stored, (String::new(), 1));
+
+    let fixed = "名称,金額,通貨,外貨金額,支払日,開始日,終了日,カテゴリ,支払方法,金額変動,備考\n家賃,,,,1,2026-01-01,,住居費,口座振替,false,\n";
+    let (status, body) = call(&app, "/api/import/recurring-expenses", fixed).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert!(body.to_string().contains("1以上の整数"), "{body:?}");
+}
+
+#[tokio::test]
 async fn import_recurring_expenses_supports_usd_and_variable_amount() {
     let p = pool(RECURRING_EXPENSE_SCHEMA).await;
     let app = import::create(p.clone());

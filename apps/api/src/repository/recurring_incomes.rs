@@ -68,7 +68,7 @@ fn bind<'q>(
     v: &'q RecurringIncomeUpsertRequest,
 ) -> sqlx::query::QueryAs<'q, sqlx::Sqlite, RecurringIncomeRow, sqlx::sqlite::SqliteArguments> {
     q.bind(&v.name)
-        .bind(&v.amount)
+        .bind(v.amount.as_deref().unwrap_or(""))
         .bind(v.payment_day)
         .bind(&v.start_date)
         .bind(&v.end_date)

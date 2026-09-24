@@ -41,17 +41,36 @@ async fn recurring_expense_crud() {
         .unwrap();
     sqlx::query("CREATE TABLE expense_categories(id TEXT PRIMARY KEY);CREATE TABLE payment_methods(id TEXT PRIMARY KEY);CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY DEFAULT 're-1',created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,amount TEXT NOT NULL,payment_day INTEGER NOT NULL,start_date TEXT NOT NULL,end_date TEXT,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),is_active INTEGER NOT NULL,is_variable INTEGER NOT NULL DEFAULT 0,description TEXT,foreign_amount TEXT,currency_code TEXT,exchange_rate TEXT);CREATE TABLE expenses(id TEXT PRIMARY KEY,updated_at TEXT NOT NULL DEFAULT current_timestamp,transaction_date TEXT NOT NULL,amount TEXT NOT NULL,category_id TEXT NOT NULL,payment_method_id TEXT NOT NULL,recurring_expense_id TEXT,description TEXT);INSERT INTO expense_categories VALUES('ec');INSERT INTO payment_methods VALUES('pm')").execute(&p).await.unwrap();
     let app = recurring_expenses::create(p);
-    let v = json!({"name":"Rent","amount":"80000","payment_day":27,"start_date":"2026-01-01","end_date":null,"category_id":"ec","payment_method_id":"pm","is_active":true,"is_variable":true,"description":null});
+    let v = json!({"name":"Electricity","amount":null,"payment_day":27,"start_date":"2026-01-01","end_date":null,"category_id":"ec","payment_method_id":"pm","is_active":true,"is_variable":true,"description":null});
     let (s, b) = call(&app, "POST", "/api/recurring-expenses", Some(v)).await;
     assert_eq!(s, StatusCode::CREATED, "{b:?}");
     let (s, b) = call(&app, "GET", "/api/recurring-expenses", None).await;
     assert_eq!(s, StatusCode::OK);
     let b = b.unwrap();
-    assert_eq!(b[0]["name"], "Rent");
+    assert_eq!(b[0]["name"], "Electricity");
     assert_eq!(b[0]["is_variable"], true);
+    assert_eq!(b[0]["amount"], Value::Null);
     assert_eq!(b[0]["foreign_amount"], Value::Null);
+    let update = json!({"name":"Power","payment_day":27,"start_date":"2026-01-01","end_date":null,"category_id":"ec","payment_method_id":"pm","is_active":true,"is_variable":true,"description":null});
+    let (s, b) = call(&app, "PUT", "/api/recurring-expenses/re-1", Some(update)).await;
+    assert_eq!(s, StatusCode::OK, "{b:?}");
+    assert_eq!(b.unwrap()["amount"], Value::Null);
     let (s, _) = call(&app, "DELETE", "/api/recurring-expenses/re-1", None).await;
     assert_eq!(s, StatusCode::NO_CONTENT)
+}
+
+#[tokio::test]
+async fn recurring_expense_requires_amount_for_fixed_jpy() {
+    let p = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect("sqlite::memory:")
+        .await
+        .unwrap();
+    sqlx::query("CREATE TABLE expense_categories(id TEXT PRIMARY KEY);CREATE TABLE payment_methods(id TEXT PRIMARY KEY);CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY DEFAULT 're-1',created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,amount TEXT NOT NULL,payment_day INTEGER NOT NULL,start_date TEXT NOT NULL,end_date TEXT,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),is_active INTEGER NOT NULL,is_variable INTEGER NOT NULL DEFAULT 0,description TEXT,foreign_amount TEXT,currency_code TEXT,exchange_rate TEXT);CREATE TABLE expenses(id TEXT PRIMARY KEY,updated_at TEXT NOT NULL DEFAULT current_timestamp,transaction_date TEXT NOT NULL,amount TEXT NOT NULL,category_id TEXT NOT NULL,payment_method_id TEXT NOT NULL,recurring_expense_id TEXT,description TEXT);INSERT INTO expense_categories VALUES('ec');INSERT INTO payment_methods VALUES('pm')").execute(&p).await.unwrap();
+    let app = recurring_expenses::create(p);
+    let v = json!({"name":"Rent","amount":null,"payment_day":27,"start_date":"2026-01-01","end_date":null,"category_id":"ec","payment_method_id":"pm","is_active":true,"is_variable":false,"description":null});
+    let (status, _) = call(&app, "POST", "/api/recurring-expenses", Some(v)).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
 }
 
 #[tokio::test]

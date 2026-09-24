@@ -105,7 +105,7 @@ const variableTotals = computed(() => nonZeroCategoryTotals(classification.value
           {{ item.name }}
           <small class="block text-muted">毎月{{ item.payment_day }}日</small>
         </span>
-        <span class="text-right tabular-nums">{{ formatCurrency(item.amount) }}</span>
+        <span class="text-right tabular-nums">{{ formatCurrency(item.amount ?? 0) }}</span>
       </div>
       <div class="mt-5 flex items-center justify-between gap-4 border-b border-default pb-2">
         <h2 class="text-sm font-bold">準固定費（金額変動）</h2>

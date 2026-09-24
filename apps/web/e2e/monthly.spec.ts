@@ -14,6 +14,11 @@ import {
 
 const now = new Date();
 const variableRecurring = recurringExpense({ is_variable: true });
+const variableRecurringWithoutEstimate = recurringExpense({
+  name: "水道代",
+  amount: null,
+  is_variable: true,
+});
 const usdVariableRecurring = recurringExpense({
   id: "recurring-usd-1",
   name: "動画サービス",
@@ -95,6 +100,17 @@ test("準固定費の今月分を登録する", async ({ page }) => {
 
   await expect(page.getByText("支出を登録しました", { exact: true })).toBeVisible();
   expect(captured.body).toMatchObject({ amount: "7500", recurring_expense_id: "recurring-1" });
+});
+
+test("目安なしの準固定費は空の金額で今月分を登録できる", async ({ page }) => {
+  await mockMonthlyApi(page, { "/api/recurring-expenses": [variableRecurringWithoutEstimate] });
+
+  await page.goto("/monthly");
+  await expect(page.getByText("毎月 15 日", { exact: true })).toBeVisible();
+  await expect(page.getByText("目安", { exact: false })).toHaveCount(0);
+  await page.getByRole("button", { name: "水道代の今月分を登録" }).click();
+  await expect(page.getByRole("heading", { name: "準固定費を登録" })).toBeVisible();
+  await expect(page.getByLabel("金額")).toHaveValue("");
 });
 
 test("USD建て準固定費は為替プレビューを表示し、換算後の金額を送信する", async ({ page }) => {

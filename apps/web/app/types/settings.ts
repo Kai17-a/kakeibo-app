@@ -41,7 +41,7 @@ export interface BudgetInput {
 
 export interface RecurringIncomeInput {
   name: string;
-  amount: string;
+  amount: string | null;
   payment_day: number;
   start_date: string;
   end_date: string | null;
@@ -54,7 +54,7 @@ export interface RecurringIncome extends BaseResource, RecurringIncomeInput {}
 
 export interface RecurringExpenseInput {
   name: string;
-  amount: string;
+  amount: string | null;
   payment_day: number;
   start_date: string;
   end_date: string | null;
@@ -70,7 +70,7 @@ export interface RecurringExpenseInput {
 }
 export interface RecurringExpense extends BaseResource {
   name: string;
-  amount: string;
+  amount: string | null;
   payment_day: number;
   start_date: string;
   end_date: string | null;

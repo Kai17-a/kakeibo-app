@@ -110,6 +110,19 @@ async fn validates_required_fields_and_payment_day() {
 }
 
 #[tokio::test]
+async fn variable_income_allows_missing_amount_but_fixed_income_does_not() {
+    let router = app().await;
+    let variable = json!({"name":"歩合","amount":null,"payment_day":25,"start_date":"2026-01-01","end_date":null,"category_id":"salary","is_active":true,"is_variable":true,"description":null});
+    let (status, body) = call(&router, "POST", "/api/recurring-incomes", Some(variable)).await;
+    assert_eq!(status, StatusCode::CREATED, "{body:?}");
+    assert_eq!(body.unwrap()["amount"], Value::Null);
+
+    let fixed = json!({"name":"給与","amount":null,"payment_day":25,"start_date":"2026-01-01","end_date":null,"category_id":"salary","is_active":true,"is_variable":false,"description":null});
+    let (status, _) = call(&app().await, "POST", "/api/recurring-incomes", Some(fixed)).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
 async fn returns_not_found_for_missing_resources() {
     let app = app().await;
     let (status, _) = call(&app, "GET", "/api/recurring-incomes/missing", None).await;

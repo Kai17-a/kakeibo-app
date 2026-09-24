@@ -54,7 +54,7 @@ export function recurringForecast(
       item.currency_code === "USD"
         ? usdRecurringPreviews.get(item.id)?.converted_amount
         : item.amount;
-    if (amount === undefined) continue;
+    if (amount == null) continue;
     const numericAmount = Number(amount);
     projectedExpenseTotal += numericAmount;
     expensesByCategory.set(
@@ -64,7 +64,7 @@ export function recurringForecast(
   }
   return {
     expense: projectedExpenseTotal,
-    income: sumAmounts(projectedIncomes),
+    income: projectedIncomes.reduce((sum, item) => sum + Number(item.amount ?? 0), 0),
     expensesByCategory,
   };
 }
@@ -75,8 +75,8 @@ export function inPeriod<T extends { transaction_date: string }>(items: T[], per
   return items.filter((item) => item.transaction_date.startsWith(period));
 }
 
-export function sumAmounts(items: Array<{ amount: string }>): number {
-  return items.reduce((sum, item) => sum + Number(item.amount), 0);
+export function sumAmounts(items: Array<{ amount: string | null }>): number {
+  return items.reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
 }
 
 export function mergeTransactions(expenses: Expense[], incomes: Income[]): Transaction[] {

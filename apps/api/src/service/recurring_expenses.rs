@@ -226,12 +226,23 @@ fn previous_month((year, month): (i32, u32)) -> (i32, u32) {
 }
 fn validate(v: &RecurringExpenseUpsertRequest) -> AppResult<()> {
     if v.name.trim().is_empty()
-        || v.amount.trim().is_empty()
         || v.start_date.trim().is_empty()
         || v.category_id.trim().is_empty()
         || v.payment_method_id.trim().is_empty()
     {
         return Err(AppError::bad_request("required fields must not be empty"));
+    }
+    let amount = v.amount.as_deref().unwrap_or("").trim();
+    let is_usd = v.currency_code.is_some();
+    if !is_usd
+        && (!v.is_variable || !amount.is_empty())
+        && (!amount.chars().all(|character| character.is_ascii_digit())
+            || amount.parse::<u64>().is_err()
+            || amount == "0")
+    {
+        return Err(AppError::bad_request(
+            "amount must be an integer greater than or equal to 1",
+        ));
     }
     if !(1..=31).contains(&v.payment_day) {
         return Err(AppError::bad_request(
@@ -259,9 +270,17 @@ fn validate(v: &RecurringExpenseUpsertRequest) -> AppResult<()> {
 
 fn normalized(v: &RecurringExpenseUpsertRequest) -> RecurringExpenseUpsertRequest {
     let mut normalized = v.clone();
+    normalized.amount = v
+        .amount
+        .as_ref()
+        .map(|amount| amount.trim().to_owned())
+        .filter(|amount| !amount.is_empty());
     normalized.currency_code = v
         .currency_code
         .as_ref()
         .map(|code| code.trim().to_ascii_uppercase());
+    if normalized.currency_code.as_deref() == Some("USD") {
+        normalized.amount = normalized.foreign_amount.clone();
+    }
     normalized
 }

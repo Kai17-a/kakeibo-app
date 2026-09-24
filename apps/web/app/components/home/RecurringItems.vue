@@ -48,7 +48,7 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
             >
           </template>
           <template v-else>
-            {{ formatCurrency(item.amount) }}
+            {{ formatCurrency(item.amount ?? 0) }}
           </template>
         </b>
       </li>
@@ -66,12 +66,14 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
           <span>
             <b class="block">{{ item.name }}</b>
             <small class="text-muted"
-              >毎月 {{ item.payment_day }} 日 · 目安
-              {{
-                item.currency_code === "USD"
-                  ? `USD ${item.foreign_amount ?? item.amount}`
-                  : formatCurrency(item.amount)
-              }}</small
+              >毎月 {{ item.payment_day }} 日<span v-if="item.amount !== null">
+                · 目安
+                {{
+                  item.currency_code === "USD"
+                    ? `USD ${item.foreign_amount ?? item.amount}`
+                    : formatCurrency(item.amount)
+                }}</span
+              ></small
             >
           </span>
           <UButton
@@ -102,7 +104,7 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
           <b class="block">{{ item.name }}</b>
           <small class="text-muted">毎月 {{ item.payment_day }} 日</small>
         </span>
-        <b>{{ formatCurrency(item.amount) }}</b>
+        <b>{{ formatCurrency(item.amount ?? 0) }}</b>
       </li>
     </ul>
     <template v-if="variableIncomes.length">
@@ -118,7 +120,9 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
           <span>
             <b class="block">{{ item.name }}</b>
             <small class="text-muted"
-              >毎月 {{ item.payment_day }} 日 · 目安 {{ formatCurrency(item.amount) }}</small
+              >毎月 {{ item.payment_day }} 日<span v-if="item.amount !== null">
+                · 目安 {{ formatCurrency(item.amount) }}</span
+              ></small
             >
           </span>
           <UButton

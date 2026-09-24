@@ -43,9 +43,10 @@ export function validateRecurringExpense(
       });
     }
   } else if (
-    !/^\d+$/.test(state.amount.trim()) ||
-    !Number.isSafeInteger(Number(state.amount)) ||
-    Number(state.amount) < 1
+    (!state.is_variable || state.amount.trim() !== "") &&
+    (!/^\d+$/.test(state.amount.trim()) ||
+      !Number.isSafeInteger(Number(state.amount)) ||
+      Number(state.amount) < 1)
   ) {
     errors.push({ name: "amount", message: "金額を1以上の整数で入力してください。" });
   }
@@ -71,7 +72,7 @@ export function recurringExpenseInput(state: RecurringExpenseForm): RecurringExp
   const usdBased = state.usdBased;
   return {
     name: state.name.trim(),
-    amount: usdBased ? String(state.foreignAmount).trim() : state.amount.trim(),
+    amount: usdBased ? String(state.foreignAmount).trim() : state.amount.trim() || null,
     payment_day: Number(state.payment_day),
     start_date: state.start_date,
     end_date: state.end_date || null,

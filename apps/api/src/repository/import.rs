@@ -130,7 +130,7 @@ impl ImportRepository {
     ) -> AppResult<()> {
         sqlx::query(include_str!("../../queries/recurring_expenses/insert.sql"))
             .bind(&v.name)
-            .bind(&v.amount)
+            .bind(v.amount.as_deref().unwrap_or(""))
             .bind(v.payment_day)
             .bind(&v.start_date)
             .bind(&v.end_date)

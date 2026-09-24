@@ -57,6 +57,12 @@ test("validates required fields, positive whole yen, categories and payment day 
   assert.ok(validateRecurringIncome(valid, []).some((e) => e.name === "category_id"));
 });
 
+test("variable income accepts an empty amount and maps it to null", () => {
+  const state = { ...valid, amount: "", is_variable: true };
+  assert.deepEqual(validateRecurringIncome(state, categories), []);
+  assert.equal(recurringIncomeInput(state).amount, null);
+});
+
 test("dates must exist and end on or after the start date", () => {
   for (const start_date of ["", "2026-02-29", "2026-13-01"]) {
     assert.ok(

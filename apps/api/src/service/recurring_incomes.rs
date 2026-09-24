@@ -31,7 +31,8 @@ impl RecurringIncomeService {
     }
     pub async fn create(&self, v: &RecurringIncomeUpsertRequest) -> AppResult<RecurringIncome> {
         validate(v)?;
-        self.repository.insert(v).await.map(Into::into)
+        let v = normalized(v);
+        self.repository.insert(&v).await.map(Into::into)
     }
     pub async fn update(
         &self,
@@ -39,8 +40,9 @@ impl RecurringIncomeService {
         v: &RecurringIncomeUpsertRequest,
     ) -> AppResult<RecurringIncome> {
         validate(v)?;
+        let v = normalized(v);
         self.repository
-            .update(id, v)
+            .update(id, &v)
             .await?
             .map(Into::into)
             .ok_or_else(|| AppError::not_found("recurring income", id))
@@ -55,12 +57,19 @@ impl RecurringIncomeService {
 }
 
 fn validate(v: &RecurringIncomeUpsertRequest) -> AppResult<()> {
-    if v.name.trim().is_empty()
-        || v.amount.trim().is_empty()
-        || v.start_date.trim().is_empty()
-        || v.category_id.trim().is_empty()
+    if v.name.trim().is_empty() || v.start_date.trim().is_empty() || v.category_id.trim().is_empty()
     {
         return Err(AppError::bad_request("required fields must not be empty"));
+    }
+    let amount = v.amount.as_deref().unwrap_or("").trim();
+    if (!v.is_variable || !amount.is_empty())
+        && (!amount.chars().all(|character| character.is_ascii_digit())
+            || amount.parse::<u64>().is_err()
+            || amount == "0")
+    {
+        return Err(AppError::bad_request(
+            "amount must be an integer greater than or equal to 1",
+        ));
     }
     if !(1..=31).contains(&v.payment_day) {
         return Err(AppError::bad_request(
@@ -68,4 +77,14 @@ fn validate(v: &RecurringIncomeUpsertRequest) -> AppResult<()> {
         ));
     }
     Ok(())
+}
+
+fn normalized(v: &RecurringIncomeUpsertRequest) -> RecurringIncomeUpsertRequest {
+    let mut normalized = v.clone();
+    normalized.amount = v
+        .amount
+        .as_ref()
+        .map(|amount| amount.trim().to_owned())
+        .filter(|amount| !amount.is_empty());
+    normalized
 }

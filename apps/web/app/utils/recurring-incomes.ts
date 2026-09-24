@@ -27,9 +27,10 @@ export function validateRecurringIncome(state: RecurringIncomeForm, categories: 
   const errors: { name: string; message: string }[] = [];
   if (!state.name.trim()) errors.push({ name: "name", message: "名称を入力してください。" });
   if (
-    !/^\d+$/.test(state.amount.trim()) ||
-    !Number.isSafeInteger(Number(state.amount)) ||
-    Number(state.amount) < 1
+    (!state.is_variable || state.amount.trim() !== "") &&
+    (!/^\d+$/.test(state.amount.trim()) ||
+      !Number.isSafeInteger(Number(state.amount)) ||
+      Number(state.amount) < 1)
   ) {
     errors.push({ name: "amount", message: "金額を1以上の整数で入力してください。" });
   }
@@ -53,7 +54,7 @@ export function recurringIncomeInput(state: RecurringIncomeForm): RecurringIncom
   return {
     ...state,
     name: state.name.trim(),
-    amount: state.amount.trim(),
+    amount: state.amount.trim() || null,
     payment_day: Number(state.payment_day),
     end_date: state.end_date || null,
     description: state.description.trim() || null,

@@ -52,11 +52,11 @@ impl RecurringExpenseRepository {
         .bind(id)
         .fetch_optional(&self.pool)
         .await?;
-        if updated.is_some() && v.sync_future_transactions {
+        if updated.is_some() && v.sync_future_transactions && !v.is_variable {
             sqlx::query(
                 "UPDATE expenses SET amount = ?, category_id = ?, payment_method_id = ?, description = ?, updated_at = current_timestamp WHERE recurring_expense_id = ? AND transaction_date >= date('now', 'localtime', 'start of month')",
             )
-            .bind(&v.amount)
+            .bind(v.amount.as_deref().unwrap_or(""))
             .bind(&v.category_id)
             .bind(&v.payment_method_id)
             .bind(&v.description)
@@ -82,7 +82,7 @@ fn bind<'q>(
     v: &'q RecurringExpenseUpsertRequest,
 ) -> sqlx::query::QueryAs<'q, sqlx::Sqlite, RecurringExpenseRow, sqlx::sqlite::SqliteArguments> {
     q.bind(&v.name)
-        .bind(&v.amount)
+        .bind(v.amount.as_deref().unwrap_or(""))
         .bind(v.payment_day)
         .bind(&v.start_date)
         .bind(&v.end_date)

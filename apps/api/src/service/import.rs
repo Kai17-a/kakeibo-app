@@ -45,6 +45,19 @@ const RECURRING_EXPENSE_SAMPLE_ROW: &[&str] = &[
     "",
     "",
 ];
+const VARIABLE_RECURRING_EXPENSE_SAMPLE_ROW: &[&str] = &[
+    "電気代",
+    "",
+    "",
+    "",
+    "15",
+    "2026-01-01",
+    "",
+    "水道光熱費",
+    "口座振替",
+    "true",
+    "金額は毎月入力",
+];
 const MAX_REPORTED_ERRORS: usize = 3;
 #[derive(Clone)]
 pub struct ImportService {
@@ -64,7 +77,12 @@ impl ImportService {
     }
 
     pub fn recurring_expense_sample_csv() -> String {
-        sample_csv(RECURRING_EXPENSE_HEADERS, RECURRING_EXPENSE_SAMPLE_ROW)
+        format!(
+            "{UTF8_BOM}{}\n{}\n{}\n",
+            RECURRING_EXPENSE_HEADERS.join(","),
+            RECURRING_EXPENSE_SAMPLE_ROW.join(","),
+            VARIABLE_RECURRING_EXPENSE_SAMPLE_ROW.join(",")
+        )
     }
 
     pub async fn preview_expenses(&self, csv_text: &str) -> AppResult<ExpenseImportPreview> {
@@ -417,10 +435,15 @@ fn validate_recurring_expenses(rows: &[RecurringExpenseCsvRow]) -> AppResult<()>
             ));
         }
         let currency = row.currency.trim();
+        let is_variable = matches!(
+            row.is_variable.trim().to_ascii_lowercase().as_str(),
+            "true" | "1"
+        );
         if currency.is_empty() {
-            if !is_positive_integer(&row.amount) {
+            if (!is_variable || !row.amount.trim().is_empty()) && !is_positive_integer(&row.amount)
+            {
                 errors.push(format!(
-                    "{row_number}行目: 金額「{}」は1以上の整数で指定してください",
+                    "{row_number}行目: 固定費の金額、または準固定費で入力する金額「{}」は1以上の整数で指定してください",
                     row.amount
                 ));
             }
@@ -464,12 +487,15 @@ fn recurring_expense_request(
     let usd = currency.eq_ignore_ascii_case("USD");
     RecurringExpenseUpsertRequest {
         name: row.name.trim().to_owned(),
-        amount: if usd {
-            row.foreign_amount.trim()
-        } else {
-            row.amount.trim()
-        }
-        .to_owned(),
+        amount: Some(
+            if usd {
+                row.foreign_amount.trim()
+            } else {
+                row.amount.trim()
+            }
+            .to_owned(),
+        )
+        .filter(|amount| !amount.is_empty()),
         payment_day: row
             .payment_day
             .trim()

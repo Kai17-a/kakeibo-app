@@ -79,7 +79,6 @@ const columns: TableColumn<RecurringIncome>[] = [
   {
     accessorKey: "amount",
     header: "金額",
-    cell: ({ row }) => formatYen(row.original.amount),
     meta: {
       class: {
         th: "w-24 whitespace-nowrap text-right",
@@ -184,6 +183,11 @@ function save() {
               {{ row.original.is_active ? "有効" : "無効" }}
             </UBadge>
           </template>
+          <template #amount-cell="{ row }">
+            <span :class="row.original.amount === null ? 'text-muted' : ''">
+              {{ row.original.amount === null ? "毎月入力" : formatYen(row.original.amount) }}
+            </span>
+          </template>
           <template #actions-cell="{ row }">
             <RowActionsMenu
               :label="row.original.name"
@@ -215,7 +219,14 @@ function save() {
       <UFormField name="name" label="名称" required>
         <UInput v-model="state.name" class="w-full" autofocus />
       </UFormField>
-      <UFormField name="amount" :label="state.is_variable ? '金額（目安）' : '金額'" required>
+      <UFormField
+        name="amount"
+        :label="state.is_variable ? '金額（目安・任意）' : '金額'"
+        :required="!state.is_variable"
+        :description="
+          state.is_variable ? '空欄の場合は「今月分を登録」で毎月入力します。' : undefined
+        "
+      >
         <UInput
           :model-value="state.amount"
           type="number"
