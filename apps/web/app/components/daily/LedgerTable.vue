@@ -31,20 +31,6 @@ function paymentName(item: T) {
     return item.payment_method_id ? props.paymentNames.get(item.payment_method_id) : undefined;
   return item.payment_method_id ? (props.paymentNames.get(item.payment_method_id) ?? "—") : "—";
 }
-
-function actions(item: T) {
-  return [
-    [
-      { label: "編集", icon: "i-lucide-pencil", onSelect: () => emit("edit", item) },
-      {
-        label: "削除",
-        icon: "i-lucide-trash-2",
-        color: "error" as const,
-        onSelect: () => emit("delete", item),
-      },
-    ],
-  ];
-}
 </script>
 
 <template>
@@ -113,15 +99,11 @@ function actions(item: T) {
             {{ item.description ?? "" }}
           </td>
           <td class="px-3 py-2 text-right">
-            <UDropdownMenu :items="actions(item)">
-              <UButton
-                icon="i-lucide-ellipsis"
-                color="neutral"
-                variant="ghost"
-                size="sm"
-                :aria-label="`${formatDate(item.transaction_date)} ${label(item)}の操作`"
-              />
-            </UDropdownMenu>
+            <RowActionsMenu
+              :label="`${formatDate(item.transaction_date)} ${label(item)}`"
+              @edit="emit('edit', item)"
+              @delete="emit('delete', item)"
+            />
           </td>
         </tr>
       </tbody>

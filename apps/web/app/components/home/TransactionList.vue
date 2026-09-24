@@ -18,20 +18,6 @@ const emit = defineEmits<{
   edit: [item: Transaction];
   delete: [item: Transaction];
 }>();
-
-function actions(item: Transaction) {
-  return [
-    [
-      { label: "編集", icon: "i-lucide-pencil", onSelect: () => emit("edit", item) },
-      {
-        label: "削除",
-        icon: "i-lucide-trash-2",
-        color: "error" as const,
-        onSelect: () => emit("delete", item),
-      },
-    ],
-  ];
-}
 </script>
 
 <template>
@@ -81,15 +67,11 @@ function actions(item: Transaction) {
                 formatSignedCurrency(item.amount, item.kind === "income" ? "positive" : "negative")
               }}
             </p>
-            <UDropdownMenu :items="actions(item)">
-              <UButton
-                icon="i-lucide-ellipsis"
-                color="neutral"
-                variant="ghost"
-                size="sm"
-                :aria-label="`${formatDate(item.transaction_date)} ${labelOf(item)}の操作`"
-              />
-            </UDropdownMenu>
+            <RowActionsMenu
+              :label="`${formatDate(item.transaction_date)} ${labelOf(item)}`"
+              @edit="emit('edit', item)"
+              @delete="emit('delete', item)"
+            />
           </li>
         </ul>
       </section>
