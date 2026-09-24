@@ -241,12 +241,10 @@ async function confirmDelete() {
                 aria-label="前月"
                 @click="setMonth(shiftMonth(month, -1))"
               />
-              <UInput
+              <MonthPicker
                 :model-value="month"
-                type="month"
-                aria-label="対象月"
                 class="w-44 sm:w-40"
-                @update:model-value="(value) => setMonth(String(value))"
+                @update:model-value="setMonth"
               />
               <UButton
                 icon="i-lucide-chevron-right"

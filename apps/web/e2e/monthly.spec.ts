@@ -202,6 +202,18 @@ test('最近の明細から支出を編集・削除する', async ({ page }) => 
   await expect(page.getByText('この月の明細はまだありません')).toBeVisible()
 })
 
+test('カレンダーで対象月を変更する', async ({ page }) => {
+  const targetMonthNumber = now.getMonth() === 0 ? 2 : 1
+  const targetMonth = `${now.getFullYear()}-${String(targetMonthNumber).padStart(2, '0')}`
+  await mockMonthlyApi(page)
+  await page.goto(`/?month=${month}`)
+
+  await page.getByRole('button', { name: '対象月' }).click()
+  await page.getByRole('button', { name: `${now.getFullYear()}年${targetMonthNumber}月`, exact: true }).click()
+
+  await expect(page).toHaveURL(new RegExp(`/\\?month=${targetMonth}$`))
+})
+
 test('画面切り替えで日別・年間集計へ遷移する', async ({ page }) => {
   await mockMonthlyApi(page)
   await page.goto(`/?month=${month}`)

@@ -302,9 +302,9 @@ async function remove() {
             label="開始日"
             required
           >
-            <UInput
+            <DatePicker
               v-model="state.start_date"
-              type="date"
+              required
               class="w-full"
             />
           </UFormField>
@@ -312,10 +312,10 @@ async function remove() {
             name="end_date"
             label="終了日（任意）"
           >
-            <UInput
+            <DatePicker
               v-model="state.end_date"
-              type="date"
-              :min="state.start_date || undefined"
+              :min="state.start_date"
+              clearable
               class="w-full"
             />
           </UFormField>

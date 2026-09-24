@@ -3,6 +3,7 @@ import type { Category, PaymentMethod, RecurringExpense, RecurringIncome } from 
 import type { ExchangeRatePreview, Expense, ExpenseInput, Income, IncomeInput } from '~/types/transactions'
 import { groupCategories } from '~/utils/settings'
 import { formatCurrency } from '~/utils/format'
+import { dateStringToCalendarDate } from '~/utils/calendar-date'
 
 const props = defineProps<{
   open: boolean
@@ -76,8 +77,17 @@ const title = computed(() => {
   if (preset.value) return props.initialRecurringIncome ? '準固定収入を登録' : '準固定費を登録'
   return '収支を登録'
 })
+const dateError = ref('')
+
+watch(() => state.date, (value) => {
+  if (dateStringToCalendarDate(value)) dateError.value = ''
+})
 
 async function handleSubmit(event: SubmitEvent) {
+  if (!dateStringToCalendarDate(state.date)) {
+    dateError.value = '日付を選択してください。'
+    return
+  }
   const keepOpen = (event.submitter as HTMLButtonElement | null)?.value === 'continue'
   await submit(keepOpen)
 }
@@ -139,12 +149,13 @@ async function submit(keepOpen: boolean) {
         @submit.prevent="handleSubmit"
       >
         <UFormField
+          name="date"
           label="日付"
           required
+          :error="dateError || undefined"
         >
-          <UInput
+          <DatePicker
             v-model="state.date"
-            type="date"
             required
             class="w-full"
           />
