@@ -21,6 +21,8 @@ export const currentDate = () => {
 
 export const currentMonth = () => currentDate().slice(0, 7)
 
+export const isValidMonth = (value: string) => /^\d{4}-(0[1-9]|1[0-2])$/.test(value)
+
 export const shiftMonth = (month: string, delta: number) => {
   const [year, monthNumber] = month.split('-').map(Number) as [number, number]
   const totalMonths = year * 12 + monthNumber - 1 + delta
