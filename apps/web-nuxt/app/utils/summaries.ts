@@ -1,4 +1,4 @@
-import type { Budget, Category, RecurringExpense, RecurringIncome } from '~/types/settings'
+import type { Budget, Category, PaymentMethod, RecurringExpense, RecurringIncome } from '~/types/settings'
 import type { Expense, Income } from '~/types/transactions'
 
 function activeInMonth(item: { start_date: string, end_date: string | null }, month: string) {
@@ -70,6 +70,65 @@ export function categoryTotals(expenses: Expense[], categories: Category[]) {
     name: category.name,
     total: sumAmounts(expenses.filter(item => item.category_id === category.id))
   }))
+}
+
+export function annualMonthlyTotals(expenses: Expense[], incomes: Income[], year: string) {
+  return Array.from({ length: 12 }, (_, index) => {
+    const month = `${year}-${String(index + 1).padStart(2, '0')}`
+    const income = sumAmounts(inPeriod(incomes, month))
+    const expense = sumAmounts(inPeriod(expenses, month))
+    return { month: index + 1, income, expense, balance: income - expense }
+  })
+}
+
+export function categoryMonthlyTotals(expenses: Expense[], categories: Category[], year: string) {
+  const annualExpenses = inPeriod(expenses, year)
+  const activeCategories = categories.filter(
+    category => sumAmounts(annualExpenses.filter(expense => expense.category_id === category.id)) !== 0
+  )
+
+  return Array.from({ length: 12 }, (_, index) => {
+    const month = `${year}-${String(index + 1).padStart(2, '0')}`
+    const monthlyExpenses = inPeriod(annualExpenses, month)
+    const values = activeCategories.map(category => ({
+      id: category.id,
+      name: category.name,
+      total: sumAmounts(monthlyExpenses.filter(expense => expense.category_id === category.id))
+    }))
+    return {
+      month: index + 1,
+      values,
+      total: values.reduce((sum, value) => sum + value.total, 0)
+    }
+  })
+}
+
+export function paymentMethodBalanceTrend(incomes: Income[], expenses: Expense[], paymentMethods: PaymentMethod[], year: string) {
+  const trackedMethods = paymentMethods.filter(method => method.initial_balance !== null)
+  const yearStart = `${year}-01`
+  const openingBalances = new Map(
+    trackedMethods.map((method) => {
+      const priorIncome = sumAmounts(incomes.filter(income => income.payment_method_id === method.id && income.transaction_date < yearStart))
+      const priorExpense = sumAmounts(expenses.filter(expense => expense.payment_method_id === method.id && expense.transaction_date < yearStart))
+      return [method.id, Number(method.initial_balance) + priorIncome - priorExpense]
+    })
+  )
+
+  return Array.from({ length: 12 }, (_, index) => {
+    const month = `${year}-${String(index + 1).padStart(2, '0')}`
+    const values = trackedMethods.map((method) => {
+      const income = sumAmounts(incomes.filter(item => item.payment_method_id === method.id && item.transaction_date.startsWith(month)))
+      const expense = sumAmounts(expenses.filter(item => item.payment_method_id === method.id && item.transaction_date.startsWith(month)))
+      const balance = (openingBalances.get(method.id) ?? 0) + income - expense
+      openingBalances.set(method.id, balance)
+      return { id: method.id, name: method.name, balance }
+    })
+    return {
+      month: index + 1,
+      values,
+      total: values.reduce((sum, value) => sum + value.balance, 0)
+    }
+  })
 }
 
 export function dailyCategoryTotals(
