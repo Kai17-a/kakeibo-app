@@ -72,6 +72,21 @@ export function categoryTotals(expenses: Expense[], categories: Category[]) {
   }))
 }
 
+export function dailyCategoryTotals(
+  expenses: Array<Pick<Expense, 'transaction_date' | 'amount' | 'category_id'>>,
+  month: string
+) {
+  const days = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate()
+  return Array.from({ length: days }, (_, index) => {
+    const date = `${month}-${String(index + 1).padStart(2, '0')}`
+    const values = new Map<string, number>()
+    for (const item of expenses.filter(expense => expense.transaction_date === date)) {
+      values.set(item.category_id, (values.get(item.category_id) ?? 0) + Number(item.amount))
+    }
+    return { date, values, total: [...values.values()].reduce((sum, value) => sum + value, 0) }
+  })
+}
+
 export function budgetActuals(expenses: Expense[], categories: Category[], budgets: Budget[], month: string) {
   const monthlyExpenses = inPeriod(expenses, month)
   const categoryNames = new Map(categories.map(category => [category.id, category.name]))
