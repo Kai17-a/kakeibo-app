@@ -83,10 +83,20 @@ const forecast = computed(() => recurringForecast(monthExpenses.value, monthInco
 const projectedExpenseTotal = computed(() => expenseTotal.value + forecast.value.expense)
 const projectedIncomeTotal = computed(() => incomeTotal.value + forecast.value.income)
 const balance = computed(() => projectedIncomeTotal.value - projectedExpenseTotal.value)
-const balanceRatio = computed(() => projectedIncomeTotal.value ? Math.min(100, Math.max(0, (balance.value / projectedIncomeTotal.value) * 100)) : 0)
-
 const transactions = computed(() => mergeTransactions(monthExpenses.value, monthIncomes.value))
-const recentTransactions = computed(() => transactions.value.slice(0, 15))
+const transactionGroups = computed(() => {
+  const groups = new Map<string, typeof transactions.value>()
+  for (const item of transactions.value) {
+    const group = groups.get(item.transaction_date) ?? []
+    group.push(item)
+    groups.set(item.transaction_date, group)
+  }
+  return [...groups].map(([date, items]) => ({
+    date,
+    items,
+    total: items.reduce((sum, item) => sum + (item.kind === 'income' ? Number(item.amount) : -Number(item.amount)), 0)
+  }))
+})
 
 const fixedRecurring = computed(() => recurringExpenses.value.filter(item => item.is_active && !item.is_variable))
 const variableRecurring = computed(() => recurringExpenses.value.filter(item => item.is_active && item.is_variable))
@@ -99,9 +109,31 @@ const paymentNames = computed(() => new Map(paymentMethods.value.map(item => [it
 
 const spending = computed(() => categoryTotals(monthExpenses.value, expenseCategories.value).filter(item => item.total).sort((a, b) => b.total - a.total))
 const actuals = computed(() => budgetActuals(monthExpenses.value, expenseCategories.value, budgets.value, month.value))
-
+const budgetTotal = computed(() => actuals.value.reduce((sum, item) => sum + item.budget, 0))
+const budgetSpent = computed(() => actuals.value.reduce((sum, item) => sum + item.actual, 0))
+const budgetRate = computed(() => budgetTotal.value ? (budgetSpent.value / budgetTotal.value) * 100 : 0)
 function transactionLabel(item: ReturnType<typeof mergeTransactions>[number]) {
   return item.description || (item.kind === 'expense' ? expenseNames.value.get(item.category_id) : incomeNames.value.get(item.category_id)) || '名称なし'
+}
+
+function transactionMeta(item: ReturnType<typeof mergeTransactions>[number]) {
+  const category = item.kind === 'expense' ? expenseNames.value.get(item.category_id) : incomeNames.value.get(item.category_id)
+  const payment = item.payment_method_id ? paymentNames.value.get(item.payment_method_id) : undefined
+  const label = transactionLabel(item)
+  return [label === category ? undefined : category, payment].filter(Boolean).join(' · ')
+}
+
+function transactionActions(item: ReturnType<typeof mergeTransactions>[number]) {
+  return [[{
+    label: '編集',
+    icon: 'i-lucide-pencil',
+    onSelect: () => item.kind === 'expense' ? editExpense(item) : editIncome(item)
+  }, {
+    label: '削除',
+    icon: 'i-lucide-trash-2',
+    color: 'error' as const,
+    onSelect: () => item.kind === 'expense' ? askDeleteExpense(item) : askDeleteIncome(item)
+  }]]
 }
 
 // --- transaction registration modal ---
@@ -245,16 +277,6 @@ async function confirmDelete() {
             <UDashboardSidebarCollapse />
           </template>
           <template #right>
-            <UButton
-              icon="i-lucide-plus"
-              @click="openTransaction"
-            >
-              収支を登録
-            </UButton>
-          </template>
-        </UDashboardNavbar>
-        <UDashboardToolbar>
-          <template #right>
             <UFieldGroup class="shrink-0">
               <UButton
                 icon="i-lucide-chevron-left"
@@ -265,7 +287,7 @@ async function confirmDelete() {
               />
               <MonthPicker
                 :model-value="month"
-                class="w-44 sm:w-40"
+                class="w-24 sm:w-40"
                 @update:model-value="setMonth"
               />
               <UButton
@@ -276,8 +298,15 @@ async function confirmDelete() {
                 @click="setMonth(shiftMonth(month, 1))"
               />
             </UFieldGroup>
+            <UButton
+              icon="i-lucide-plus"
+              aria-label="記録する"
+              @click="openTransaction"
+            >
+              <span class="hidden sm:inline">記録する</span>
+            </UButton>
           </template>
-        </UDashboardToolbar>
+        </UDashboardNavbar>
       </template>
       <template #body>
         <UAlert
@@ -300,57 +329,61 @@ async function confirmDelete() {
           class="space-y-6"
         >
           <section
-            class="grid gap-4 md:grid-cols-3"
+            class="grid grid-cols-2 overflow-hidden rounded-lg border border-default bg-elevated sm:grid-cols-3 sm:divide-x sm:divide-default"
             :aria-label="`${monthLabel}の収支概要`"
           >
-            <UCard>
+            <div class="p-3 sm:p-6">
               <p class="text-sm text-muted">
-                収入（予測込み）
+                収入
               </p>
-              <p class="mt-1 text-2xl font-bold">
-                {{ formatCurrency(projectedIncomeTotal) }}
+              <p class="mt-1 text-base font-bold text-primary tabular-nums whitespace-nowrap sm:text-2xl">
+                +{{ formatCurrency(projectedIncomeTotal) }}
               </p>
               <UBadge
+                v-if="forecast.income"
                 class="mt-2"
                 color="neutral"
                 variant="soft"
               >
-                {{ monthIncomes.length }} 件の入金
+                うち予定 {{ formatCurrency(forecast.income) }}
               </UBadge>
-            </UCard>
-            <UCard>
+            </div>
+            <div class="border-l border-default p-3 sm:border-t-0 sm:p-6">
               <p class="text-sm text-muted">
-                支出（予測込み）
+                支出
               </p>
-              <p class="mt-1 text-2xl font-bold">
-                {{ formatCurrency(projectedExpenseTotal) }}
+              <p class="mt-1 text-base font-bold tabular-nums whitespace-nowrap sm:text-2xl">
+                −{{ formatCurrency(projectedExpenseTotal) }}
               </p>
               <UBadge
+                v-if="forecast.expense"
                 class="mt-2"
                 color="neutral"
                 variant="soft"
               >
-                {{ monthExpenses.length }} 件の支払い
+                うち予定 {{ formatCurrency(forecast.expense) }}
               </UBadge>
-            </UCard>
-            <UCard>
+            </div>
+            <div class="col-span-2 border-t border-default p-3 sm:col-span-1 sm:border-t-0 sm:p-6">
               <p class="text-sm text-muted">
-                残り
+                収支
               </p>
-              <p class="mt-1 text-2xl font-bold">
-                {{ formatCurrency(balance) }}
+              <p :class="['mt-1 text-lg font-bold tabular-nums whitespace-nowrap sm:text-2xl', balance < 0 ? 'text-error' : 'text-primary']">
+                {{ balance >= 0 ? '+' : '−' }}{{ formatCurrency(Math.abs(balance)) }}
               </p>
               <UProgress
+                v-if="budgetTotal"
                 class="mt-2"
-                :model-value="balanceRatio"
+                :model-value="Math.min(100, budgetRate)"
+                :color="budgetRate > 100 ? 'error' : budgetRate >= 80 ? 'warning' : 'primary'"
               />
               <p
-                v-if="forecast.expense || forecast.income"
+                v-if="budgetTotal || forecast.expense || forecast.income"
                 class="mt-2 text-xs text-muted"
               >
-                未計上の定期収支（収入 {{ formatCurrency(forecast.income) }}・支出 {{ formatCurrency(forecast.expense) }}）を含みます。
+                {{ budgetTotal ? `予算 使用率 ${Math.round(budgetRate)}%` : '予定を含む' }}
               </p>
-            </UCard>
+            </div>
           </section>
 
           <div class="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
@@ -358,7 +391,7 @@ async function confirmDelete() {
               <template #header>
                 <div class="flex items-center justify-between">
                   <h2 class="text-lg font-semibold">
-                    最近の明細
+                    明細
                   </h2>
                   <UBadge
                     color="neutral"
@@ -371,61 +404,65 @@ async function confirmDelete() {
                   {{ monthLabel }}
                 </p>
               </template>
-              <ul
-                v-if="recentTransactions.length"
-                class="divide-y divide-default"
-              >
-                <li
-                  v-for="item in recentTransactions"
-                  :key="item.id"
-                  class="group flex items-center gap-3 py-3"
+              <div v-if="transactionGroups.length">
+                <section
+                  v-for="group in transactionGroups"
+                  :key="group.date"
+                  class="border-b border-muted py-3 last:border-b-0"
                 >
-                  <span
-                    :class="['grid size-10 shrink-0 place-items-center rounded-xl', item.kind === 'income' ? 'bg-primary/10 text-primary' : 'bg-elevated text-error']"
-                  >
-                    <UIcon :name="item.kind === 'income' ? 'i-lucide-arrow-down-left' : 'i-lucide-arrow-up-right'" />
-                  </span>
-                  <div class="min-w-0 flex-1">
-                    <p class="truncate text-sm font-semibold">
-                      {{ transactionLabel(item) }}
-                    </p>
-                    <p class="text-xs text-muted">
-                      {{ formatDate(item.transaction_date) }}{{ item.kind === 'expense' ? ` · ${paymentNames.get(item.payment_method_id) ?? ''}` : '' }}
-                    </p>
+                  <div class="mb-1 flex items-center justify-between gap-3 text-xs text-muted">
+                    <h3 class="font-medium text-toned">
+                      {{ formatDate(group.date) }}
+                    </h3>
+                    <span class="tabular-nums">当日計 {{ group.total >= 0 ? '+' : '−' }}{{ formatCurrency(Math.abs(group.total)) }}</span>
                   </div>
-                  <p class="font-semibold">
-                    {{ item.kind === 'income' ? '+' : '−' }}{{ formatCurrency(item.amount) }}
-                  </p>
-                  <div class="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    <UButton
-                      icon="i-lucide-pencil"
-                      color="neutral"
-                      variant="ghost"
-                      size="sm"
-                      :aria-label="`${transactionLabel(item)}を編集`"
-                      @click="item.kind === 'expense' ? editExpense(item) : editIncome(item)"
-                    />
-                    <UButton
-                      icon="i-lucide-trash-2"
-                      color="error"
-                      variant="ghost"
-                      size="sm"
-                      :aria-label="`${transactionLabel(item)}を削除`"
-                      @click="item.kind === 'expense' ? askDeleteExpense(item) : askDeleteIncome(item)"
-                    />
-                  </div>
-                </li>
-              </ul>
+                  <ul>
+                    <li
+                      v-for="item in group.items"
+                      :key="item.id"
+                      class="flex min-w-0 items-center gap-3 rounded-md py-2 hover:bg-elevated/50"
+                    >
+                      <div class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-semibold">
+                          {{ transactionLabel(item) }}
+                        </p>
+                        <p class="truncate text-xs text-muted">
+                          {{ transactionMeta(item) }}
+                        </p>
+                      </div>
+                      <p :class="['shrink-0 font-semibold tabular-nums', item.kind === 'income' ? 'text-primary' : 'text-default']">
+                        {{ item.kind === 'income' ? '+' : '−' }}{{ formatCurrency(item.amount) }}
+                      </p>
+                      <UDropdownMenu :items="transactionActions(item)">
+                        <UButton
+                          icon="i-lucide-ellipsis"
+                          color="neutral"
+                          variant="ghost"
+                          size="sm"
+                          :aria-label="`${transactionLabel(item)}の操作`"
+                        />
+                      </UDropdownMenu>
+                    </li>
+                  </ul>
+                </section>
+              </div>
               <p
                 v-else
                 class="py-10 text-center text-sm text-muted"
               >
-                この月の明細はまだありません。収入または支出を登録すると、ここに表示されます。
+                この月の明細はまだありません。収入または支出を記録すると、ここに表示されます。
+                <UButton
+                  icon="i-lucide-plus"
+                  class="mx-auto mt-4 flex w-fit"
+                  @click="openTransaction"
+                >
+                  記録する
+                </UButton>
               </p>
             </UCard>
 
             <div class="space-y-6">
-              <UCard>
+              <UCard class="bg-default">
                 <template #header>
                   <h2 class="text-lg font-semibold">
                     支出の内訳
@@ -438,7 +475,7 @@ async function confirmDelete() {
                   >
                     <div class="flex justify-between text-sm">
                       <b>{{ category.name }}</b>
-                      <span>{{ formatCurrency(category.total) }}</span>
+                      <span class="tabular-nums">{{ formatCurrency(category.total) }} <small class="text-muted">{{ expenseTotal ? Math.round((category.total / expenseTotal) * 100) : 0 }}%</small></span>
                     </div>
                     <UProgress
                       class="mt-1"
@@ -454,14 +491,11 @@ async function confirmDelete() {
                 </div>
               </UCard>
 
-              <UCard>
+              <UCard class="bg-default">
                 <template #header>
                   <h2 class="text-lg font-semibold">
-                    予算実績
+                    予算
                   </h2>
-                  <p class="text-sm text-muted">
-                    {{ monthLabel }}
-                  </p>
                 </template>
                 <div class="space-y-4">
                   <div
@@ -470,27 +504,34 @@ async function confirmDelete() {
                   >
                     <div class="flex justify-between gap-3 text-sm">
                       <b>{{ item.name }}</b>
-                      <span>{{ formatCurrency(item.actual) }} / {{ formatCurrency(item.budget) }}（{{ item.achievementRate === null ? '—' : `${Math.round(item.achievementRate)}%` }}）</span>
+                      <span :class="['tabular-nums', item.exceeded ? 'text-error' : item.achievementRate !== null && item.achievementRate >= 80 ? 'text-warning' : 'text-default']">{{ formatCurrency(item.actual) }} / {{ formatCurrency(item.budget) }}（{{ item.achievementRate === null ? '—' : `${Math.round(item.achievementRate)}%` }}）</span>
                     </div>
                     <UProgress
                       class="mt-1"
                       :model-value="item.achievementRate === null ? 0 : Math.min(100, item.achievementRate)"
-                      :color="item.exceeded ? 'error' : 'primary'"
+                      :color="item.exceeded ? 'error' : item.achievementRate !== null && item.achievementRate >= 80 ? 'warning' : 'primary'"
                     />
                   </div>
                   <p
                     v-if="!actuals.length"
                     class="text-sm text-muted"
                   >
-                    設定済みの予算はありません。
+                    予算はまだ設定されていません。
+                    <NuxtLink
+                      to="/settings/budget"
+                      class="font-medium text-primary hover:underline"
+                    >予算を設定</NuxtLink>
                   </p>
                 </div>
               </UCard>
 
-              <UCard>
+              <UCard
+                v-if="fixedRecurring.length || variableRecurring.length || fixedRecurringIncomes.length || variableRecurringIncomes.length"
+                class="bg-default"
+              >
                 <template #header>
                   <h2 class="text-lg font-semibold">
-                    定期支出
+                    定期の収支
                   </h2>
                 </template>
                 <ul class="divide-y divide-default">
@@ -548,14 +589,12 @@ async function confirmDelete() {
                     </li>
                   </ul>
                 </template>
-              </UCard>
-
-              <UCard>
-                <template #header>
-                  <h2 class="text-lg font-semibold">
-                    定期収入
-                  </h2>
-                </template>
+                <h3
+                  v-if="fixedRecurringIncomes.length || variableRecurringIncomes.length"
+                  class="mt-5 border-t border-default pt-5 text-sm font-semibold"
+                >
+                  収入
+                </h3>
                 <ul class="divide-y divide-default">
                   <li
                     v-for="item in fixedRecurringIncomes"
@@ -595,6 +634,25 @@ async function confirmDelete() {
                     </li>
                   </ul>
                 </template>
+              </UCard>
+              <UCard
+                v-else
+                class="bg-default"
+              >
+                <template #header>
+                  <h2 class="text-lg font-semibold">
+                    定期の収支
+                  </h2>
+                </template>
+                <p class="mt-2 text-sm text-muted">
+                  定期的な収支はまだ設定されていません。
+                  <NuxtLink
+                    to="/settings/recurring-expenses"
+                    class="font-medium text-primary hover:underline"
+                  >
+                    定期の収支を設定
+                  </NuxtLink>
+                </p>
               </UCard>
             </div>
           </div>

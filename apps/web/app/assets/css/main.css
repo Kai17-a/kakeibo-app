@@ -1,71 +1,84 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
-@import '@fontsource-variable/noto-sans';
-@import '@fontsource-variable/playfair-display';
+@import "@fontsource-variable/noto-sans";
+@import "@fontsource-variable/playfair-display";
+
+@theme {
+  --font-sans: "Lora", sans-serif;
+}
 
 @theme static {
-  --font-sans: 'Noto Sans Variable', sans-serif;
-  --font-heading: 'Playfair Display Variable', serif;
-  --font-serif: 'Playfair Display Variable', serif;
+  --color-cobalt-50: oklch(95.3% 0.022 260.723);
+  --color-cobalt-100: oklch(90.8% 0.045 258.763);
+  --color-cobalt-200: oklch(81.6% 0.091 257.776);
+  --color-cobalt-300: oklch(72.9% 0.14 258.068);
+  --color-cobalt-400: oklch(64.7% 0.186 258.256);
+  --color-cobalt-500: oklch(57.8% 0.228 260.025);
+  --color-cobalt-600: oklch(49.2% 0.19 259.799);
+  --color-cobalt-700: oklch(40.2% 0.152 259.656);
+  --color-cobalt-800: oklch(30.7% 0.109 258.934);
+  --color-cobalt-900: oklch(20.4% 0.063 257.52);
+  --color-cobalt-950: oklch(14.7% 0.037 249.929);
+  --color-cobalt-gray-50: oklch(99.1% 0 0);
+  --color-cobalt-gray-100: oklch(98.2% 0.002 247.839);
+  --color-cobalt-gray-200: oklch(94.2% 0.005 247.879);
+  --color-cobalt-gray-300: oklch(91.1% 0.007 247.901);
+  --color-cobalt-gray-400: oklch(86.7% 0.011 247.949);
+  --color-cobalt-gray-500: oklch(76.9% 0.015 248.017);
+  --color-cobalt-gray-600: oklch(55.8% 0.016 244.893);
+  --color-cobalt-gray-700: oklch(42.8% 0.015 248.172);
+  --color-cobalt-gray-800: oklch(34.5% 0.013 248.212);
+  --color-cobalt-gray-900: oklch(26.2% 0.009 248.19);
+  --color-cobalt-gray-950: oklch(20.7% 0.008 248.192);
+}
+
+@layer base {
+  html {
+    font-size: 15px;
+  }
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.147 0.004 49.3);
-  --card: oklch(1 0 0);
-  --popover: oklch(1 0 0);
-  --primary: oklch(0.214 0.009 43.1);
-  --primary-foreground: oklch(0.986 0.002 67.8);
-  --secondary: oklch(0.96 0.002 17.2);
-  --muted: oklch(0.96 0.002 17.2);
-  --muted-foreground: oklch(0.547 0.021 43.1);
-  --accent: oklch(0.96 0.002 17.2);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0.005 34.3);
-  --input: oklch(0.922 0.005 34.3);
-  --ring: oklch(0.714 0.014 41.2);
+  --ui-radius: 0.125rem;
+}
+
+:root,
+.light {
+  --ui-primary: var(--ui-color-primary-700);
+  --ui-secondary: var(--ui-color-secondary-600);
+  --ui-error: var(--ui-color-error-700);
+  --ui-warning: var(--ui-color-warning-700);
+  --ui-text-inverted: white;
+  --ui-bg: var(--ui-color-neutral-50);
+  --ui-bg-muted: var(--ui-color-neutral-200);
+  --ui-bg-elevated: var(--ui-color-neutral-100);
+  --ui-bg-accented: var(--ui-color-neutral-300);
+  --ui-text-dimmed: var(--ui-color-neutral-600);
+  --ui-text-muted: var(--ui-color-neutral-600);
+  --ui-text-toned: var(--ui-color-neutral-700);
+  --ui-text: var(--ui-color-neutral-800);
+  --ui-border: var(--ui-color-neutral-400);
+  --ui-border-muted: var(--ui-color-neutral-300);
 }
 
 .dark {
-  --background: oklch(0.147 0.004 49.3);
-  --foreground: oklch(0.986 0.002 67.8);
-  --card: oklch(0.214 0.009 43.1);
-  --popover: oklch(0.214 0.009 43.1);
-  --primary: oklch(0.922 0.005 34.3);
-  --primary-foreground: oklch(0.214 0.009 43.1);
-  --secondary: oklch(0.268 0.011 36.5);
-  --muted: oklch(0.268 0.011 36.5);
-  --muted-foreground: oklch(0.714 0.014 41.2);
-  --accent: oklch(0.268 0.011 36.5);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.547 0.021 43.1);
-}
-
-/* Nuxt UI semantic tokens follow the existing Kakeibo light/dark palette. */
-:root, .light, .dark {
-  --ui-primary: var(--primary);
-  --ui-secondary: var(--secondary);
-  --ui-error: var(--destructive);
-  --ui-bg: var(--background);
-  --ui-bg-muted: var(--muted);
-  --ui-bg-elevated: var(--card);
-  --ui-bg-accented: var(--accent);
-  --ui-bg-inverted: var(--primary);
-  --ui-text: var(--foreground);
-  --ui-text-highlighted: var(--foreground);
-  --ui-text-toned: var(--foreground);
-  --ui-text-muted: var(--muted-foreground);
-  --ui-text-dimmed: var(--muted-foreground);
-  --ui-text-inverted: var(--primary-foreground);
-  --ui-border: var(--border);
-  --ui-border-muted: var(--border);
-  --ui-border-accented: var(--input);
-  --ui-border-inverted: var(--primary);
-  --radius: 0.625rem;
-  /* Nuxt UI rounded-lg is twice the base radius. */
-  --ui-radius: calc(var(--radius) / 2);
+  --ui-primary: var(--ui-color-primary-400);
+  --ui-secondary: var(--ui-color-secondary-500);
+  --ui-success: var(--ui-color-success-500);
+  --ui-info: var(--ui-color-info-500);
+  --ui-warning: var(--ui-color-warning-400);
+  --ui-error: var(--ui-color-error-400);
+  --ui-text-inverted: var(--ui-color-neutral-950);
+  --ui-bg-muted: var(--ui-color-neutral-700);
+  --ui-text: var(--ui-color-neutral-300);
+  --ui-bg: var(--ui-color-neutral-950);
+  --ui-bg-elevated: var(--ui-color-neutral-800);
+  --ui-bg-accented: var(--ui-color-neutral-700);
+  --ui-text-dimmed: var(--ui-color-neutral-500);
+  --ui-text-muted: var(--ui-color-neutral-400);
+  --ui-text-toned: var(--ui-color-neutral-300);
+  --ui-border: var(--ui-color-neutral-800);
+  --ui-border-muted: var(--ui-color-neutral-700);
 }
 
 body {
@@ -73,8 +86,4 @@ body {
   min-width: 320px;
   min-height: 100vh;
   font-synthesis: none;
-}
-
-*:focus-visible {
-  outline-color: var(--ring);
 }

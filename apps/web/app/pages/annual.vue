@@ -130,8 +130,6 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
-      </UDashboardNavbar>
-      <UDashboardToolbar>
         <template #right>
           <UFieldGroup>
             <UButton
@@ -157,7 +155,7 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
             />
           </UFieldGroup>
         </template>
-      </UDashboardToolbar>
+      </UDashboardNavbar>
     </template>
     <template #body>
       <UAlert

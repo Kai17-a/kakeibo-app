@@ -42,16 +42,15 @@ const links = computed(() => {
     label: '設定',
     icon: 'i-lucide-settings',
     to: '/settings',
-    type: 'trigger',
-    defaultOpen: true,
-    children: settingsNavigation.map(item => ({ ...item, onSelect: closeSidebar }))
+    active: route.path.startsWith('/settings'),
+    onSelect: closeSidebar
   }]] satisfies NavigationMenuItem[][]
 })
 
 const groups = computed(() => [{
   id: 'links',
   label: 'ページへ移動',
-  items: links.value.flat()
+  items: [...links.value.flat(), ...settingsNavigation]
 }])
 </script>
 
@@ -74,7 +73,7 @@ const groups = computed(() => [{
           <AppLogo class="size-8 shrink-0" />
           <span
             v-if="!collapsed"
-            class="font-heading text-xl font-bold"
+            class="font-serif text-xl font-bold"
           >Kakeibo</span>
         </NuxtLink>
       </template>

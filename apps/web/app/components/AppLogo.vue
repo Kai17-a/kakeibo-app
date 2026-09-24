@@ -17,7 +17,7 @@
       font-weight="900"
       font-size="20"
       text-anchor="middle"
-      class="fill-(--primary-foreground)"
+      class="fill-(--ui-bg)"
     >K</text>
   </svg>
 </template>

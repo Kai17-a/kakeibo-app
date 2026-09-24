@@ -12,8 +12,6 @@ const month = computed(() => (typeof route.query.month === 'string' && isValidMo
 function setMonth(next: string) {
   navigateTo({ path: '/daily', query: { month: next } }, { replace: true })
 }
-const monthLabel = computed(() => new Intl.DateTimeFormat('ja-JP', { year: 'numeric', month: 'long' }).format(new Date(`${month.value}-01T00:00:00`)))
-
 const settingsApi = useSettingsApi()
 const transactionsApi = useTransactionsApi()
 
@@ -132,6 +130,12 @@ const saving = ref(false)
 const toast = useToast()
 const initialTransactionDate = computed(() => `${month.value}-${String(Math.min(new Date().getDate(), 28)).padStart(2, '0')}`)
 
+function openTransaction() {
+  editingExpense.value = null
+  editingIncome.value = null
+  exchangePreview.value = null
+  transactionModalOpen.value = true
+}
 function editExpense(item: Expense) {
   editingExpense.value = item
   editingIncome.value = null
@@ -222,16 +226,6 @@ async function confirmDelete() {
           <template #leading>
             <UDashboardSidebarCollapse />
           </template>
-        </UDashboardNavbar>
-        <UDashboardToolbar>
-          <template #left>
-            <div class="flex min-w-0 items-baseline gap-2">
-              <h2 class="truncate font-semibold">
-                {{ monthLabel }} 家計簿
-              </h2>
-              <span class="hidden shrink-0 text-sm text-muted sm:inline">単位：円</span>
-            </div>
-          </template>
           <template #right>
             <UFieldGroup class="shrink-0">
               <UButton
@@ -243,7 +237,7 @@ async function confirmDelete() {
               />
               <MonthPicker
                 :model-value="month"
-                class="w-44 sm:w-40"
+                class="w-24 sm:w-40"
                 @update:model-value="setMonth"
               />
               <UButton
@@ -254,8 +248,15 @@ async function confirmDelete() {
                 @click="setMonth(shiftMonth(month, 1))"
               />
             </UFieldGroup>
+            <UButton
+              icon="i-lucide-plus"
+              aria-label="記録する"
+              @click="openTransaction"
+            >
+              <span class="hidden sm:inline">記録する</span>
+            </UButton>
           </template>
-        </UDashboardToolbar>
+        </UDashboardNavbar>
       </template>
       <template #body>
         <UAlert
@@ -289,9 +290,9 @@ async function confirmDelete() {
           />
 
           <div v-if="tab === 'categories'">
-            <h3 class="mb-2 bg-elevated px-3 py-2 text-sm font-bold">
+            <h2 class="mb-2 bg-elevated px-3 py-2 text-sm font-bold">
               日ごとのカテゴリ別支出
-            </h3>
+            </h2>
             <div
               v-if="activeExpenseCategories.length"
               class="overflow-x-auto"
@@ -366,9 +367,9 @@ async function confirmDelete() {
             v-else-if="tab === 'details'"
             class="min-w-0"
           >
-            <h3 class="bg-elevated px-3 py-2 text-sm font-bold">
+            <h2 class="bg-elevated px-3 py-2 text-sm font-bold">
               支出明細
-            </h3>
+            </h2>
             <div class="grid gap-4 border-b border-default py-4 sm:grid-cols-2 xl:grid-cols-[minmax(12rem,1fr)_12rem_12rem_auto] xl:items-end">
               <UFormField label="備考を検索">
                 <UInput
@@ -485,9 +486,9 @@ async function confirmDelete() {
             v-else-if="tab === 'income-details'"
             class="min-w-0"
           >
-            <h3 class="bg-elevated px-3 py-2 text-sm font-bold">
+            <h2 class="bg-elevated px-3 py-2 text-sm font-bold">
               収入明細
-            </h3>
+            </h2>
             <div class="grid gap-4 border-b border-default py-4 sm:grid-cols-2 xl:grid-cols-[minmax(12rem,1fr)_12rem_12rem_auto] xl:items-end">
               <UFormField label="備考を検索">
                 <UInput
@@ -605,9 +606,9 @@ async function confirmDelete() {
             class="grid gap-6 xl:grid-cols-[18rem_1fr]"
           >
             <aside class="border-default xl:border-r xl:pr-4">
-              <h3 class="bg-elevated px-3 py-2 text-sm font-bold">
+              <h2 class="bg-elevated px-3 py-2 text-sm font-bold">
                 収支サマリー
-              </h3>
+              </h2>
               <dl class="grid grid-cols-2 text-sm">
                 <dt class="p-2">
                   収入
@@ -628,9 +629,9 @@ async function confirmDelete() {
                   {{ formatCurrency(incomeTotal - expenseTotal) }}
                 </dd>
               </dl>
-              <h3 class="mt-4 bg-elevated px-3 py-2 text-sm font-bold">
+              <h2 class="mt-4 bg-elevated px-3 py-2 text-sm font-bold">
                 収入
-              </h3>
+              </h2>
               <div
                 v-for="item in incomeBreakdown"
                 :key="item.id"
@@ -639,9 +640,9 @@ async function confirmDelete() {
                 <span>{{ item.name }}</span>
                 <span>{{ item.total.toLocaleString('ja-JP') }}</span>
               </div>
-              <h3 class="mt-4 bg-elevated px-3 py-2 text-sm font-bold">
+              <h2 class="mt-4 bg-elevated px-3 py-2 text-sm font-bold">
                 支払種別
-              </h3>
+              </h2>
               <div
                 v-for="item in paymentBreakdown"
                 :key="item.id"
@@ -653,9 +654,9 @@ async function confirmDelete() {
             </aside>
             <div>
               <div class="flex items-center justify-between gap-4 bg-elevated px-3 py-2">
-                <h3 class="text-sm font-bold">
+                <h2 class="text-sm font-bold">
                   支出（固定費）
-                </h3>
+                </h2>
                 <span class="text-sm font-bold whitespace-nowrap">{{ formatCurrency(recurringTotal) }}</span>
               </div>
               <div
@@ -670,9 +671,9 @@ async function confirmDelete() {
                 <span>{{ Number(item.amount).toLocaleString('ja-JP') }}</span>
               </div>
               <div class="mt-4 flex items-center justify-between gap-4 bg-elevated px-3 py-2">
-                <h3 class="text-sm font-bold">
+                <h2 class="text-sm font-bold">
                   支出（固定変動費）
-                </h3>
+                </h2>
                 <span class="text-sm font-bold whitespace-nowrap">{{ formatCurrency(fixedVariableTotal) }}</span>
               </div>
               <div
@@ -684,9 +685,9 @@ async function confirmDelete() {
                 <span>{{ item.total.toLocaleString('ja-JP') }}</span>
               </div>
               <div class="mt-4 flex items-center justify-between gap-4 bg-elevated px-3 py-2">
-                <h3 class="text-sm font-bold">
+                <h2 class="text-sm font-bold">
                   支出（変動費）
-                </h3>
+                </h2>
                 <span class="text-sm font-bold whitespace-nowrap">{{ formatCurrency(variableTotal) }}</span>
               </div>
               <div

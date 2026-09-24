@@ -75,7 +75,7 @@ test('収支を登録する', async ({ page }) => {
   })
 
   await page.goto('/')
-  await page.getByRole('button', { name: '収支を登録' }).click()
+  await page.getByRole('button', { name: '記録する' }).first().click()
   await expect(page.getByRole('heading', { name: '収支を登録' })).toBeVisible()
   await page.getByLabel('金額').fill('1500')
   await page.getByLabel('カテゴリ').click()
@@ -190,13 +190,15 @@ test('最近の明細から支出を編集・削除する', async ({ page }) => 
 
   await page.goto('/')
   await expect(page.getByText('電車代')).toBeVisible()
-  await page.getByRole('button', { name: '電車代を編集' }).click()
+  await page.getByRole('button', { name: '電車代の操作' }).click()
+  await page.getByRole('menuitem', { name: '編集' }).click()
   await page.getByLabel('金額').fill('3333')
   await page.getByRole('button', { name: '更新する' }).click()
   await expect(page.getByText('支出を更新しました', { exact: true })).toBeVisible()
   await expect(page.getByRole('listitem').filter({ hasText: '電車代' })).toContainText('3,333')
 
-  await page.getByRole('button', { name: '電車代を削除' }).click()
+  await page.getByRole('button', { name: '電車代の操作' }).click()
+  await page.getByRole('menuitem', { name: '削除' }).click()
   await page.getByRole('button', { name: '削除', exact: true }).click()
   await expect(page.getByText('明細を削除しました', { exact: true })).toBeVisible()
   await expect(page.getByText('この月の明細はまだありません')).toBeVisible()
