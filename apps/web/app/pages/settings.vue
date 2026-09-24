@@ -11,6 +11,9 @@ const links = [settingsNavigation];
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
+        <template #right>
+          <UColorModeButton />
+        </template>
       </UDashboardNavbar>
       <UDashboardToolbar>
         <UNavigationMenu :items="links" aria-label="設定タブ" highlight class="-mx-1 flex-1" />

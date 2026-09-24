@@ -94,6 +94,7 @@ const {
           <template #right>
             <MonthNavigator :model-value="month" @update:model-value="setMonth" />
             <RecordTransactionButton @click="openNew" />
+            <UColorModeButton />
           </template>
         </UDashboardNavbar>
       </template>

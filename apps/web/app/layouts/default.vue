@@ -95,9 +95,6 @@ const groups = computed(() => [
           popover
         />
       </template>
-      <template #footer>
-        <UColorModeButton />
-      </template>
     </UDashboardSidebar>
     <UDashboardSearch :groups="groups" />
     <slot />

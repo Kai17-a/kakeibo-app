@@ -94,6 +94,7 @@ const {
               @update:model-value="setYear"
             />
             <RecordTransactionButton @click="openNew" />
+            <UColorModeButton />
           </template>
         </UDashboardNavbar>
       </template>
