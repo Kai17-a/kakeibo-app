@@ -269,7 +269,7 @@ async function backfill(item: RecurringExpense) {
                   v-for="month in pendingMonths[item.id]"
                   :key="month"
                   class="text-primary underline underline-offset-4"
-                  :href="`/monthly?month=${month}`"
+                  :href="`/?month=${month}`"
                 >
                   {{ monthLabel(month) }}
                 </a>
