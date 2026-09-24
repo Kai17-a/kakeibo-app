@@ -15,7 +15,7 @@ const state = reactive<{ name: string; description: string; initial_balance: str
   initial_balance: "",
 });
 const sortedItems = computed(() =>
-  [...items.value].sort((a, b) => a.name.localeCompare(b.name, "ja")),
+  items.value.toSorted((a, b) => a.name.localeCompare(b.name, "ja")),
 );
 const columns: TableColumn<PaymentMethod>[] = [
   {

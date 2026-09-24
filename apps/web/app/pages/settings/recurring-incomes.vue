@@ -20,7 +20,7 @@ const items = ref<RecurringIncome[]>([]);
 const deleting = ref<RecurringIncome | null>(null);
 const state = reactive(recurringIncomeForm());
 const sortedItems = computed(() =>
-  [...items.value].sort((a, b) => a.name.localeCompare(b.name, "ja")),
+  items.value.toSorted((a, b) => a.name.localeCompare(b.name, "ja")),
 );
 const columns: TableColumn<RecurringIncome>[] = [
   {

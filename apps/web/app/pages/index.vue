@@ -193,7 +193,7 @@ const paymentNames = computed(
 const spending = computed(() =>
   categoryTotals(monthExpenses.value, expenseCategories.value)
     .filter((item) => item.total)
-    .sort((a, b) => b.total - a.total),
+    .toSorted((a, b) => b.total - a.total),
 );
 const actuals = computed(() =>
   budgetActuals(monthExpenses.value, expenseCategories.value, budgets.value, month.value),

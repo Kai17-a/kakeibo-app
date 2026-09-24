@@ -4,7 +4,7 @@ interface OrderedCategory {
   display_order: number;
 }
 export function groupCategories<T extends OrderedCategory>(items: T[]): T[] {
-  const sorted = [...items].sort((a, b) => a.display_order - b.display_order);
+  const sorted = items.toSorted((a, b) => a.display_order - b.display_order);
   return sorted
     .filter((item) => item.parent_category_id === null)
     .flatMap((parent) => [

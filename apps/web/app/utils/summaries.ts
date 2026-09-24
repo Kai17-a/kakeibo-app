@@ -83,7 +83,7 @@ export function mergeTransactions(expenses: Expense[], incomes: Income[]): Trans
   return [
     ...expenses.map((item) => ({ ...item, kind: "expense" as const })),
     ...incomes.map((item) => ({ ...item, kind: "income" as const })),
-  ].sort((a, b) => b.transaction_date.localeCompare(a.transaction_date));
+  ].toSorted((a, b) => b.transaction_date.localeCompare(a.transaction_date));
 }
 
 export function categoryTotals(expenses: Expense[], categories: Category[]) {

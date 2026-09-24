@@ -185,14 +185,14 @@ const ledger = computed(() =>
     keyword: keyword.value,
     categoryId: categoryId.value,
     paymentMethodId: paymentMethodId.value,
-  }).sort((a, b) => a.transaction_date.localeCompare(b.transaction_date)),
+  }).toSorted((a, b) => a.transaction_date.localeCompare(b.transaction_date)),
 );
 const incomeLedger = computed(() =>
   filterIncomes(monthIncomes.value, {
     keyword: incomeKeyword.value,
     categoryId: incomeCategoryId.value,
     paymentMethodId: incomePaymentMethodId.value,
-  }).sort((a, b) => a.transaction_date.localeCompare(b.transaction_date)),
+  }).toSorted((a, b) => a.transaction_date.localeCompare(b.transaction_date)),
 );
 
 function expenseLabel(item: Expense) {

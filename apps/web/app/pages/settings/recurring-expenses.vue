@@ -27,7 +27,7 @@ const paymentMethodOptions = computed(() =>
   paymentMethods.value.map((item) => ({ label: item.name, value: item.id })),
 );
 const sortedItems = computed(() =>
-  [...items.value].sort((a, b) => a.name.localeCompare(b.name, "ja")),
+  items.value.toSorted((a, b) => a.name.localeCompare(b.name, "ja")),
 );
 const columns: TableColumn<RecurringExpense>[] = [
   {

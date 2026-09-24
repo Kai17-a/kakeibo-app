@@ -73,7 +73,7 @@ const availableYears = computed(() => {
     [...expenses.value, ...incomes.value].map((item) => item.transaction_date.slice(0, 4)),
   );
   years.add(year.value);
-  return [...years].sort().reverse();
+  return [...years].toSorted((a, b) => b.localeCompare(a));
 });
 
 const usdPreviewsByMonth = ref(new Map<string, Map<string, ExchangeRatePreview>>());
@@ -173,7 +173,7 @@ const categoryRows = computed(() =>
     })
     .filter((row) => row.total !== 0),
 );
-const spending = computed(() => [...categoryRows.value].sort((a, b) => b.total - a.total));
+const spending = computed(() => categoryRows.value.toSorted((a, b) => b.total - a.total));
 
 const chartColors = [
   "light-dark(#2563eb, #60a5fa)",
