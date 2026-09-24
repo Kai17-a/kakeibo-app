@@ -299,10 +299,15 @@ async function confirmDelete() {
         >
           <UTabs
             v-model="tab"
-            orientation="vertical"
+            orientation="horizontal"
             variant="pill"
             :content="false"
             :items="tabItems"
+            :ui="{
+              list: 'overflow-x-auto',
+              trigger: 'shrink-0',
+              label: 'overflow-visible text-clip whitespace-nowrap'
+            }"
             class="mb-5 w-full"
           />
 
