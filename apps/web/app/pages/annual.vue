@@ -132,31 +132,6 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
         </template>
       </UDashboardNavbar>
       <UDashboardToolbar>
-        <template #left>
-          <UFieldGroup>
-            <UButton
-              color="neutral"
-              variant="outline"
-              :to="{ path: '/', query: { month: `${year}-01` } }"
-            >
-              月間
-            </UButton>
-            <UButton
-              color="neutral"
-              variant="outline"
-              :to="{ path: '/daily', query: { month: `${year}-01` } }"
-            >
-              日別集計
-            </UButton>
-            <UButton
-              color="neutral"
-              variant="solid"
-              to="/annual"
-            >
-              年間
-            </UButton>
-          </UFieldGroup>
-        </template>
         <template #right>
           <UFieldGroup>
             <UButton

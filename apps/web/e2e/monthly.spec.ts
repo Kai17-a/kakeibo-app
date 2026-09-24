@@ -205,10 +205,14 @@ test('最近の明細から支出を編集・削除する', async ({ page }) => 
 test('画面切り替えで日別・年間集計へ遷移する', async ({ page }) => {
   await mockMonthlyApi(page)
   await page.goto(`/?month=${month}`)
+  const navigation = page.getByRole('navigation', { name: 'メインナビゲーション' })
 
-  await page.getByRole('link', { name: '日別集計' }).click()
+  await navigation.getByRole('link', { name: '日別集計' }).click()
   await expect(page).toHaveURL(new RegExp(`/daily\\?month=${month}$`))
 
-  await page.getByRole('link', { name: '年間' }).click()
+  await navigation.getByRole('link', { name: '年間集計' }).click()
   await expect(page).toHaveURL(new RegExp(`/annual\\?year=${month.slice(0, 4)}$`))
+
+  await navigation.getByRole('link', { name: 'ホーム' }).click()
+  await expect(page).toHaveURL(new RegExp(`/\\?month=${month.slice(0, 4)}-01$`))
 })

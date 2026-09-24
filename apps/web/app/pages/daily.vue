@@ -222,32 +222,7 @@ async function confirmDelete() {
             <UDashboardSidebarCollapse />
           </template>
         </UDashboardNavbar>
-        <UDashboardToolbar :ui="{ root: 'flex-wrap gap-y-2 py-2 sm:flex-nowrap sm:py-0' }">
-          <template #left>
-            <UFieldGroup class="shrink-0 whitespace-nowrap">
-              <UButton
-                color="neutral"
-                variant="outline"
-                :to="{ path: '/', query: { month } }"
-              >
-                月間
-              </UButton>
-              <UButton
-                color="neutral"
-                variant="solid"
-                :to="{ path: '/daily', query: { month } }"
-              >
-                日別集計
-              </UButton>
-              <UButton
-                color="neutral"
-                variant="outline"
-                :to="{ path: '/annual', query: { year: month.slice(0, 4) } }"
-              >
-                年間
-              </UButton>
-            </UFieldGroup>
-          </template>
+        <UDashboardToolbar>
           <template #right>
             <UFieldGroup class="shrink-0">
               <UButton

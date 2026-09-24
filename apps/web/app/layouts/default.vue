@@ -1,30 +1,57 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
 import { settingsNavigation } from '~/utils/settings-navigation'
+import { isValidMonth } from '~/utils/format'
 
 const open = ref(false)
+const route = useRoute()
 const closeSidebar = () => {
   open.value = false
 }
-const links = [[{
-  label: 'ホーム',
-  icon: 'i-lucide-house',
-  to: '/',
-  exact: true,
-  onSelect: closeSidebar
-}, {
-  label: '設定',
-  icon: 'i-lucide-settings',
-  to: '/settings',
-  type: 'trigger',
-  defaultOpen: true,
-  children: settingsNavigation.map(item => ({ ...item, onSelect: closeSidebar }))
-}]] satisfies NavigationMenuItem[][]
+
+const links = computed(() => {
+  const month = typeof route.query.month === 'string' && isValidMonth(route.query.month)
+    ? route.query.month
+    : undefined
+  const year = typeof route.query.year === 'string'
+    && /^\d{4}$/.test(route.query.year)
+    ? route.query.year
+    : undefined
+  const selectedMonth = month ?? (year ? `${year}-01` : undefined)
+  const selectedYear = month?.slice(0, 4) ?? year
+
+  return [[{
+    label: 'ホーム',
+    icon: 'i-lucide-house',
+    to: selectedMonth ? { path: '/', query: { month: selectedMonth } } : '/',
+    exact: true,
+    onSelect: closeSidebar
+  }, {
+    label: '日別集計',
+    icon: 'i-lucide-calendar-days',
+    to: selectedMonth ? { path: '/daily', query: { month: selectedMonth } } : '/daily',
+    exact: true,
+    onSelect: closeSidebar
+  }, {
+    label: '年間集計',
+    icon: 'i-lucide-calendar-range',
+    to: selectedYear ? { path: '/annual', query: { year: selectedYear } } : '/annual',
+    exact: true,
+    onSelect: closeSidebar
+  }, {
+    label: '設定',
+    icon: 'i-lucide-settings',
+    to: '/settings',
+    type: 'trigger',
+    defaultOpen: true,
+    children: settingsNavigation.map(item => ({ ...item, onSelect: closeSidebar }))
+  }]] satisfies NavigationMenuItem[][]
+})
 
 const groups = computed(() => [{
   id: 'links',
   label: 'ページへ移動',
-  items: links.flat()
+  items: links.value.flat()
 }])
 </script>
 
