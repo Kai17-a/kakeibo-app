@@ -137,14 +137,14 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
             <UButton
               color="neutral"
               variant="outline"
-              to="/"
+              :to="{ path: '/', query: { month: `${year}-01` } }"
             >
               月間
             </UButton>
             <UButton
               color="neutral"
               variant="outline"
-              to="/daily"
+              :to="{ path: '/daily', query: { month: `${year}-01` } }"
             >
               日別集計
             </UButton>
@@ -169,6 +169,7 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
             <USelect
               :model-value="year"
               :items="availableYears.map(item => ({ label: `${item}年`, value: item }))"
+              aria-label="対象年"
               class="w-28"
               @update:model-value="(value) => setYear(String(value))"
             />

@@ -150,12 +150,13 @@ async function submit(keepOpen: boolean) {
         </UFormField>
         <UFormField label="金額">
           <UInput
-            v-model="state.amount"
+            :model-value="state.amount"
             type="number"
             min="1"
             step="1"
             required
             class="w-full"
+            @update:model-value="(value) => state.amount = String(value ?? '')"
           />
           <template
             v-if="preset && exchangePreview"
