@@ -1,16 +1,16 @@
-name: Web Nuxt CI
+name: Web CI
 
 on:
   push:
     branches: [main]
     paths:
-      - "apps/web-nuxt/**"
-      - ".github/workflows/web-nuxt.yml"
+      - "apps/web/**"
+      - ".github/workflows/web.yml"
   pull_request:
     branches: [main]
     paths:
-      - "apps/web-nuxt/**"
-      - ".github/workflows/web-nuxt.yml"
+      - "apps/web/**"
+      - ".github/workflows/web.yml"
   workflow_dispatch:
 
 permissions:
@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: apps/web-nuxt
+        working-directory: apps/web
 
     steps:
       - name: Check out repository
@@ -33,7 +33,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: apps/web-nuxt/package-lock.json
+          cache-dependency-path: apps/web/package-lock.json
 
       - name: Install dependencies
         run: npm ci

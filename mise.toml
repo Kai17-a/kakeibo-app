@@ -124,32 +124,32 @@ run = "docker compose logs --follow app"
 
 [tasks.web-install]
 description = "Install frontend dependencies"
-dir = "apps/web-nuxt"
+dir = "apps/web"
 run = "npm install"
 
 [tasks.web-dev]
 description = "Run the frontend development server"
-dir = "apps/web-nuxt"
+dir = "apps/web"
 run = "npm run dev"
 
 [tasks.web-build]
 description = "Generate the static frontend"
-dir = "apps/web-nuxt"
+dir = "apps/web"
 run = "npm run generate"
 
 [tasks.web-check]
 description = "Check the frontend"
-dir = "apps/web-nuxt"
+dir = "apps/web"
 run = "npm run typecheck"
 
 [tasks.web-lint]
 description = "Lint the frontend"
-dir = "apps/web-nuxt"
+dir = "apps/web"
 run = "npm run lint"
 
 [tasks.web-test]
 description = "Test the frontend"
-dir = "apps/web-nuxt"
+dir = "apps/web"
 run = "npm test"
 
 [tasks.web-ci]

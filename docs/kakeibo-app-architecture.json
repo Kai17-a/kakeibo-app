@@ -29,8 +29,8 @@
       "pos": [235, 290],
       "size": [165, 68],
       "sources": [
-        { "path": "apps/web-nuxt/package.json", "label": "フロントエンド依存関係" },
-        { "path": "apps/web-nuxt/app/pages/index.vue", "label": "メイン画面" }
+        { "path": "apps/web/package.json", "label": "フロントエンド依存関係" },
+        { "path": "apps/web/app/pages/index.vue", "label": "メイン画面" }
       ]
     },
     {
