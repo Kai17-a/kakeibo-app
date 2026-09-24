@@ -29,6 +29,7 @@ const emit = defineEmits<{ retry: []; add: [] }>();
   <UAlert
     v-else-if="error"
     color="error"
+    variant="subtle"
     :title="`${label}を取得できませんでした`"
     :description="error"
     :actions="[

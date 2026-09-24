@@ -13,12 +13,13 @@ const emit = defineEmits<{ retry: [] }>();
   <UAlert
     v-if="error"
     color="error"
+    variant="subtle"
     title="データを読み込めませんでした"
     :description="error"
     :actions="[
       { label: '再試行', color: 'error', variant: 'outline', onClick: () => emit('retry') },
     ]"
-    class="mb-6"
+    class="mb-6 shrink-0"
   />
   <div v-if="loading" class="space-y-4">
     <USkeleton class="h-28 w-full" />
