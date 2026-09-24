@@ -1,9 +1,67 @@
 {
   "tab_size": 2,
   "format_on_save": "on",
+  "lsp": {
+    "oxlint": {
+      "initialization_options": {
+        "settings": {
+          "configPath": null,
+          "tsConfigPath": "apps/web/tsconfig.json",
+          "disableNestedConfig": false,
+          "run": "onType",
+          "fixKind": "safe_fix",
+          "unusedDisableDirectives": "warn"
+        }
+      }
+    },
+    "oxfmt": {
+      "initialization_options": {
+        "settings": {
+          "fmt.configPath": null,
+          "fmt.disableNestedConfig": false
+        }
+      }
+    }
+  },
   "languages": {
     "Rust": {
       "tab_size": 4
+    },
+    "JavaScript": {
+      "language_servers": ["!eslint", "..."],
+      "prettier": { "allowed": false },
+      "formatter": [
+        { "language_server": { "name": "oxfmt" } },
+        { "code_action": "source.fixAll.oxc" }
+      ]
+    },
+    "TypeScript": {
+      "language_servers": ["!eslint", "..."],
+      "prettier": { "allowed": false },
+      "formatter": [
+        { "language_server": { "name": "oxfmt" } },
+        { "code_action": "source.fixAll.oxc" }
+      ]
+    },
+    "TSX": {
+      "language_servers": ["!eslint", "..."],
+      "prettier": { "allowed": false },
+      "formatter": [
+        { "language_server": { "name": "oxfmt" } },
+        { "code_action": "source.fixAll.oxc" }
+      ]
+    },
+    "Vue.js": {
+      "language_servers": ["!eslint", "..."],
+      "prettier": { "allowed": false },
+      "formatter": [
+        { "language_server": { "name": "oxfmt" } },
+        { "code_action": "source.fixAll.oxc" }
+      ]
+    },
+    "CSS": {
+      "prettier": { "allowed": false },
+      "formatter": [{ "language_server": { "name": "oxfmt" } }]
     }
   }
 }
