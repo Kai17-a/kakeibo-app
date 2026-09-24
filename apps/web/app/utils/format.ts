@@ -5,6 +5,19 @@ export const formatCurrency = (value: string | number) =>
     maximumFractionDigits: 0
   }).format(Number(value))
 
+export const formatSignedCurrency = (
+  value: string | number,
+  direction: 'auto' | 'positive' | 'negative' = 'auto'
+) => {
+  const amount = Number(value)
+  if (amount === 0) return formatCurrency(0)
+
+  const sign = direction === 'auto'
+    ? amount > 0 ? '+' : '−'
+    : direction === 'positive' ? '+' : '−'
+  return `${sign}${formatCurrency(Math.abs(amount))}`
+}
+
 export const formatDate = (value: string) =>
   new Intl.DateTimeFormat('ja-JP', {
     month: 'short',

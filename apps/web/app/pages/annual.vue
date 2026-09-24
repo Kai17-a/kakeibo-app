@@ -2,7 +2,7 @@
 import type { Category, PaymentMethod, RecurringExpense, RecurringIncome } from '~/types/settings'
 import type { ExchangeRatePreview, Expense, Income } from '~/types/transactions'
 import { annualMonthlyTotals, categoryMonthlyTotals, paymentMethodBalanceTrend, recurringForecast, sumAmounts } from '~/utils/summaries'
-import { formatCurrency } from '~/utils/format'
+import { formatCurrency, formatSignedCurrency } from '~/utils/format'
 
 useSeoMeta({ title: '年間集計' })
 
@@ -107,7 +107,16 @@ const categoryRows = computed(() => expenseCategories.value.map((category) => {
 }).filter(row => row.total !== 0))
 const spending = computed(() => [...categoryRows.value].sort((a, b) => b.total - a.total))
 
-const chartColors = ['bg-primary', 'bg-info', 'bg-error', 'bg-warning', 'bg-success', 'bg-neutral-500']
+const chartColors = [
+  'light-dark(#2563eb, #60a5fa)',
+  'light-dark(#ea580c, #fb923c)',
+  'light-dark(#7c3aed, #a78bfa)',
+  'light-dark(#0891b2, #22d3ee)',
+  'light-dark(#e11d48, #fb7185)',
+  'light-dark(#ca8a04, #facc15)',
+  'light-dark(#4f46e5, #818cf8)',
+  'light-dark(#0f766e, #2dd4bf)'
+]
 
 // カテゴリ別月次推移
 const categoryMonths = computed(() => categoryMonthlyTotals(expenses.value, expenseCategories.value, year.value))
@@ -177,44 +186,47 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
         v-else
         class="space-y-6"
       >
-        <section class="grid gap-4 md:grid-cols-3">
-          <UCard>
+        <section
+          class="grid grid-cols-2 overflow-hidden rounded-lg border border-default bg-elevated sm:grid-cols-3 sm:divide-x sm:divide-default"
+          aria-label="年間収支概要"
+        >
+          <div class="p-3 sm:p-6">
             <p class="text-sm text-muted">
               年間収入
             </p>
-            <p class="mt-1 text-2xl font-bold">
-              {{ formatCurrency(incomeTotal) }}
+            <p :class="['mt-1 text-base font-bold tabular-nums whitespace-nowrap sm:text-2xl', incomeTotal > 0 ? 'text-primary' : 'text-default']">
+              {{ formatSignedCurrency(incomeTotal, 'positive') }}
             </p>
-            <p class="mt-2 text-sm text-muted">
+            <p class="mt-2 text-sm text-muted tabular-nums">
               月平均 {{ formatCurrency(incomeTotal / 12) }}
             </p>
-          </UCard>
-          <UCard>
+          </div>
+          <div class="border-l border-default p-3 sm:border-t-0 sm:p-6">
             <p class="text-sm text-muted">
               年間支出
             </p>
-            <p class="mt-1 text-2xl font-bold">
-              {{ formatCurrency(expenseTotal) }}
+            <p class="mt-1 text-base font-bold tabular-nums whitespace-nowrap sm:text-2xl">
+              {{ formatSignedCurrency(expenseTotal, 'negative') }}
             </p>
-            <p class="mt-2 text-sm text-muted">
+            <p class="mt-2 text-sm text-muted tabular-nums">
               月平均 {{ formatCurrency(expenseTotal / 12) }}
             </p>
-          </UCard>
-          <UCard>
+          </div>
+          <div class="col-span-2 border-t border-default p-3 sm:col-span-1 sm:border-t-0 sm:p-6">
             <p class="text-sm text-muted">
               年間収支
             </p>
-            <p class="mt-1 text-2xl font-bold">
-              {{ formatCurrency(balance) }}
+            <p :class="['mt-1 text-base font-bold tabular-nums whitespace-nowrap sm:text-2xl', balance < 0 ? 'text-error' : balance > 0 ? 'text-primary' : 'text-default']">
+              {{ formatSignedCurrency(balance) }}
             </p>
-            <p class="mt-2 text-sm text-muted">
+            <p class="mt-2 text-sm text-muted tabular-nums">
               貯蓄率 {{ incomeTotal ? Math.round((balance / incomeTotal) * 100) : 0 }}%
             </p>
-          </UCard>
+          </div>
         </section>
 
         <div class="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-          <UCard>
+          <UCard class="min-w-0">
             <template #header>
               <h2 class="text-lg font-semibold">
                 月別の収支推移
@@ -246,20 +258,29 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
               <span class="flex items-center gap-1.5"><span class="size-2.5 bg-error" />支出</span>
             </div>
           </UCard>
-          <UCard>
+          <UCard class="min-w-0">
             <template #header>
               <h2 class="text-lg font-semibold">
                 年間支出の内訳
               </h2>
             </template>
-            <div class="space-y-4">
+            <div class="space-y-3">
               <div
-                v-for="item in spending.slice(0, 6)"
+                v-for="item in spending.slice(0, 8)"
                 :key="item.id"
-                class="flex justify-between text-sm"
+                class="text-sm"
               >
-                <b>{{ item.name }}</b>
-                <span>{{ formatCurrency(item.total) }}</span>
+                <div class="flex justify-between gap-3">
+                  <b>{{ item.name }}</b>
+                  <span class="tabular-nums">
+                    {{ formatCurrency(item.total) }}
+                    <small class="text-muted">{{ expenseTotal ? Math.round((item.total / expenseTotal) * 100) : 0 }}%</small>
+                  </span>
+                </div>
+                <UProgress
+                  class="mt-1"
+                  :model-value="expenseTotal ? (item.total / expenseTotal) * 100 : 0"
+                />
               </div>
               <p
                 v-if="!spending.length"
@@ -293,8 +314,8 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
                       v-for="(value, index) in item.values"
                       v-show="value.total"
                       :key="value.id"
-                      :class="['w-full', chartColors[index % chartColors.length]]"
-                      :style="{ height: `${(value.total / categoryChartMax) * 100}%` }"
+                      class="w-full"
+                      :style="{ height: `${(value.total / categoryChartMax) * 100}%`, backgroundColor: chartColors[index % chartColors.length] }"
                       :title="`${value.name}: ${formatCurrency(value.total)}`"
                     />
                   </div>
@@ -307,7 +328,10 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
                   :key="category.id"
                   class="flex items-center gap-1.5"
                 >
-                  <span :class="['size-2.5', chartColors[index % chartColors.length]]" />
+                  <span
+                    class="size-2.5"
+                    :style="{ backgroundColor: chartColors[index % chartColors.length] }"
+                  />
                   {{ category.name }}
                 </span>
               </div>
@@ -320,7 +344,7 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
             </p>
           </UCard>
 
-          <UCard>
+          <UCard class="min-w-0">
             <template #header>
               <h2 class="text-lg font-semibold">
                 資産残高推移
@@ -344,8 +368,9 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
                     <div
                       v-for="(value, index) in item.values"
                       :key="value.id"
-                      :class="['absolute', chartColors[index % chartColors.length]]"
+                      class="absolute"
                       :style="{
+                        backgroundColor: chartColors[index % chartColors.length],
                         left: `${(index / item.values.length) * 100}%`,
                         width: `${100 / item.values.length}%`,
                         top: value.balance >= 0 ? `${positiveHeight - (value.balance / balanceChartRange) * 100}%` : `${positiveHeight}%`,
@@ -363,7 +388,10 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
                   :key="method.id"
                   class="flex items-center gap-1.5"
                 >
-                  <span :class="['size-2.5', chartColors[index % chartColors.length]]" />
+                  <span
+                    class="size-2.5"
+                    :style="{ backgroundColor: chartColors[index % chartColors.length] }"
+                  />
                   {{ method.name }}
                 </span>
               </div>
@@ -383,28 +411,33 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
               月ごとの収支
             </h2>
           </template>
-          <UTable
-            :data="projectedMonths"
-            :columns="[
-              { accessorKey: 'month', header: '月' },
-              { accessorKey: 'income', header: '収入', meta: { class: { th: 'text-right', td: 'text-right tabular-nums' } } },
-              { accessorKey: 'expense', header: '支出', meta: { class: { th: 'text-right', td: 'text-right tabular-nums' } } },
-              { accessorKey: 'balance', header: '収支', meta: { class: { th: 'text-right', td: 'text-right font-bold tabular-nums' } } }
-            ]"
-          >
-            <template #month-cell="{ row }">
-              {{ row.original.month }}月
-            </template>
-            <template #income-cell="{ row }">
-              {{ formatCurrency(row.original.income) }}
-            </template>
-            <template #expense-cell="{ row }">
-              {{ formatCurrency(row.original.expense) }}
-            </template>
-            <template #balance-cell="{ row }">
-              {{ formatCurrency(row.original.balance) }}
-            </template>
-          </UTable>
+          <div class="overflow-x-auto">
+            <UTable
+              class="min-w-[36rem]"
+              :data="projectedMonths"
+              :columns="[
+                { accessorKey: 'month', header: '月' },
+                { accessorKey: 'income', header: '収入', meta: { class: { th: 'text-right', td: 'text-right tabular-nums' } } },
+                { accessorKey: 'expense', header: '支出', meta: { class: { th: 'text-right', td: 'text-right tabular-nums' } } },
+                { accessorKey: 'balance', header: '収支', meta: { class: { th: 'text-right', td: 'text-right font-bold tabular-nums' } } }
+              ]"
+            >
+              <template #month-cell="{ row }">
+                {{ row.original.month }}月
+              </template>
+              <template #income-cell="{ row }">
+                {{ formatCurrency(row.original.income) }}
+              </template>
+              <template #expense-cell="{ row }">
+                {{ formatCurrency(row.original.expense) }}
+              </template>
+              <template #balance-cell="{ row }">
+                <span :class="row.original.balance < 0 ? 'text-error' : row.original.balance > 0 ? 'text-primary' : 'text-default'">
+                  {{ formatSignedCurrency(row.original.balance) }}
+                </span>
+              </template>
+            </UTable>
+          </div>
         </UCard>
 
         <UCard>
@@ -447,11 +480,11 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
                   <td
                     v-for="(value, index) in row.values"
                     :key="index"
-                    class="px-3 py-2 text-right whitespace-nowrap"
+                    class="px-3 py-2 text-right tabular-nums whitespace-nowrap"
                   >
                     {{ formatCurrency(value) }}
                   </td>
-                  <td class="px-3 py-2 text-right font-bold whitespace-nowrap">
+                  <td class="px-3 py-2 text-right font-bold tabular-nums whitespace-nowrap">
                     {{ formatCurrency(row.total) }}
                   </td>
                 </tr>

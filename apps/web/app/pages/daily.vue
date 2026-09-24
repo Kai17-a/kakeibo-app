@@ -3,7 +3,7 @@ import type { Category, PaymentMethod, RecurringExpense } from '~/types/settings
 import type { ExchangeRatePreview, Expense, ExpenseInput, Income, IncomeInput } from '~/types/transactions'
 import { categoryTotals, dailyCategoryTotals, inPeriod, sumAmounts } from '~/utils/summaries'
 import { filterExpenses, filterIncomes } from '~/utils/filters'
-import { currentMonth, formatCurrency, formatDate, isValidMonth, shiftMonth } from '~/utils/format'
+import { currentMonth, formatCurrency, formatDate, formatSignedCurrency, isValidMonth, shiftMonth } from '~/utils/format'
 
 useSeoMeta({ title: '日別集計' })
 
@@ -117,6 +117,25 @@ const variableTotals = computed(() => categoryTotals(variable.value, expenseCate
 
 const ledger = computed(() => filterExpenses(monthExpenses.value, { keyword: keyword.value, categoryId: categoryId.value, paymentMethodId: paymentMethodId.value }).sort((a, b) => a.transaction_date.localeCompare(b.transaction_date)))
 const incomeLedger = computed(() => filterIncomes(monthIncomes.value, { keyword: incomeKeyword.value, categoryId: incomeCategoryId.value, paymentMethodId: incomePaymentMethodId.value }).sort((a, b) => a.transaction_date.localeCompare(b.transaction_date)))
+
+function expenseLabel(item: Expense) {
+  return item.description || categoryNames.value.get(item.category_id) || '支出'
+}
+function incomeLabel(item: Income) {
+  return item.description || incomeCategoryNames.value.get(item.category_id) || '収入'
+}
+function expenseActions(item: Expense) {
+  return [[
+    { label: '編集', icon: 'i-lucide-pencil', onSelect: () => editExpense(item) },
+    { label: '削除', icon: 'i-lucide-trash-2', color: 'error' as const, onSelect: () => askDeleteExpense(item) }
+  ]]
+}
+function incomeActions(item: Income) {
+  return [[
+    { label: '編集', icon: 'i-lucide-pencil', onSelect: () => editIncome(item) },
+    { label: '削除', icon: 'i-lucide-trash-2', color: 'error' as const, onSelect: () => askDeleteIncome(item) }
+  ]]
+}
 
 const dailyRows = computed(() => dailyCategoryTotals(monthExpenses.value, month.value))
 const activeExpenseCategories = computed(() => expenseCategories.value.filter(category => monthExpenses.value.some(item => item.category_id === category.id)))
@@ -281,16 +300,18 @@ async function confirmDelete() {
           <UTabs
             v-model="tab"
             :items="tabItems"
+            variant="link"
             :ui="{
-              list: 'overflow-x-auto',
+              root: 'min-w-0 items-start',
+              list: 'w-fit max-w-full self-start justify-start overflow-x-auto',
               trigger: 'shrink-0',
               label: 'overflow-visible text-clip whitespace-nowrap'
             }"
-            class="mb-4"
+            class="mb-5"
           />
 
           <div v-if="tab === 'categories'">
-            <h2 class="mb-2 bg-elevated px-3 py-2 text-sm font-bold">
+            <h2 class="mb-3 text-base font-semibold">
               日ごとのカテゴリ別支出
             </h2>
             <div
@@ -327,12 +348,12 @@ async function confirmDelete() {
                     <td
                       v-for="category in activeExpenseCategories"
                       :key="category.id"
-                      class="px-3 py-2 text-right"
+                      class="px-3 py-2 text-right tabular-nums"
                     >
-                      {{ day.values.get(category.id)?.toLocaleString('ja-JP') ?? '' }}
+                      {{ day.values.get(category.id) ? formatCurrency(day.values.get(category.id)!) : '' }}
                     </td>
-                    <td class="sticky right-0 bg-elevated px-3 py-2 text-right font-bold">
-                      {{ day.total ? day.total.toLocaleString('ja-JP') : '' }}
+                    <td class="sticky right-0 bg-elevated px-3 py-2 text-right font-bold tabular-nums">
+                      {{ day.total ? formatCurrency(day.total) : '' }}
                     </td>
                   </tr>
                 </tbody>
@@ -344,12 +365,12 @@ async function confirmDelete() {
                     <td
                       v-for="category in activeExpenseCategories"
                       :key="category.id"
-                      class="px-3 py-3 text-right font-bold"
+                      class="px-3 py-3 text-right font-bold tabular-nums"
                     >
-                      {{ sumAmounts(monthExpenses.filter(item => item.category_id === category.id)).toLocaleString('ja-JP') }}
+                      {{ formatCurrency(sumAmounts(monthExpenses.filter(item => item.category_id === category.id))) }}
                     </td>
-                    <td class="sticky right-0 bg-elevated px-3 py-3 text-right font-bold">
-                      {{ sumAmounts(monthExpenses).toLocaleString('ja-JP') }}
+                    <td class="sticky right-0 bg-elevated px-3 py-3 text-right font-bold tabular-nums">
+                      {{ formatCurrency(sumAmounts(monthExpenses)) }}
                     </td>
                   </tr>
                 </tfoot>
@@ -367,11 +388,14 @@ async function confirmDelete() {
             v-else-if="tab === 'details'"
             class="min-w-0"
           >
-            <h2 class="bg-elevated px-3 py-2 text-sm font-bold">
+            <h2 class="text-base font-semibold">
               支出明細
             </h2>
-            <div class="grid gap-4 border-b border-default py-4 sm:grid-cols-2 xl:grid-cols-[minmax(12rem,1fr)_12rem_12rem_auto] xl:items-end">
-              <UFormField label="備考を検索">
+            <div class="flex flex-wrap items-end gap-3 border-b border-default py-4">
+              <UFormField
+                label="備考を検索"
+                class="min-w-48 flex-1"
+              >
                 <UInput
                   v-model="keyword"
                   type="search"
@@ -379,19 +403,25 @@ async function confirmDelete() {
                   class="w-full"
                 />
               </UFormField>
-              <UFormField label="カテゴリ">
+              <UFormField
+                label="カテゴリ"
+                class="min-w-40 flex-1 sm:flex-none"
+              >
                 <USelect
                   :model-value="categoryId || ALL_FILTER_VALUE"
                   :items="[{ label: 'すべて', value: ALL_FILTER_VALUE }, ...expenseCategories.map(category => ({ label: category.name, value: category.id }))]"
-                  class="w-full"
+                  class="w-full sm:w-44"
                   @update:model-value="categoryId = $event == null || $event === ALL_FILTER_VALUE ? '' : String($event)"
                 />
               </UFormField>
-              <UFormField label="支払方法">
+              <UFormField
+                label="支払方法"
+                class="min-w-40 flex-1 sm:flex-none"
+              >
                 <USelect
                   :model-value="paymentMethodId || ALL_FILTER_VALUE"
                   :items="[{ label: 'すべて', value: ALL_FILTER_VALUE }, ...paymentMethods.map(method => ({ label: method.name, value: method.id }))]"
-                  class="w-full"
+                  class="w-full sm:w-44"
                   @update:model-value="paymentMethodId = $event == null || $event === ALL_FILTER_VALUE ? '' : String($event)"
                 />
               </UFormField>
@@ -442,33 +472,22 @@ async function confirmDelete() {
                     <td class="px-3 py-2">
                       {{ paymentNames.get(item.payment_method_id) }}
                     </td>
-                    <td class="px-3 py-2 text-right whitespace-nowrap">
-                      {{ Number(item.amount).toLocaleString('ja-JP') }}
+                    <td class="px-3 py-2 text-right tabular-nums whitespace-nowrap">
+                      {{ formatSignedCurrency(item.amount, 'negative') }}
                     </td>
                     <td class="px-3 py-2">
                       {{ item.description ?? '' }}
                     </td>
-                    <td class="px-3 py-2">
-                      <div class="flex justify-end gap-2">
+                    <td class="px-3 py-2 text-right">
+                      <UDropdownMenu :items="expenseActions(item)">
                         <UButton
+                          icon="i-lucide-ellipsis"
                           color="neutral"
                           variant="ghost"
                           size="sm"
-                          :aria-label="`${formatDate(item.transaction_date)} ${categoryNames.get(item.category_id) ?? ''}を編集`"
-                          @click="editExpense(item)"
-                        >
-                          編集
-                        </UButton>
-                        <UButton
-                          color="error"
-                          variant="ghost"
-                          size="sm"
-                          :aria-label="`${formatDate(item.transaction_date)} ${categoryNames.get(item.category_id) ?? ''}を削除`"
-                          @click="askDeleteExpense(item)"
-                        >
-                          削除
-                        </UButton>
-                      </div>
+                          :aria-label="`${formatDate(item.transaction_date)} ${expenseLabel(item)}の操作`"
+                        />
+                      </UDropdownMenu>
                     </td>
                   </tr>
                 </tbody>
@@ -486,11 +505,14 @@ async function confirmDelete() {
             v-else-if="tab === 'income-details'"
             class="min-w-0"
           >
-            <h2 class="bg-elevated px-3 py-2 text-sm font-bold">
+            <h2 class="text-base font-semibold">
               収入明細
             </h2>
-            <div class="grid gap-4 border-b border-default py-4 sm:grid-cols-2 xl:grid-cols-[minmax(12rem,1fr)_12rem_12rem_auto] xl:items-end">
-              <UFormField label="備考を検索">
+            <div class="flex flex-wrap items-end gap-3 border-b border-default py-4">
+              <UFormField
+                label="備考を検索"
+                class="min-w-48 flex-1"
+              >
                 <UInput
                   v-model="incomeKeyword"
                   type="search"
@@ -498,19 +520,25 @@ async function confirmDelete() {
                   class="w-full"
                 />
               </UFormField>
-              <UFormField label="カテゴリ">
+              <UFormField
+                label="カテゴリ"
+                class="min-w-40 flex-1 sm:flex-none"
+              >
                 <USelect
                   :model-value="incomeCategoryId || ALL_FILTER_VALUE"
                   :items="[{ label: 'すべて', value: ALL_FILTER_VALUE }, ...incomeCategories.map(category => ({ label: category.name, value: category.id }))]"
-                  class="w-full"
+                  class="w-full sm:w-44"
                   @update:model-value="incomeCategoryId = $event == null || $event === ALL_FILTER_VALUE ? '' : String($event)"
                 />
               </UFormField>
-              <UFormField label="支払方法">
+              <UFormField
+                label="支払方法"
+                class="min-w-40 flex-1 sm:flex-none"
+              >
                 <USelect
                   :model-value="incomePaymentMethodId || ALL_FILTER_VALUE"
                   :items="[{ label: 'すべて', value: ALL_FILTER_VALUE }, ...paymentMethods.map(method => ({ label: method.name, value: method.id }))]"
-                  class="w-full"
+                  class="w-full sm:w-44"
                   @update:model-value="incomePaymentMethodId = $event == null || $event === ALL_FILTER_VALUE ? '' : String($event)"
                 />
               </UFormField>
@@ -561,33 +589,22 @@ async function confirmDelete() {
                     <td class="px-3 py-2">
                       {{ item.payment_method_id ? (paymentNames.get(item.payment_method_id) ?? '—') : '—' }}
                     </td>
-                    <td class="px-3 py-2 text-right whitespace-nowrap">
-                      {{ Number(item.amount).toLocaleString('ja-JP') }}
+                    <td :class="['px-3 py-2 text-right tabular-nums whitespace-nowrap', Number(item.amount) > 0 ? 'text-primary' : 'text-default']">
+                      {{ formatSignedCurrency(item.amount, 'positive') }}
                     </td>
                     <td class="px-3 py-2">
                       {{ item.description ?? '' }}
                     </td>
-                    <td class="px-3 py-2">
-                      <div class="flex justify-end gap-2">
+                    <td class="px-3 py-2 text-right">
+                      <UDropdownMenu :items="incomeActions(item)">
                         <UButton
+                          icon="i-lucide-ellipsis"
                           color="neutral"
                           variant="ghost"
                           size="sm"
-                          :aria-label="`${formatDate(item.transaction_date)} ${incomeCategoryNames.get(item.category_id) ?? ''}を編集`"
-                          @click="editIncome(item)"
-                        >
-                          編集
-                        </UButton>
-                        <UButton
-                          color="error"
-                          variant="ghost"
-                          size="sm"
-                          :aria-label="`${formatDate(item.transaction_date)} ${incomeCategoryNames.get(item.category_id) ?? ''}を削除`"
-                          @click="askDeleteIncome(item)"
-                        >
-                          削除
-                        </UButton>
-                      </div>
+                          :aria-label="`${formatDate(item.transaction_date)} ${incomeLabel(item)}の操作`"
+                        />
+                      </UDropdownMenu>
                     </td>
                   </tr>
                 </tbody>
@@ -603,100 +620,100 @@ async function confirmDelete() {
 
           <div
             v-else
-            class="grid gap-6 xl:grid-cols-[18rem_1fr]"
+            class="grid gap-8 lg:grid-cols-2"
           >
-            <aside class="border-default xl:border-r xl:pr-4">
-              <h2 class="bg-elevated px-3 py-2 text-sm font-bold">
+            <aside>
+              <h2 class="border-b border-default pb-2 text-base font-semibold">
                 収支サマリー
               </h2>
               <dl class="grid grid-cols-2 text-sm">
                 <dt class="p-2">
                   収入
                 </dt>
-                <dd class="p-2 text-right">
-                  {{ formatCurrency(incomeTotal) }}
+                <dd :class="['p-2 text-right tabular-nums', incomeTotal > 0 ? 'text-primary' : 'text-default']">
+                  {{ formatSignedCurrency(incomeTotal, 'positive') }}
                 </dd>
                 <dt class="p-2">
                   支出
                 </dt>
-                <dd class="p-2 text-right">
-                  {{ formatCurrency(expenseTotal) }}
+                <dd class="p-2 text-right tabular-nums">
+                  {{ formatSignedCurrency(expenseTotal, 'negative') }}
                 </dd>
                 <dt class="p-2 font-bold">
                   収支
                 </dt>
-                <dd class="p-2 text-right font-bold">
-                  {{ formatCurrency(incomeTotal - expenseTotal) }}
+                <dd :class="['p-2 text-right font-bold tabular-nums', incomeTotal - expenseTotal < 0 ? 'text-error' : incomeTotal - expenseTotal > 0 ? 'text-primary' : 'text-default']">
+                  {{ formatSignedCurrency(incomeTotal - expenseTotal) }}
                 </dd>
               </dl>
-              <h2 class="mt-4 bg-elevated px-3 py-2 text-sm font-bold">
+              <h2 class="mt-5 border-b border-default pb-2 text-base font-semibold">
                 収入
               </h2>
               <div
                 v-for="item in incomeBreakdown"
                 :key="item.id"
-                class="flex justify-between p-2 text-sm"
+                class="flex justify-between gap-4 px-2 py-2 text-sm"
               >
                 <span>{{ item.name }}</span>
-                <span>{{ item.total.toLocaleString('ja-JP') }}</span>
+                <span class="text-right tabular-nums">{{ formatCurrency(item.total) }}</span>
               </div>
-              <h2 class="mt-4 bg-elevated px-3 py-2 text-sm font-bold">
+              <h2 class="mt-5 border-b border-default pb-2 text-base font-semibold">
                 支払種別
               </h2>
               <div
                 v-for="item in paymentBreakdown"
                 :key="item.id"
-                class="flex justify-between p-2 text-sm"
+                class="flex justify-between gap-4 px-2 py-2 text-sm"
               >
                 <span>{{ item.name }}</span>
-                <span>{{ item.total.toLocaleString('ja-JP') }}</span>
+                <span class="text-right tabular-nums">{{ formatCurrency(item.total) }}</span>
               </div>
             </aside>
             <div>
-              <div class="flex items-center justify-between gap-4 bg-elevated px-3 py-2">
+              <div class="flex items-center justify-between gap-4 border-b border-default pb-2">
                 <h2 class="text-sm font-bold">
                   支出（固定費）
                 </h2>
-                <span class="text-sm font-bold whitespace-nowrap">{{ formatCurrency(recurringTotal) }}</span>
+                <span class="text-sm font-bold tabular-nums whitespace-nowrap">{{ formatCurrency(recurringTotal) }}</span>
               </div>
               <div
                 v-for="item in recurring"
                 :key="item.id"
-                class="flex items-center justify-between border-b border-default p-2 text-sm"
+                class="flex items-center justify-between gap-4 border-b border-muted px-2 py-2 text-sm"
               >
                 <span>
                   {{ item.name }}
                   <small class="block text-muted">毎月{{ item.payment_day }}日</small>
                 </span>
-                <span>{{ Number(item.amount).toLocaleString('ja-JP') }}</span>
+                <span class="text-right tabular-nums">{{ formatCurrency(item.amount) }}</span>
               </div>
-              <div class="mt-4 flex items-center justify-between gap-4 bg-elevated px-3 py-2">
+              <div class="mt-5 flex items-center justify-between gap-4 border-b border-default pb-2">
                 <h2 class="text-sm font-bold">
-                  支出（固定変動費）
+                  準固定費（金額変動）
                 </h2>
-                <span class="text-sm font-bold whitespace-nowrap">{{ formatCurrency(fixedVariableTotal) }}</span>
+                <span class="text-sm font-bold tabular-nums whitespace-nowrap">{{ formatCurrency(fixedVariableTotal) }}</span>
               </div>
               <div
                 v-for="item in fixedVariableTotals"
                 :key="item.id"
-                class="flex justify-between border-b border-default p-2 text-sm"
+                class="flex justify-between gap-4 border-b border-muted px-2 py-2 text-sm"
               >
                 <span>{{ item.name }}</span>
-                <span>{{ item.total.toLocaleString('ja-JP') }}</span>
+                <span class="text-right tabular-nums">{{ formatCurrency(item.total) }}</span>
               </div>
-              <div class="mt-4 flex items-center justify-between gap-4 bg-elevated px-3 py-2">
+              <div class="mt-5 flex items-center justify-between gap-4 border-b border-default pb-2">
                 <h2 class="text-sm font-bold">
                   支出（変動費）
                 </h2>
-                <span class="text-sm font-bold whitespace-nowrap">{{ formatCurrency(variableTotal) }}</span>
+                <span class="text-sm font-bold tabular-nums whitespace-nowrap">{{ formatCurrency(variableTotal) }}</span>
               </div>
               <div
                 v-for="item in variableTotals"
                 :key="item.id"
-                class="flex justify-between border-b border-default p-2 text-sm"
+                class="flex justify-between gap-4 border-b border-muted px-2 py-2 text-sm"
               >
                 <span>{{ item.name }}</span>
-                <span>{{ item.total.toLocaleString('ja-JP') }}</span>
+                <span class="text-right tabular-nums">{{ formatCurrency(item.total) }}</span>
               </div>
             </div>
           </div>

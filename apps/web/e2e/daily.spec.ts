@@ -69,7 +69,7 @@ test('4つのタブを切り替えられる', async ({ page }) => {
 
   await expect(page.getByText('収支サマリー')).toBeVisible()
   await page.getByRole('tab', { name: '支出明細' }).click()
-  await expect(page.getByRole('cell', { name: '電車代' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: '電車代', exact: true })).toBeVisible()
   await page.getByRole('tab', { name: '収入明細' }).click()
   await expect(page.getByText('この月の収入明細はありません。')).toBeVisible()
   await page.getByRole('tab', { name: '月ごとのカテゴリ別支出' }).click()
@@ -101,14 +101,16 @@ test('支出明細から支出を編集・削除する', async ({ page }) => {
 
   await page.goto('/daily')
   await page.getByRole('tab', { name: '支出明細' }).click()
-  await page.getByRole('button', { name: /交通費を編集/ }).click()
+  await page.getByRole('button', { name: '電車代の操作' }).click()
+  await page.getByRole('menuitem', { name: '編集' }).click()
   await expect(page.getByRole('heading', { name: '支出を編集' })).toBeVisible()
   await page.getByLabel('金額').fill('3333')
   await page.getByRole('button', { name: '更新する' }).click()
   await expect(page.getByText('支出を更新しました', { exact: true })).toBeVisible()
-  await expect(page.getByRole('cell', { name: '3,333' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: /[¥￥]3,333/ })).toBeVisible()
 
-  await page.getByRole('button', { name: /交通費を削除/ }).click()
+  await page.getByRole('button', { name: '電車代の操作' }).click()
+  await page.getByRole('menuitem', { name: '削除' }).click()
   await page.getByRole('button', { name: '削除', exact: true }).click()
   await expect(page.getByText('明細を削除しました', { exact: true })).toBeVisible()
   await expect(page.getByText('この月の支出明細はありません。')).toBeVisible()
@@ -120,13 +122,13 @@ test('支出明細をキーワードで絞り込む', async ({ page }) => {
   await page.goto('/daily')
   await page.getByRole('tab', { name: '支出明細' }).click()
 
-  await expect(page.getByRole('cell', { name: '電車代' })).toBeVisible()
-  await expect(page.getByRole('cell', { name: '書籍代' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: '電車代', exact: true })).toBeVisible()
+  await expect(page.getByRole('cell', { name: '書籍代', exact: true })).toBeVisible()
 
   await page.getByLabel('備考を検索').fill('書籍')
-  await expect(page.getByRole('cell', { name: '書籍代' })).toBeVisible()
-  await expect(page.getByRole('cell', { name: '電車代' })).not.toBeVisible()
+  await expect(page.getByRole('cell', { name: '書籍代', exact: true })).toBeVisible()
+  await expect(page.getByRole('cell', { name: '電車代', exact: true })).not.toBeVisible()
 
   await page.getByRole('button', { name: '条件をクリア' }).click()
-  await expect(page.getByRole('cell', { name: '電車代' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: '電車代', exact: true })).toBeVisible()
 })

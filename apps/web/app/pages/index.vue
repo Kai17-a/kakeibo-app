@@ -2,7 +2,7 @@
 import type { Budget, Category, PaymentMethod, RecurringExpense, RecurringIncome } from '~/types/settings'
 import type { ExchangeRatePreview, Expense, ExpenseInput, Income, IncomeInput } from '~/types/transactions'
 import { budgetActuals, categoryTotals, inPeriod, mergeTransactions, recurringForecast, sumAmounts } from '~/utils/summaries'
-import { currentMonth, formatCurrency, formatDate, isValidMonth, shiftMonth } from '~/utils/format'
+import { currentMonth, formatCurrency, formatDate, formatSignedCurrency, isValidMonth, shiftMonth } from '~/utils/format'
 
 useSeoMeta({ title: '月間集計' })
 
@@ -336,8 +336,8 @@ async function confirmDelete() {
               <p class="text-sm text-muted">
                 収入
               </p>
-              <p class="mt-1 text-base font-bold text-primary tabular-nums whitespace-nowrap sm:text-2xl">
-                +{{ formatCurrency(projectedIncomeTotal) }}
+              <p :class="['mt-1 text-base font-bold tabular-nums whitespace-nowrap sm:text-2xl', projectedIncomeTotal > 0 ? 'text-primary' : 'text-default']">
+                {{ formatSignedCurrency(projectedIncomeTotal, 'positive') }}
               </p>
               <UBadge
                 v-if="forecast.income"
@@ -353,7 +353,7 @@ async function confirmDelete() {
                 支出
               </p>
               <p class="mt-1 text-base font-bold tabular-nums whitespace-nowrap sm:text-2xl">
-                −{{ formatCurrency(projectedExpenseTotal) }}
+                {{ formatSignedCurrency(projectedExpenseTotal, 'negative') }}
               </p>
               <UBadge
                 v-if="forecast.expense"
@@ -368,8 +368,8 @@ async function confirmDelete() {
               <p class="text-sm text-muted">
                 収支
               </p>
-              <p :class="['mt-1 text-lg font-bold tabular-nums whitespace-nowrap sm:text-2xl', balance < 0 ? 'text-error' : 'text-primary']">
-                {{ balance >= 0 ? '+' : '−' }}{{ formatCurrency(Math.abs(balance)) }}
+              <p :class="['mt-1 text-lg font-bold tabular-nums whitespace-nowrap sm:text-2xl', balance < 0 ? 'text-error' : balance > 0 ? 'text-primary' : 'text-default']">
+                {{ formatSignedCurrency(balance) }}
               </p>
               <UProgress
                 v-if="budgetTotal"
@@ -414,7 +414,7 @@ async function confirmDelete() {
                     <h3 class="font-medium text-toned">
                       {{ formatDate(group.date) }}
                     </h3>
-                    <span class="tabular-nums">当日計 {{ group.total >= 0 ? '+' : '−' }}{{ formatCurrency(Math.abs(group.total)) }}</span>
+                    <span class="tabular-nums">当日計 {{ formatSignedCurrency(group.total) }}</span>
                   </div>
                   <ul>
                     <li
@@ -430,8 +430,8 @@ async function confirmDelete() {
                           {{ transactionMeta(item) }}
                         </p>
                       </div>
-                      <p :class="['shrink-0 font-semibold tabular-nums', item.kind === 'income' ? 'text-primary' : 'text-default']">
-                        {{ item.kind === 'income' ? '+' : '−' }}{{ formatCurrency(item.amount) }}
+                      <p :class="['shrink-0 font-semibold tabular-nums', item.kind === 'income' && Number(item.amount) > 0 ? 'text-primary' : 'text-default']">
+                        {{ formatSignedCurrency(item.amount, item.kind === 'income' ? 'positive' : 'negative') }}
                       </p>
                       <UDropdownMenu :items="transactionActions(item)">
                         <UButton
@@ -439,7 +439,7 @@ async function confirmDelete() {
                           color="neutral"
                           variant="ghost"
                           size="sm"
-                          :aria-label="`${transactionLabel(item)}の操作`"
+                          :aria-label="`${formatDate(item.transaction_date)} ${transactionLabel(item)}の操作`"
                         />
                       </UDropdownMenu>
                     </li>
