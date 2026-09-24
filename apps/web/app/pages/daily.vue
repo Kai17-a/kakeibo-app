@@ -273,7 +273,10 @@ async function confirmDelete() {
           <USkeleton class="h-28 w-full" />
           <USkeleton class="h-28 w-full" />
         </div>
-        <UCard v-else>
+        <UCard
+          v-else
+          class="shrink-0"
+        >
           <UTabs
             v-model="tab"
             :items="tabItems"
