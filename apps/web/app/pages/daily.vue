@@ -3,26 +3,11 @@ import type { Category, PaymentMethod, RecurringExpense } from "~/types/settings
 import type { Expense, Income } from "~/types/transactions";
 import { categoryTotals, dailyCategoryTotals, inPeriod, sumAmounts } from "~/utils/summaries";
 import { filterExpenses, filterIncomes } from "~/utils/filters";
-import {
-  currentMonth,
-  formatCurrency,
-  formatDate,
-  formatSignedCurrency,
-  isValidMonth,
-  shiftMonth,
-} from "~/utils/format";
+import { formatCurrency, formatDate, formatSignedCurrency } from "~/utils/format";
 
 useSeoMeta({ title: "日別集計" });
 
-const route = useRoute();
-const month = computed(() =>
-  typeof route.query.month === "string" && isValidMonth(route.query.month)
-    ? route.query.month
-    : currentMonth(),
-);
-function setMonth(next: string) {
-  navigateTo({ path: "/daily", query: { month: next } }, { replace: true });
-}
+const { month, setMonth } = useMonthQuery("/daily");
 const settingsApi = useSettingsApi();
 const transactionsApi = useTransactionsApi();
 
@@ -259,27 +244,7 @@ const {
             <UDashboardSidebarCollapse />
           </template>
           <template #right>
-            <UFieldGroup class="shrink-0">
-              <UButton
-                icon="i-lucide-chevron-left"
-                color="neutral"
-                variant="outline"
-                aria-label="前月"
-                @click="setMonth(shiftMonth(month, -1))"
-              />
-              <MonthPicker
-                :model-value="month"
-                class="w-24 sm:w-40"
-                @update:model-value="setMonth"
-              />
-              <UButton
-                icon="i-lucide-chevron-right"
-                color="neutral"
-                variant="outline"
-                aria-label="翌月"
-                @click="setMonth(shiftMonth(month, 1))"
-              />
-            </UFieldGroup>
+            <MonthNavigator :model-value="month" @update:model-value="setMonth" />
             <UButton icon="i-lucide-plus" aria-label="記録する" @click="openNew">
               <span class="hidden sm:inline">記録する</span>
             </UButton>

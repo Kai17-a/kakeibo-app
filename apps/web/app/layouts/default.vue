@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from "@nuxt/ui";
 import { settingsNavigation } from "~/utils/settings-navigation";
-import { isValidMonth } from "~/utils/format";
+import { isValidMonth, isValidYear } from "~/utils/format";
 
 const open = ref(false);
 const route = useRoute();
@@ -15,7 +15,7 @@ const links = computed(() => {
       ? route.query.month
       : undefined;
   const year =
-    typeof route.query.year === "string" && /^\d{4}$/.test(route.query.year)
+    typeof route.query.year === "string" && isValidYear(route.query.year)
       ? route.query.year
       : undefined;
   const selectedMonth = month ?? (year ? `${year}-01` : undefined);

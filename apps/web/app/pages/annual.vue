@@ -12,16 +12,7 @@ import { formatCurrency, formatSignedCurrency } from "~/utils/format";
 
 useSeoMeta({ title: "年間集計" });
 
-const route = useRoute();
-const currentYear = () => String(new Date().getFullYear());
-const year = computed(() =>
-  typeof route.query.year === "string" && /^\d{4}$/.test(route.query.year)
-    ? route.query.year
-    : currentYear(),
-);
-function setYear(next: string) {
-  navigateTo({ path: "/annual", query: { year: next } }, { replace: true });
-}
+const { year, setYear } = useYearQuery("/annual");
 
 const settingsApi = useSettingsApi();
 const transactionsApi = useTransactionsApi();
@@ -218,29 +209,11 @@ const positiveHeight = computed(() => (maxPositive.value / balanceChartRange.val
           <UDashboardSidebarCollapse />
         </template>
         <template #right>
-          <UFieldGroup>
-            <UButton
-              icon="i-lucide-chevron-left"
-              color="neutral"
-              variant="outline"
-              aria-label="前年"
-              @click="setYear(String(Number(year) - 1))"
-            />
-            <USelect
-              :model-value="year"
-              :items="availableYears.map((item) => ({ label: `${item}年`, value: item }))"
-              aria-label="対象年"
-              class="w-28"
-              @update:model-value="(value) => setYear(String(value))"
-            />
-            <UButton
-              icon="i-lucide-chevron-right"
-              color="neutral"
-              variant="outline"
-              aria-label="翌年"
-              @click="setYear(String(Number(year) + 1))"
-            />
-          </UFieldGroup>
+          <YearNavigator
+            :model-value="year"
+            :years="availableYears"
+            @update:model-value="setYear"
+          />
         </template>
       </UDashboardNavbar>
     </template>
