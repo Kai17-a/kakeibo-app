@@ -214,7 +214,7 @@ async function confirmDelete() {
 </script>
 
 <template>
-  <div>
+  <div class="flex min-w-0 flex-1">
     <UDashboardPanel id="daily">
       <template #header>
         <UDashboardNavbar title="日別集計">
@@ -222,9 +222,9 @@ async function confirmDelete() {
             <UDashboardSidebarCollapse />
           </template>
         </UDashboardNavbar>
-        <UDashboardToolbar>
+        <UDashboardToolbar :ui="{ root: 'flex-wrap gap-y-2 py-2 sm:flex-nowrap sm:py-0' }">
           <template #left>
-            <UButtonGroup>
+            <UFieldGroup class="shrink-0 whitespace-nowrap">
               <UButton
                 color="neutral"
                 variant="outline"
@@ -246,10 +246,10 @@ async function confirmDelete() {
               >
                 年間
               </UButton>
-            </UButtonGroup>
+            </UFieldGroup>
           </template>
           <template #right>
-            <UButtonGroup>
+            <UFieldGroup class="shrink-0">
               <UButton
                 icon="i-lucide-chevron-left"
                 color="neutral"
@@ -261,7 +261,7 @@ async function confirmDelete() {
                 :model-value="month"
                 type="month"
                 aria-label="対象月"
-                class="w-40"
+                class="w-44 sm:w-40"
                 @update:model-value="(value) => setMonth(String(value))"
               />
               <UButton
@@ -271,7 +271,7 @@ async function confirmDelete() {
                 aria-label="翌月"
                 @click="setMonth(shiftMonth(month, 1))"
               />
-            </UButtonGroup>
+            </UFieldGroup>
           </template>
         </UDashboardToolbar>
       </template>
@@ -304,6 +304,11 @@ async function confirmDelete() {
           <UTabs
             v-model="tab"
             :items="tabItems"
+            :ui="{
+              list: 'overflow-x-auto',
+              trigger: 'shrink-0',
+              label: 'overflow-visible text-clip whitespace-nowrap'
+            }"
             class="mb-4"
           />
 
