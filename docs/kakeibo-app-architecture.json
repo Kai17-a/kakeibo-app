@@ -23,14 +23,14 @@
     {
       "id": "web",
       "type": "frontend",
-      "label": "SvelteKit Web UI",
-      "sublabel": "Svelte 5 / 静的SPA",
-      "tag": "shadcn-svelte",
+      "label": "Nuxt Web UI",
+      "sublabel": "Nuxt 4 / 静的SPA",
+      "tag": "Nuxt UI 4",
       "pos": [235, 290],
       "size": [165, 68],
       "sources": [
         { "path": "apps/web/package.json", "label": "フロントエンド依存関係" },
-        { "path": "apps/web/src/routes/+page.svelte", "label": "メイン画面" }
+        { "path": "apps/web/app/pages/index.vue", "label": "メイン画面" }
       ]
     },
     {
@@ -180,7 +180,7 @@
       "dot": "cyan",
       "title": "配信",
       "items": [
-        "SvelteKitの静的成果物とRust APIをAxumが同一ポートで配信",
+        "Nuxtの静的成果物とRust APIをAxumが同一ポートで配信",
         "Dockerイメージ1つでWeb UI・API・APIドキュメントを提供"
       ]
     },

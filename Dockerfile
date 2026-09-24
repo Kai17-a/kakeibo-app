@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1
 
-FROM oven/bun:1.3.14 AS web-builder
+FROM node:24-bookworm-slim AS web-builder
 WORKDIR /build/apps/web
 
-COPY apps/web/package.json apps/web/bun.lock ./
-RUN bun install --frozen-lockfile
+COPY apps/web/package.json apps/web/package-lock.json ./
+RUN npm ci
 
 COPY apps/web/ ./
-RUN bun run build
+RUN npm run generate
 
 FROM rust:1.94-bookworm AS api-builder
 WORKDIR /build/apps/api
@@ -28,7 +28,7 @@ RUN useradd --create-home --uid 10001 kakeibo \
     && chown --recursive kakeibo:kakeibo /app /data
 
 COPY --from=api-builder /build/apps/api/target/release/kakeibo-app /app/kakeibo-app
-COPY --from=web-builder /build/apps/web/dist /app/public
+COPY --from=web-builder /build/apps/web/.output/public /app/public
 
 USER kakeibo
 WORKDIR /data

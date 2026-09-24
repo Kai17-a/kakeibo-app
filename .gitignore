@@ -2,7 +2,8 @@
 /apps/api/target
 /apps/api/.env
 /apps/web/node_modules
-/apps/web/dist
+/apps/web/.nuxt
+/apps/web/.output
 /apps/web/.env
 
 *.db

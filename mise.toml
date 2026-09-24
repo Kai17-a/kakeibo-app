@@ -125,38 +125,33 @@ run = "docker compose logs --follow app"
 [tasks.web-install]
 description = "Install frontend dependencies"
 dir = "apps/web"
-run = "bun install"
+run = "npm install"
 
 [tasks.web-dev]
 description = "Run the frontend development server"
 dir = "apps/web"
-run = "bun run dev"
+run = "npm run dev"
 
 [tasks.web-build]
-description = "Build the frontend"
+description = "Generate the static frontend"
 dir = "apps/web"
-run = "bun run build"
+run = "npm run generate"
 
 [tasks.web-check]
 description = "Check the frontend"
 dir = "apps/web"
-run = "bun run check"
+run = "npm run typecheck"
 
-[tasks.web-format]
-description = "Format the frontend"
+[tasks.web-lint]
+description = "Lint the frontend"
 dir = "apps/web"
-run = "bun run format"
-
-[tasks.web-format-check]
-description = "Check frontend formatting"
-dir = "apps/web"
-run = "bun run format:check"
+run = "npm run lint"
 
 [tasks.web-test]
 description = "Test the frontend"
 dir = "apps/web"
-run = "bun run test"
+run = "npm test"
 
 [tasks.web-ci]
 description = "Run all frontend checks"
-depends = ["web-format-check", "web-check", "web-test", "web-build"]
+depends = ["web-lint", "web-check", "web-test", "web-build"]

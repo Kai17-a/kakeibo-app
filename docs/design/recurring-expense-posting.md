@@ -131,9 +131,8 @@ sequenceDiagram
 | SQL | `queries/expenses/insert_recurring_for_month.sql` | 条件付き `INSERT ... SELECT` による計上（`is_variable = 0` のみ） |
 | Repository | `src/repository/expenses.rs` | `current_month()` / `insert_recurring_for_month()` |
 | Service | `src/service/expenses.rs` | `list()` の冒頭で当月分の計上を実行 |
-| Web | `src/lib/features/forms/TransactionForm.svelte` | 準固定費プリセット（`initialRecurring`）による明細登録 |
-| Web | `src/lib/features/monthly/MonthlySummary.svelte` | 固定費／準固定費の区分表示と「今月分を登録」ボタン |
-| Web | `src/routes/+page.svelte` | 準固定費からの明細登録フォーム起動 |
+| Web | `app/components/transactions/TransactionFormModal.vue` | 準固定費プリセット（`initialRecurring`）による明細登録 |
+| Web | `app/pages/index.vue` | 固定費／準固定費の区分表示、「今月分を登録」ボタン、明細登録フォーム起動 |
 
 ## 制約・注意事項
 
