@@ -259,21 +259,21 @@ async function confirmDelete() {
               <UButton
                 color="neutral"
                 variant="solid"
-                to="/"
+                :to="{ path: '/', query: { month } }"
               >
                 月間
               </UButton>
               <UButton
                 color="neutral"
                 variant="outline"
-                to="/daily"
+                :to="{ path: '/daily', query: { month } }"
               >
                 日別集計
               </UButton>
               <UButton
                 color="neutral"
                 variant="outline"
-                to="/annual"
+                :to="{ path: '/annual', query: { year: month.slice(0, 4) } }"
               >
                 年間
               </UButton>
@@ -291,6 +291,7 @@ async function confirmDelete() {
               <UInput
                 :model-value="month"
                 type="month"
+                aria-label="対象月"
                 class="w-40"
                 @update:model-value="(value) => setMonth(String(value))"
               />

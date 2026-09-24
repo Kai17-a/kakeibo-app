@@ -9,6 +9,11 @@ dist
 # Node dependencies
 node_modules
 
+# Playwright
+/playwright-report/
+/test-results/
+/blob-report/
+
 # Logs
 logs
 *.log
