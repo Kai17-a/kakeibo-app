@@ -1,0 +1,92 @@
+import type { Budget, Category, RecurringExpense, RecurringIncome } from '~/types/settings'
+import type { Expense, Income } from '~/types/transactions'
+
+function activeInMonth(item: { start_date: string, end_date: string | null }, month: string) {
+  const first = `${month}-01`
+  const last = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0))
+    .toISOString()
+    .slice(0, 10)
+  return item.start_date <= last && (!item.end_date || item.end_date >= first)
+}
+
+export function recurringForecast(
+  expenses: Expense[],
+  incomes: Income[],
+  recurringExpenses: RecurringExpense[],
+  recurringIncomes: RecurringIncome[],
+  month: string,
+  usdRecurringPreviews: Map<string, { converted_amount: string }> = new Map()
+) {
+  const postedExpenseIds = new Set(
+    inPeriod(expenses, month).flatMap(item => item.recurring_expense_id ? [item.recurring_expense_id] : [])
+  )
+  const postedIncomeIds = new Set(
+    inPeriod(incomes, month).flatMap(item => item.recurring_income_id ? [item.recurring_income_id] : [])
+  )
+  const projectedExpenses = recurringExpenses.filter(
+    item => item.is_active && !item.is_variable && activeInMonth(item, month) && !postedExpenseIds.has(item.id)
+  )
+  const projectedIncomes = recurringIncomes.filter(
+    item => item.is_active && !item.is_variable && activeInMonth(item, month) && !postedIncomeIds.has(item.id)
+  )
+  const expensesByCategory = new Map<string, number>()
+  let projectedExpenseTotal = 0
+  for (const item of projectedExpenses) {
+    const amount = item.currency_code === 'USD'
+      ? usdRecurringPreviews.get(item.id)?.converted_amount
+      : item.amount
+    if (amount === undefined) continue
+    const numericAmount = Number(amount)
+    projectedExpenseTotal += numericAmount
+    expensesByCategory.set(item.category_id, (expensesByCategory.get(item.category_id) ?? 0) + numericAmount)
+  }
+  return {
+    expense: projectedExpenseTotal,
+    income: sumAmounts(projectedIncomes),
+    expensesByCategory
+  }
+}
+
+export type Transaction = (Expense & { kind: 'expense' }) | (Income & { kind: 'income' })
+
+export function inPeriod<T extends { transaction_date: string }>(items: T[], period: string): T[] {
+  return items.filter(item => item.transaction_date.startsWith(period))
+}
+
+export function sumAmounts(items: Array<{ amount: string }>): number {
+  return items.reduce((sum, item) => sum + Number(item.amount), 0)
+}
+
+export function mergeTransactions(expenses: Expense[], incomes: Income[]): Transaction[] {
+  return [
+    ...expenses.map(item => ({ ...item, kind: 'expense' as const })),
+    ...incomes.map(item => ({ ...item, kind: 'income' as const }))
+  ].sort((a, b) => b.transaction_date.localeCompare(a.transaction_date))
+}
+
+export function categoryTotals(expenses: Expense[], categories: Category[]) {
+  return categories.map(category => ({
+    id: category.id,
+    name: category.name,
+    total: sumAmounts(expenses.filter(item => item.category_id === category.id))
+  }))
+}
+
+export function budgetActuals(expenses: Expense[], categories: Category[], budgets: Budget[], month: string) {
+  const monthlyExpenses = inPeriod(expenses, month)
+  const categoryNames = new Map(categories.map(category => [category.id, category.name]))
+
+  return budgets.map((budget) => {
+    const budgetAmount = Number(budget.amount)
+    const actual = sumAmounts(monthlyExpenses.filter(expense => expense.category_id === budget.category_id))
+    return {
+      id: budget.id,
+      categoryId: budget.category_id,
+      name: categoryNames.get(budget.category_id) ?? '名称なし',
+      budget: budgetAmount,
+      actual,
+      achievementRate: budgetAmount === 0 ? null : (actual / budgetAmount) * 100,
+      exceeded: actual > budgetAmount
+    }
+  })
+}

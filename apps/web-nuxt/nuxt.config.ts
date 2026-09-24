@@ -14,10 +14,6 @@ export default defineNuxtConfig({
   // Fonts are bundled locally via @fontsource; no remote font downloads.
   ui: { fonts: false },
 
-  routeRules: {
-    '/': { prerender: true }
-  },
-
   compatibilityDate: '2026-06-30',
 
   nitro: {
