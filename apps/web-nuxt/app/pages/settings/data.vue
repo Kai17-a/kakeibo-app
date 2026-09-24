@@ -61,10 +61,32 @@ useSeoMeta({ title: 'データ管理設定' })
         <h2 class="text-lg font-semibold">
           データのインポート
         </h2>
+        <p class="mt-2 text-sm text-muted">
+          CSVファイルを選択すると内容を確認してから登録できます。登録前にデータベースへの反映は行われません。
+        </p>
       </template>
-      <p class="text-sm text-muted">
-        準備中です。
-      </p>
+      <div class="flex flex-col gap-6">
+        <div>
+          <h3 class="mb-2 text-sm font-semibold">
+            支出データ
+          </h3>
+          <SettingsCsvImportPanel kind="expense" />
+        </div>
+        <USeparator />
+        <div>
+          <h3 class="mb-2 text-sm font-semibold">
+            収入データ
+          </h3>
+          <SettingsCsvImportPanel kind="income" />
+        </div>
+        <USeparator />
+        <div>
+          <h3 class="mb-2 text-sm font-semibold">
+            固定費データ
+          </h3>
+          <SettingsCsvImportPanel kind="recurring-expense" />
+        </div>
+      </div>
     </UCard>
   </div>
 </template>

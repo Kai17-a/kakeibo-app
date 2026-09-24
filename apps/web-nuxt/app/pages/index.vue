@@ -2,12 +2,12 @@
 import type { Budget, Category, PaymentMethod, RecurringExpense, RecurringIncome } from '~/types/settings'
 import type { ExchangeRatePreview, Expense, ExpenseInput, Income, IncomeInput } from '~/types/transactions'
 import { budgetActuals, categoryTotals, inPeriod, mergeTransactions, recurringForecast, sumAmounts } from '~/utils/summaries'
-import { currentMonth, formatCurrency, formatDate, shiftMonth } from '~/utils/format'
+import { currentMonth, formatCurrency, formatDate, isValidMonth, shiftMonth } from '~/utils/format'
 
 useSeoMeta({ title: '月間集計' })
 
 const route = useRoute()
-const month = computed(() => (typeof route.query.month === 'string' && /^\d{4}-\d{2}$/.test(route.query.month) ? route.query.month : currentMonth()))
+const month = computed(() => (typeof route.query.month === 'string' && isValidMonth(route.query.month) ? route.query.month : currentMonth()))
 function setMonth(next: string) {
   navigateTo({ path: '/', query: { month: next } }, { replace: true })
 }

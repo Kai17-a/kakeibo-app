@@ -7,3 +7,6 @@
 
 *.db
 *.sqlite
+
+# Personal financial data exports (never commit household data)
+/2026_*/
