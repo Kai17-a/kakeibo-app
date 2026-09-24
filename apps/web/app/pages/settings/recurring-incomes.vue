@@ -63,7 +63,7 @@ const columns: TableColumn<RecurringIncome>[] = [
     cell: ({ row }) =>
       categories.value.find((item) => item.id === row.original.category_id)?.name ??
       "不明なカテゴリ",
-    meta: { class: { th: "hidden sm:table-cell", td: "hidden sm:table-cell" } },
+    meta: { class: { th: "hidden w-40 sm:table-cell", td: "hidden w-40 sm:table-cell" } },
   },
   {
     accessorKey: "payment_day",
@@ -71,8 +71,8 @@ const columns: TableColumn<RecurringIncome>[] = [
     cell: ({ row }) => `毎月${row.original.payment_day}日`,
     meta: {
       class: {
-        th: "hidden whitespace-nowrap md:table-cell",
-        td: "hidden whitespace-nowrap md:table-cell",
+        th: "hidden w-24 whitespace-nowrap md:table-cell",
+        td: "hidden w-24 whitespace-nowrap md:table-cell",
       },
     },
   },
@@ -91,8 +91,8 @@ const columns: TableColumn<RecurringIncome>[] = [
     header: "状態",
     meta: {
       class: {
-        th: "hidden whitespace-nowrap lg:table-cell",
-        td: "hidden whitespace-nowrap lg:table-cell",
+        th: "hidden w-20 whitespace-nowrap lg:table-cell",
+        td: "hidden w-20 whitespace-nowrap lg:table-cell",
       },
     },
   },
