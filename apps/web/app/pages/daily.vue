@@ -299,16 +299,11 @@ async function confirmDelete() {
         >
           <UTabs
             v-model="tab"
+            orientation="vertical"
+            variant="pill"
+            :content="false"
             :items="tabItems"
-            variant="link"
-            :ui="{
-              root: 'min-w-0 items-start',
-              list: 'w-fit max-w-full self-start justify-start overflow-x-auto',
-              indicator: 'bottom-0 h-0.5',
-              trigger: 'shrink-0',
-              label: 'overflow-visible text-clip whitespace-nowrap'
-            }"
-            class="mb-5"
+            class="mb-5 w-full"
           />
 
           <div v-if="tab === 'categories'">
