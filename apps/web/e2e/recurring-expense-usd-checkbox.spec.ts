@@ -19,7 +19,7 @@ test("名称が未入力の状態でも外貨建てチェックボックスを�
   await mockRecurringApi(page);
   await page.goto("/settings/recurring-expenses");
 
-  await page.getByRole("button", { name: "追加" }).click();
+  await page.getByRole("button", { name: "追加", exact: true }).click();
   const checkbox = page.getByRole("checkbox", { name: "外貨建て（USD）にする" });
   await expect(checkbox).toBeVisible();
   await expect(checkbox).toHaveAttribute("aria-checked", "false");
@@ -34,7 +34,7 @@ test("外貨建てチェックボックスをオフに戻せる", async ({ page 
   await mockRecurringApi(page);
   await page.goto("/settings/recurring-expenses");
 
-  await page.getByRole("button", { name: "追加" }).click();
+  await page.getByRole("button", { name: "追加", exact: true }).click();
   const checkbox = page.getByRole("checkbox", { name: "外貨建て（USD）にする" });
   await checkbox.click();
   await expect(checkbox).toHaveAttribute("aria-checked", "true");
