@@ -6,6 +6,7 @@ import type {
   ExpenseInput,
   Income,
   IncomeInput,
+  TransactionSubmission,
 } from "~/types/transactions";
 import { groupCategories } from "~/utils/settings";
 import { formatCurrency } from "~/utils/format";
@@ -23,11 +24,7 @@ const props = defineProps<{
   initialRecurring?: RecurringExpense | null;
   initialRecurringIncome?: RecurringIncome | null;
   exchangePreview?: ExchangeRatePreview | null;
-  onSubmit: (
-    kind: "expense" | "income",
-    input: ExpenseInput | IncomeInput,
-    keepOpen: boolean,
-  ) => Promise<boolean>;
+  onSubmit: (submission: TransactionSubmission, keepOpen: boolean) => Promise<boolean>;
 }>();
 
 const emit = defineEmits<{ "update:open": [value: boolean] }>();
@@ -131,35 +128,41 @@ async function handleSubmit(event: SubmitEvent) {
 }
 
 async function submit(keepOpen: boolean) {
-  const input =
+  const submission: TransactionSubmission =
     kind.value === "expense"
-      ? ({
-          transaction_date: state.date,
-          amount: state.amount,
-          category_id: state.categoryId,
-          payment_method_id: state.paymentMethodId,
-          recurring_expense_id:
-            props.initialExpense?.recurring_expense_id ?? props.initialRecurring?.id ?? null,
-          description: state.description || null,
-          ...(props.exchangePreview
-            ? {
-                foreign_amount: props.exchangePreview.foreign_amount,
-                currency_code: props.exchangePreview.currency_code,
-                exchange_rate: props.exchangePreview.exchange_rate,
-                exchange_rate_date: props.exchangePreview.exchange_rate_date,
-              }
-            : {}),
-        } satisfies ExpenseInput)
-      : ({
-          transaction_date: state.date,
-          amount: state.amount,
-          category_id: state.categoryId,
-          payment_method_id: state.paymentMethodId || undefined,
-          recurring_income_id:
-            props.initialIncome?.recurring_income_id ?? props.initialRecurringIncome?.id ?? null,
-          description: state.description || null,
-        } satisfies IncomeInput);
-  const saved = await props.onSubmit(kind.value, input, keepOpen);
+      ? {
+          kind: "expense",
+          input: {
+            transaction_date: state.date,
+            amount: state.amount,
+            category_id: state.categoryId,
+            payment_method_id: state.paymentMethodId,
+            recurring_expense_id:
+              props.initialExpense?.recurring_expense_id ?? props.initialRecurring?.id ?? null,
+            description: state.description || null,
+            ...(props.exchangePreview
+              ? {
+                  foreign_amount: props.exchangePreview.foreign_amount,
+                  currency_code: props.exchangePreview.currency_code,
+                  exchange_rate: props.exchangePreview.exchange_rate,
+                  exchange_rate_date: props.exchangePreview.exchange_rate_date,
+                }
+              : {}),
+          } satisfies ExpenseInput,
+        }
+      : {
+          kind: "income",
+          input: {
+            transaction_date: state.date,
+            amount: state.amount,
+            category_id: state.categoryId,
+            payment_method_id: state.paymentMethodId || undefined,
+            recurring_income_id:
+              props.initialIncome?.recurring_income_id ?? props.initialRecurringIncome?.id ?? null,
+            description: state.description || null,
+          } satisfies IncomeInput,
+        };
+  const saved = await props.onSubmit(submission, keepOpen);
   if (saved && keepOpen) {
     state.amount = "";
     state.description = "";

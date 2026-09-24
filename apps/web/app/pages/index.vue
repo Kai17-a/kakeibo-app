@@ -6,13 +6,7 @@ import type {
   RecurringExpense,
   RecurringIncome,
 } from "~/types/settings";
-import type {
-  ExchangeRatePreview,
-  Expense,
-  ExpenseInput,
-  Income,
-  IncomeInput,
-} from "~/types/transactions";
+import type { ExchangeRatePreview, Expense, Income } from "~/types/transactions";
 import {
   budgetActuals,
   categoryTotals,
@@ -243,160 +237,29 @@ function transactionActions(item: ReturnType<typeof mergeTransactions>[number]) 
   ];
 }
 
-// --- transaction registration modal ---
-const transactionModalOpen = ref(false);
-const editingExpense = ref<Expense | null>(null);
-const editingIncome = ref<Income | null>(null);
-const transactionPreset = ref<RecurringExpense | null>(null);
-const incomeTransactionPreset = ref<RecurringIncome | null>(null);
-const exchangePreview = ref<ExchangeRatePreview | null>(null);
-const saving = ref(false);
-const toast = useToast();
-
-const initialTransactionDate = computed(
-  () => `${month.value}-${String(Math.min(new Date().getDate(), 28)).padStart(2, "0")}`,
-);
-
-function openTransaction() {
-  editingExpense.value = null;
-  editingIncome.value = null;
-  transactionPreset.value = null;
-  incomeTransactionPreset.value = null;
-  exchangePreview.value = null;
-  transactionModalOpen.value = true;
-}
-function editExpense(item: Expense) {
-  editingExpense.value = item;
-  editingIncome.value = null;
-  transactionPreset.value = null;
-  incomeTransactionPreset.value = null;
-  exchangePreview.value = null;
-  transactionModalOpen.value = true;
-}
-function editIncome(item: Income) {
-  editingExpense.value = null;
-  editingIncome.value = item;
-  transactionPreset.value = null;
-  incomeTransactionPreset.value = null;
-  exchangePreview.value = null;
-  transactionModalOpen.value = true;
-}
-async function registerVariableRecurring(item: RecurringExpense) {
-  editingExpense.value = null;
-  editingIncome.value = null;
-  incomeTransactionPreset.value = null;
-  transactionPreset.value = item;
-  exchangePreview.value = null;
-  if (item.currency_code === "USD") {
-    try {
-      exchangePreview.value = await transactionsApi.previewRecurringExpenseExchangeRate(
-        item.id,
-        month.value,
-      );
-    } catch (error) {
-      toast.add({
-        title: apiErrorMessage(error),
-        description: "為替レートを取得できませんでした。金額を手動で入力してください。",
-        color: "warning",
-      });
-    }
-  }
-  transactionModalOpen.value = true;
-}
-function registerVariableRecurringIncome(item: RecurringIncome) {
-  editingExpense.value = null;
-  editingIncome.value = null;
-  transactionPreset.value = null;
-  incomeTransactionPreset.value = item;
-  exchangePreview.value = null;
-  transactionModalOpen.value = true;
-}
-function closeTransaction() {
-  transactionModalOpen.value = false;
-  editingExpense.value = null;
-  editingIncome.value = null;
-  transactionPreset.value = null;
-  incomeTransactionPreset.value = null;
-  exchangePreview.value = null;
-}
-
-async function saveTransaction(
-  kind: "expense" | "income",
-  input: ExpenseInput | IncomeInput,
-  keepOpen: boolean,
-): Promise<boolean> {
-  saving.value = true;
-  try {
-    if (kind === "expense" && editingExpense.value) {
-      const updated = await transactionsApi.updateExpense(
-        editingExpense.value.id,
-        input as ExpenseInput,
-      );
-      expenses.value = expenses.value.map((item) => (item.id === updated.id ? updated : item));
-      toast.add({ title: "支出を更新しました", color: "success" });
-    } else if (kind === "income" && editingIncome.value) {
-      const updated = await transactionsApi.updateIncome(
-        editingIncome.value.id,
-        input as IncomeInput,
-      );
-      incomes.value = incomes.value.map((item) => (item.id === updated.id ? updated : item));
-      toast.add({ title: "収入を更新しました", color: "success" });
-    } else if (kind === "expense") {
-      expenses.value = [
-        await transactionsApi.createExpense(input as ExpenseInput),
-        ...expenses.value,
-      ];
-      toast.add({ title: "支出を登録しました", color: "success" });
-    } else {
-      incomes.value = [await transactionsApi.createIncome(input as IncomeInput), ...incomes.value];
-      toast.add({ title: "収入を登録しました", color: "success" });
-    }
-    if (!keepOpen) closeTransaction();
-    return true;
-  } catch (error) {
-    toast.add({ title: apiErrorMessage(error), color: "error" });
-    return false;
-  } finally {
-    saving.value = false;
-  }
-}
-
-// --- delete confirmation ---
-type DeleteTarget = { type: "expense"; item: Expense } | { type: "income"; item: Income };
-const deleteTarget = ref<DeleteTarget | null>(null);
-const deleteOpen = computed({
-  get: () => deleteTarget.value !== null,
-  set: (value: boolean) => {
-    if (!value) deleteTarget.value = null;
-  },
-});
-function askDeleteExpense(item: Expense) {
-  deleteTarget.value = { type: "expense", item };
-}
-function askDeleteIncome(item: Income) {
-  deleteTarget.value = { type: "income", item };
-}
-const removing = ref(false);
-async function confirmDelete() {
-  const target = deleteTarget.value;
-  if (!target) return;
-  removing.value = true;
-  try {
-    if (target.type === "expense") {
-      await transactionsApi.deleteExpense(target.item.id);
-      expenses.value = expenses.value.filter((item) => item.id !== target.item.id);
-    } else {
-      await transactionsApi.deleteIncome(target.item.id);
-      incomes.value = incomes.value.filter((item) => item.id !== target.item.id);
-    }
-    toast.add({ title: "明細を削除しました", color: "success" });
-    deleteTarget.value = null;
-  } catch (error) {
-    toast.add({ title: apiErrorMessage(error), color: "error" });
-  } finally {
-    removing.value = false;
-  }
-}
+const {
+  formOpen,
+  editingExpense,
+  editingIncome,
+  recurringExpensePreset,
+  recurringIncomePreset,
+  exchangePreview,
+  saving,
+  initialDate,
+  openNew,
+  editExpense,
+  editIncome,
+  registerRecurringExpense,
+  registerRecurringIncome,
+  closeForm,
+  save,
+  deleteOpen,
+  deleteDescription,
+  removing,
+  askDeleteExpense,
+  askDeleteIncome,
+  confirmDelete,
+} = useTransactionEditor({ month, expenses, incomes });
 </script>
 
 <template>
@@ -429,7 +292,7 @@ async function confirmDelete() {
                 @click="setMonth(shiftMonth(month, 1))"
               />
             </UFieldGroup>
-            <UButton icon="i-lucide-plus" aria-label="記録する" @click="openTransaction">
+            <UButton icon="i-lucide-plus" aria-label="記録する" @click="openNew">
               <span class="hidden sm:inline">記録する</span>
             </UButton>
           </template>
@@ -568,11 +431,7 @@ async function confirmDelete() {
               </div>
               <p v-else class="py-10 text-center text-sm text-muted">
                 この月の明細はまだありません。収入または支出を記録すると、ここに表示されます。
-                <UButton
-                  icon="i-lucide-plus"
-                  class="mx-auto mt-4 flex w-fit"
-                  @click="openTransaction"
-                >
+                <UButton icon="i-lucide-plus" class="mx-auto mt-4 flex w-fit" @click="openNew">
                   記録する
                 </UButton>
               </p>
@@ -717,7 +576,7 @@ async function confirmDelete() {
                         variant="outline"
                         size="sm"
                         :aria-label="`${item.name}の今月分を登録`"
-                        @click="registerVariableRecurring(item)"
+                        @click="registerRecurringExpense(item)"
                       >
                         今月分を登録
                       </UButton>
@@ -765,7 +624,7 @@ async function confirmDelete() {
                         variant="outline"
                         size="sm"
                         :aria-label="`${item.name}の今月分を登録`"
-                        @click="registerVariableRecurringIncome(item)"
+                        @click="registerRecurringIncome(item)"
                       >
                         今月分を登録
                       </UButton>
@@ -794,46 +653,31 @@ async function confirmDelete() {
     </UDashboardPanel>
 
     <TransactionsTransactionFormModal
-      v-if="transactionModalOpen"
-      v-model:open="transactionModalOpen"
+      v-if="formOpen"
+      v-model:open="formOpen"
       :expense-categories="expenseCategories"
       :income-categories="incomeCategories"
       :payment-methods="paymentMethods"
       :saving="saving"
-      :initial-date="initialTransactionDate"
+      :initial-date="initialDate"
       :initial-expense="editingExpense"
       :initial-income="editingIncome"
-      :initial-recurring="transactionPreset"
-      :initial-recurring-income="incomeTransactionPreset"
+      :initial-recurring="recurringExpensePreset"
+      :initial-recurring-income="recurringIncomePreset"
       :exchange-preview="exchangePreview"
-      :on-submit="saveTransaction"
+      :on-submit="save"
       @update:open="
         (value) => {
-          if (!value) closeTransaction();
+          if (!value) closeForm();
         }
       "
     />
 
-    <UModal
+    <ConfirmDeleteModal
       v-model:open="deleteOpen"
-      title="削除の確認"
-      :description="
-        deleteTarget
-          ? `この${deleteTarget.type === 'expense' ? '支出' : '収入'}明細を削除しますか？`
-          : ''
-      "
-      :dismissible="!removing"
-      :close="!removing"
-      :ui="{ footer: 'justify-end' }"
-    >
-      <template #footer>
-        <UButton color="neutral" variant="outline" :disabled="removing" @click="deleteOpen = false">
-          キャンセル
-        </UButton>
-        <UButton color="error" :loading="removing" :disabled="removing" @click="confirmDelete">
-          削除
-        </UButton>
-      </template>
-    </UModal>
+      :description="deleteDescription"
+      :busy="removing"
+      @confirm="confirmDelete"
+    />
   </div>
 </template>

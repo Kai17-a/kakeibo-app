@@ -54,3 +54,8 @@ export interface ListResponse<T> {
   items: T[];
   pagination: { page: number; per_page: number };
 }
+
+/** A validated transaction form submission, discriminated by the transaction kind. */
+export type TransactionSubmission =
+  | { kind: "expense"; input: ExpenseInput }
+  | { kind: "income"; input: IncomeInput };
