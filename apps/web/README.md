@@ -25,6 +25,9 @@ npm run build
 npm run generate
 npm run typecheck
 npm run lint
+npm run lint:fix
+npm run format
+npm run format:check
 npm test
 npm run test:e2e
 ```

@@ -1,7 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   modules: [
-    '@nuxt/eslint',
     '@nuxt/ui'
   ],
 
@@ -23,15 +22,6 @@ export default defineNuxtConfig({
   nitro: {
     devProxy: {
       '/api': { target: 'http://localhost:8000/api', changeOrigin: true }
-    }
-  },
-
-  eslint: {
-    config: {
-      stylistic: {
-        commaDangle: 'never',
-        braceStyle: '1tbs'
-      }
     }
   }
 })

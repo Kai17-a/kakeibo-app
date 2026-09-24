@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 100,
+  "singleQuote": false,
+  "semi": true,
+  "trailingComma": "all",
+  "sortTailwindcss": {
+    "stylesheet": "./app/assets/css/main.css",
+    "attributes": ["class", "ui"]
+  },
+  "ignorePatterns": [
+    ".nuxt/**",
+    ".output/**",
+    "node_modules/**",
+    "playwright-report/**",
+    "test-results/**",
+    "dist/**",
+    "package-lock.json"
+  ]
+}
