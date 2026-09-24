@@ -63,7 +63,7 @@ test("収支を登録する", async ({ page }) => {
   const { captured, handlers } = captureExpenseCreation();
   await mockMonthlyApi(page, {}, handlers);
 
-  await page.goto("/");
+  await page.goto("/monthly");
   await page.getByRole("button", { name: "記録する" }).first().click();
   await expect(page.getByRole("heading", { name: "収支を登録" })).toBeVisible();
   await page.getByLabel("金額").fill("1500");
@@ -85,7 +85,7 @@ test("準固定費の今月分を登録する", async ({ page }) => {
   const { captured, handlers } = captureExpenseCreation();
   await mockMonthlyApi(page, {}, handlers);
 
-  await page.goto("/");
+  await page.goto("/monthly");
   await expect(page.getByText("準固定費（金額変動）")).toBeVisible();
   await page.getByRole("button", { name: "電気代の今月分を登録" }).click();
   await expect(page.getByRole("heading", { name: "準固定費を登録" })).toBeVisible();
@@ -116,7 +116,7 @@ test("USD建て準固定費は為替プレビューを表示し、換算後の�
     },
   );
 
-  await page.goto("/");
+  await page.goto("/monthly");
   await page.getByRole("button", { name: "動画サービスの今月分を登録" }).click();
   await expect(page.getByLabel("金額")).toHaveValue("1505");
   await expect(page.getByText(/USD 10 × レート 150.5/)).toBeVisible();
@@ -149,7 +149,7 @@ test("最近の明細から支出を編集・削除する", async ({ page }) => 
     },
   );
 
-  await page.goto("/");
+  await page.goto("/monthly");
   await expect(page.getByText("電車代")).toBeVisible();
   await page.getByRole("button", { name: "電車代の操作" }).click();
   await page.getByRole("menuitem", { name: "編集" }).click();
@@ -169,27 +169,27 @@ test("カレンダーで対象月を変更する", async ({ page }) => {
   const targetMonthNumber = now.getMonth() === 0 ? 2 : 1;
   const targetMonth = `${now.getFullYear()}-${String(targetMonthNumber).padStart(2, "0")}`;
   await mockMonthlyApi(page);
-  await page.goto(`/?month=${month}`);
+  await page.goto(`/monthly?month=${month}`);
 
   await page.getByRole("button", { name: "対象月" }).click();
   await page
     .getByRole("button", { name: `${now.getFullYear()}年${targetMonthNumber}月`, exact: true })
     .click();
 
-  await expect(page).toHaveURL(new RegExp(`/\\?month=${targetMonth}$`));
+  await expect(page).toHaveURL(new RegExp(`/monthly\\?month=${targetMonth}$`));
 });
 
 test("画面切り替えで日別・年間集計へ遷移する", async ({ page }) => {
   await mockMonthlyApi(page);
-  await page.goto(`/?month=${month}`);
+  await page.goto(`/monthly?month=${month}`);
   const navigation = page.getByRole("navigation", { name: "メインナビゲーション" });
 
   await navigation.getByRole("link", { name: "日別集計" }).click();
   await expect(page).toHaveURL(new RegExp(`/daily\\?month=${month}$`));
 
   await navigation.getByRole("link", { name: "年間集計" }).click();
-  await expect(page).toHaveURL(new RegExp(`/annual\\?year=${month.slice(0, 4)}$`));
+  await expect(page).toHaveURL(new RegExp(`/\\?year=${month.slice(0, 4)}$`));
 
-  await navigation.getByRole("link", { name: "ホーム" }).click();
-  await expect(page).toHaveURL(new RegExp(`/\\?month=${month.slice(0, 4)}-01$`));
+  await navigation.getByRole("link", { name: "月間集計" }).click();
+  await expect(page).toHaveURL(new RegExp(`/monthly\\?month=${month.slice(0, 4)}-01$`));
 });
