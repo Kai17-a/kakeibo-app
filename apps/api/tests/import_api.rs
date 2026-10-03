@@ -268,6 +268,44 @@ async fn import_recurring_expenses_supports_yen_and_creates_names() {
 }
 
 #[tokio::test]
+async fn import_recurring_expenses_accepts_month_end_payment_day() {
+    let p = pool(RECURRING_EXPENSE_SCHEMA).await;
+    let app = import::create(p.clone());
+    let csv = "名称,金額,通貨,外貨金額,支払日,開始日,終了日,カテゴリ,支払方法,金額変動,備考\n家賃,61100,,,月末,2026-01-01,,住居費,口座振替,,\n";
+    let (status, body) = call(&app, "/api/import/recurring-expenses", csv).await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+    let payment_day: i64 = sqlx::query_scalar("SELECT payment_day FROM recurring_expenses")
+        .fetch_one(&p)
+        .await
+        .unwrap();
+    assert_eq!(payment_day, 31);
+}
+
+#[tokio::test]
+async fn preview_recurring_expenses_returns_month_end_payment_day_as_31() {
+    let p = pool(RECURRING_EXPENSE_SCHEMA).await;
+    let app = import::create(p.clone());
+    let csv = "名称,金額,通貨,外貨金額,支払日,開始日,終了日,カテゴリ,支払方法,金額変動,備考\n家賃,61100,,,　月末 ,2026-01-01,,住居費,口座振替,,\n";
+    let (status, body) = call(&app, "/api/import/recurring-expenses/preview", csv).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["rows"][0]["payment_day"], "31");
+    assert_eq!(
+        count(&p, "SELECT count(*) FROM recurring_expenses").await,
+        0
+    );
+}
+
+#[tokio::test]
+async fn import_recurring_expenses_rejects_invalid_payment_day_text() {
+    let p = pool(RECURRING_EXPENSE_SCHEMA).await;
+    let app = import::create(p);
+    let csv = "名称,金額,通貨,外貨金額,支払日,開始日,終了日,カテゴリ,支払方法,金額変動,備考\n家賃,61100,,,翌月末,2026-01-01,,住居費,口座振替,,\n";
+    let (status, body) = call(&app, "/api/import/recurring-expenses", csv).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST, "{body}");
+    assert!(body.to_string().contains("1〜31の整数または月末"), "{body}");
+}
+
+#[tokio::test]
 async fn import_recurring_expenses_allows_empty_yen_amount_only_for_variable_rows() {
     let p = pool(RECURRING_EXPENSE_SCHEMA).await;
     let app = import::create(p.clone());

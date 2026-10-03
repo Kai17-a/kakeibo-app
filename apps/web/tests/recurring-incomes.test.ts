@@ -11,6 +11,7 @@ const valid = {
   name: " 給与 ",
   amount: "300000",
   payment_day: "25",
+  is_month_end: false,
   start_date: "2026-09-01",
   end_date: "",
   category_id: "salary",

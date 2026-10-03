@@ -211,9 +211,16 @@ async fn insert_recurring_for_month_clamps_payment_day_to_month_end() {
         .await
         .unwrap();
     assert_eq!(date, "2026-02-28");
-    // 同月の再実行は冪等、翌月は新たに計上される
+    // 同月の再実行は冪等、翌月と30日までの月は新たに月末計上される
     assert_eq!(repo.insert_recurring_for_month("2026-02").await.unwrap(), 0);
     assert_eq!(repo.insert_recurring_for_month("2026-03").await.unwrap(), 1);
+    assert_eq!(repo.insert_recurring_for_month("2026-04").await.unwrap(), 1);
+    let dates: Vec<String> =
+        sqlx::query_scalar("SELECT transaction_date FROM expenses ORDER BY transaction_date")
+            .fetch_all(&p)
+            .await
+            .unwrap();
+    assert_eq!(dates, ["2026-02-28", "2026-03-31", "2026-04-30"]);
 }
 #[tokio::test]
 async fn insert_recurring_for_month_respects_active_period() {

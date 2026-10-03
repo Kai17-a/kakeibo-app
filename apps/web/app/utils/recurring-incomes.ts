@@ -1,10 +1,11 @@
 import type { RecurringIncome, RecurringIncomeInput } from "../types/settings";
+import { recurringPaymentDayForm, recurringPaymentDayValue } from "./recurring-payment-day.ts";
 
 export function recurringIncomeForm(item?: RecurringIncome, today = new Date()) {
   return {
     name: item?.name ?? "",
     amount: item?.amount ?? "",
-    payment_day: String(item?.payment_day ?? 1),
+    ...recurringPaymentDayForm(item?.payment_day),
     start_date:
       item?.start_date ??
       `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`,
@@ -52,11 +53,14 @@ export function validateRecurringIncome(state: RecurringIncomeForm, categories: 
 
 export function recurringIncomeInput(state: RecurringIncomeForm): RecurringIncomeInput {
   return {
-    ...state,
     name: state.name.trim(),
     amount: state.amount.trim() || null,
-    payment_day: Number(state.payment_day),
+    payment_day: recurringPaymentDayValue(state),
+    start_date: state.start_date,
     end_date: state.end_date || null,
+    category_id: state.category_id,
+    is_active: state.is_active,
+    is_variable: state.is_variable,
     description: state.description.trim() || null,
   };
 }

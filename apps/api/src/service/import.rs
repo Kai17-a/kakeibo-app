@@ -40,7 +40,7 @@ const RECURRING_EXPENSE_SAMPLE_ROW: &[&str] = &[
     "61100",
     "",
     "",
-    "1",
+    "月末",
     "2026-01-01",
     "",
     "住居費",
@@ -208,7 +208,9 @@ impl ImportService {
                 amount: row.amount.trim().to_owned(),
                 currency: row.currency.trim().to_owned(),
                 foreign_amount: row.foreign_amount.trim().to_owned(),
-                payment_day: row.payment_day.trim().to_owned(),
+                payment_day: parse_payment_day(&row.payment_day)
+                    .expect("validated payment day")
+                    .to_string(),
                 start_date: row.start_date.trim().to_owned(),
                 end_date: row
                     .end_date
@@ -575,10 +577,10 @@ fn validate_recurring_expenses(rows: &[RecurringExpenseCsvRow]) -> AppResult<()>
                 row.end_date.as_deref().unwrap_or("")
             ));
         }
-        let payment_day = row.payment_day.trim().parse::<i64>().ok();
+        let payment_day = parse_payment_day(&row.payment_day);
         if !payment_day.is_some_and(|day| (1..=31).contains(&day)) {
             errors.push(format!(
-                "{row_number}行目: 支払日「{}」は1〜31の整数で指定してください",
+                "{row_number}行目: 支払日「{}」は1〜31の整数または月末で指定してください",
                 row.payment_day
             ));
         }
@@ -690,6 +692,15 @@ fn payment_date(year_month: &str, payment_day: i64) -> String {
         .to_string()
 }
 
+fn parse_payment_day(value: &str) -> Option<i64> {
+    let value = value.trim();
+    if value == "月末" {
+        Some(31)
+    } else {
+        value.parse().ok()
+    }
+}
+
 fn recurring_expense_request(
     row: &RecurringExpenseCsvRow,
     category_id: String,
@@ -708,11 +719,7 @@ fn recurring_expense_request(
             .to_owned(),
         )
         .filter(|amount| !amount.is_empty()),
-        payment_day: row
-            .payment_day
-            .trim()
-            .parse()
-            .expect("validated payment day"),
+        payment_day: parse_payment_day(&row.payment_day).expect("validated payment day"),
         start_date: row.start_date.trim().to_owned(),
         end_date: row
             .end_date

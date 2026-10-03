@@ -226,6 +226,13 @@ async fn repository_clamps_month_end_is_idempotent_and_posts_next_month() {
     assert_eq!(date, "2026-02-28");
     assert_eq!(repo.insert_recurring_for_month("2026-02").await.unwrap(), 0);
     assert_eq!(repo.insert_recurring_for_month("2026-03").await.unwrap(), 1);
+    assert_eq!(repo.insert_recurring_for_month("2026-04").await.unwrap(), 1);
+    let dates: Vec<String> =
+        sqlx::query_scalar("SELECT transaction_date FROM incomes ORDER BY transaction_date")
+            .fetch_all(&pool)
+            .await
+            .unwrap();
+    assert_eq!(dates, ["2026-02-28", "2026-03-31", "2026-04-30"]);
 }
 
 #[tokio::test]

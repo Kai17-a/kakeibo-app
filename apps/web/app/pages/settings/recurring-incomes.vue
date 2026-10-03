@@ -7,6 +7,11 @@ import {
   recurringIncomeInput,
   validateRecurringIncome,
 } from "~/utils/recurring-incomes";
+import {
+  formatRecurringSchedule,
+  setRecurringMonthEnd,
+  updateRecurringPaymentDay,
+} from "~/utils/recurring-payment-day";
 
 useSeoMeta({ title: "定期収入設定" });
 const label = "定期収入";
@@ -68,7 +73,7 @@ const columns: TableColumn<RecurringIncome>[] = [
   {
     accessorKey: "payment_day",
     header: "入金日",
-    cell: ({ row }) => `毎月${row.original.payment_day}日`,
+    cell: ({ row }) => formatRecurringSchedule(row.original.payment_day),
     meta: {
       class: {
         th: "hidden w-24 whitespace-nowrap md:table-cell",
@@ -173,7 +178,7 @@ function save() {
                   categories.find((item) => item.id === row.original.category_id)?.name ??
                   "不明なカテゴリ"
                 }}
-                · 毎月{{ row.original.payment_day }}日 ·
+                · {{ formatRecurringSchedule(row.original.payment_day) }} ·
                 {{ row.original.is_active ? "有効" : "無効" }}
               </p>
             </div>
@@ -243,8 +248,16 @@ function save() {
           :min="1"
           :max="31"
           :step="1"
+          :disabled="state.is_month_end"
           class="w-full"
-          @update:model-value="state.payment_day = String($event ?? '')"
+          @update:model-value="updateRecurringPaymentDay(state, $event)"
+        />
+      </UFormField>
+      <UFormField name="is_month_end">
+        <UCheckbox
+          :model-value="state.is_month_end"
+          label="月末（その月の最終日）にする"
+          @update:model-value="setRecurringMonthEnd(state, $event === true)"
         />
       </UFormField>
       <UFormField name="category_id" label="カテゴリ" required>

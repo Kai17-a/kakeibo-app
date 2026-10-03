@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatRecurringSchedule } from "~/utils/recurring-payment-day";
 import type { Category, PaymentMethod, RecurringExpense } from "~/types/settings";
 import type { Expense, Income } from "~/types/transactions";
 import { classifyMonthlyExpenses } from "~/utils/expense-classification";
@@ -103,7 +104,7 @@ const variableTotals = computed(() => nonZeroCategoryTotals(classification.value
       >
         <span>
           {{ item.name }}
-          <small class="block text-muted">毎月{{ item.payment_day }}日</small>
+          <small class="block text-muted">{{ formatRecurringSchedule(item.payment_day) }}</small>
         </span>
         <span class="text-right tabular-nums">{{ formatCurrency(item.amount ?? 0) }}</span>
       </div>

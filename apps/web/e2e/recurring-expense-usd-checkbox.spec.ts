@@ -86,3 +86,44 @@ test("準固定費は目安金額なしで登録できる", async ({ page }) => 
   await expect.poll(() => submitted?.amount).toBeNull();
   expect(submitted).toMatchObject({ name: "電気代", is_variable: true });
 });
+
+test("月末を選ぶと31日として登録され一覧に月末と表示される", async ({ page }) => {
+  let submitted: Record<string, unknown> | undefined;
+  await mockApi(
+    page,
+    {
+      "/api/expense-categories": listOf([category({ name: "住居費" })]),
+      "/api/income-categories": listOf([]),
+      "/api/payment-methods": listOf([paymentMethod({ name: "口座振替" })]),
+      "/api/recurring-expenses": [],
+    },
+    {
+      "POST /api/recurring-expenses": (request) => {
+        submitted = jsonBody(request);
+        return {
+          status: 201,
+          body: {
+            id: "month-end-expense",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            ...submitted,
+          },
+        };
+      },
+    },
+  );
+  await page.goto("/settings/recurring-expenses");
+
+  await page.getByRole("button", { name: "追加", exact: true }).click();
+  await page.getByLabel("名称").fill("家賃");
+  await page.getByLabel("金額", { exact: true }).fill("61100");
+  await page.getByRole("checkbox", { name: "月末" }).click();
+  await page.getByLabel("カテゴリ").click();
+  await page.getByRole("option", { name: "住居費" }).click();
+  await page.getByLabel("支払方法").click();
+  await page.getByRole("option", { name: "口座振替" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "追加", exact: true }).click();
+
+  await expect.poll(() => submitted?.payment_day).toBe(31);
+  await expect(page.getByText("毎月末", { exact: true })).toBeVisible();
+});

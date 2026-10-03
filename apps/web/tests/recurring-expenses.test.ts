@@ -14,6 +14,7 @@ const valid = {
   usdBased: false,
   foreignAmount: "",
   payment_day: "15",
+  is_month_end: false,
   start_date: "2026-09-01",
   end_date: "",
   category_id: "utilities",

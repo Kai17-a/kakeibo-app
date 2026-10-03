@@ -8,6 +8,7 @@ import type {
   RecurringExpensePreviewRow,
   VariableExpensePreviewRow,
 } from "~/types/import";
+import { formatRecurringPaymentDay } from "~/utils/recurring-payment-day";
 
 const props = defineProps<{ kind: ImportKind }>();
 
@@ -282,7 +283,7 @@ async function importPreview() {
                 {{ recurringRow(row.original).currency || "JPY" }}
               </template>
               <template v-if="kind === 'recurring-expense'" #payment_day-cell="{ row }">
-                {{ recurringRow(row.original).payment_day }}日
+                {{ formatRecurringPaymentDay(recurringRow(row.original).payment_day) }}
               </template>
               <template #category-cell="{ row }">
                 <span>

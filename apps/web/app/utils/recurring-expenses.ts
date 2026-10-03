@@ -1,4 +1,5 @@
 import type { RecurringExpense, RecurringExpenseInput } from "../types/settings";
+import { recurringPaymentDayForm, recurringPaymentDayValue } from "./recurring-payment-day.ts";
 
 export function recurringExpenseForm(item?: RecurringExpense, today = new Date()) {
   const usdBased = item?.currency_code === "USD";
@@ -7,7 +8,7 @@ export function recurringExpenseForm(item?: RecurringExpense, today = new Date()
     amount: usdBased ? "" : (item?.amount ?? ""),
     usdBased,
     foreignAmount: item?.foreign_amount ?? "",
-    payment_day: String(item?.payment_day ?? 1),
+    ...recurringPaymentDayForm(item?.payment_day),
     start_date:
       item?.start_date ??
       `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`,
@@ -73,7 +74,7 @@ export function recurringExpenseInput(state: RecurringExpenseForm): RecurringExp
   return {
     name: state.name.trim(),
     amount: usdBased ? String(state.foreignAmount).trim() : state.amount.trim() || null,
-    payment_day: Number(state.payment_day),
+    payment_day: recurringPaymentDayValue(state),
     start_date: state.start_date,
     end_date: state.end_date || null,
     category_id: state.category_id,

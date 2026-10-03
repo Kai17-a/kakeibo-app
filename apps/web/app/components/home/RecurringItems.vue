@@ -2,6 +2,7 @@
 import type { RecurringExpense, RecurringIncome } from "~/types/settings";
 import type { ExchangeRatePreview } from "~/types/transactions";
 import { formatCurrency } from "~/utils/format";
+import { formatRecurringSchedule } from "~/utils/recurring-payment-day";
 
 const props = defineProps<{
   /** Active recurring items; variable ones get a button to record this month's amount. */
@@ -39,7 +40,7 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
       >
         <span>
           <b class="block">{{ item.name }}</b>
-          <small class="text-muted">毎月 {{ item.payment_day }} 日</small>
+          <small class="text-muted">{{ formatRecurringSchedule(item.payment_day, true) }}</small>
         </span>
         <b class="text-right">
           <template v-if="item.currency_code === 'USD'">
@@ -69,7 +70,8 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
           <span>
             <b class="block">{{ item.name }}</b>
             <small class="text-muted"
-              >毎月 {{ item.payment_day }} 日<span v-if="item.amount !== null">
+              >{{ formatRecurringSchedule(item.payment_day, true)
+              }}<span v-if="item.amount !== null">
                 · 目安
                 {{
                   item.currency_code === "USD"
@@ -110,7 +112,7 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
       >
         <span>
           <b class="block">{{ item.name }}</b>
-          <small class="text-muted">毎月 {{ item.payment_day }} 日</small>
+          <small class="text-muted">{{ formatRecurringSchedule(item.payment_day, true) }}</small>
         </span>
         <b>{{ formatCurrency(item.amount ?? 0) }}</b>
       </li>
@@ -128,7 +130,8 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
           <span>
             <b class="block">{{ item.name }}</b>
             <small class="text-muted"
-              >毎月 {{ item.payment_day }} 日<span v-if="item.amount !== null">
+              >{{ formatRecurringSchedule(item.payment_day, true)
+              }}<span v-if="item.amount !== null">
                 · 目安 {{ formatCurrency(item.amount) }}</span
               ></small
             >
