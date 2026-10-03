@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { mockApi } from "./support/api";
 import { listOf } from "./support/fixtures";
 
-async function mockDataApi(page: Page) {
+async function mockDataApi(page: Page, options: { importExpenseFails?: boolean } = {}) {
   const responses = {
     "/api/expense-categories": listOf([]),
     "/api/income-categories": listOf([]),
@@ -29,13 +29,16 @@ async function mockDataApi(page: Page) {
         created_payment_methods: ["現金"],
       },
     }),
-    "POST /api/import/expenses": () => ({
-      body: {
-        imported: 1,
-        created_categories: ["食費"],
-        created_payment_methods: ["現金"],
-      },
-    }),
+    "POST /api/import/expenses": () =>
+      options.importExpenseFails
+        ? { status: 500, body: { message: "インポートに失敗しました" } }
+        : {
+            body: {
+              imported: 1,
+              created_categories: ["食費"],
+              created_payment_methods: ["現金"],
+            },
+          },
     "POST /api/import/incomes/preview": () => ({
       body: {
         rows: [
@@ -104,11 +107,13 @@ test("CSVをプレビューしてから支出データをインポートする",
     buffer: Buffer.from("日付,金額,カテゴリ,支払方法,メモ\n2026-01-15,1200,食費,現金,昼食\n"),
   });
 
-  await expect(page.getByText("1件をインポートします")).toBeVisible();
-  await expect(page.getByText("新規カテゴリ: 食費")).toBeVisible();
-  await expect(page.getByText("新規支払方法: 現金")).toBeVisible();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText("1件をインポートします")).toBeVisible();
+  await expect(dialog.getByText("新規カテゴリ: 食費")).toBeVisible();
+  await expect(dialog.getByText("新規支払方法: 現金")).toBeVisible();
 
-  await page.getByRole("button", { name: "登録する" }).click();
+  await dialog.getByRole("button", { name: "登録する" }).click();
   await expect(
     page.locator('[data-slot="title"]').filter({ hasText: "1件の支出をインポートしました" }),
   ).toBeVisible();
@@ -151,8 +156,119 @@ test("CSVをプレビューしてから固定費データをインポートす�
     ),
   });
 
-  await expect(page.getByText("1件をインポートします")).toBeVisible();
-  await expect(page.getByText("新規カテゴリ: 住居費")).toBeVisible();
-  await page.getByRole("button", { name: "キャンセル" }).click();
-  await expect(page.getByText("1件をインポートします")).not.toBeVisible();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByText("1件をインポートします")).toBeVisible();
+  await expect(dialog.getByText("新規カテゴリ: 住居費")).toBeVisible();
+  await dialog.getByRole("button", { name: "キャンセル" }).click();
+  await expect(dialog).not.toBeVisible();
+});
+
+test("CSVインポート失敗をプレビューモーダル内に表示する", async ({ page }) => {
+  await mockDataApi(page, { importExpenseFails: true });
+  await page.goto("/settings/data");
+
+  const [fileChooser] = await Promise.all([
+    page.waitForEvent("filechooser"),
+    page.getByRole("button", { name: "支出データ（CSV）を選択" }).click(),
+  ]);
+  await fileChooser.setFiles({
+    name: "expenses.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("日付,金額,カテゴリ,支払方法,メモ\n2026-01-15,1200,食費,現金,昼食\n"),
+  });
+
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "登録する" }).click();
+  await expect(dialog.getByText("インポートに失敗しました")).toBeVisible();
+});
+
+test("プレビューをEscや外側クリックで閉じると破棄され、選び直したCSVだけを登録する", async ({
+  page,
+}) => {
+  await mockDataApi(page);
+  const imported: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "POST" && new URL(request.url()).pathname === "/api/import/expenses") {
+      imported.push(request.postData() ?? "");
+    }
+  });
+  await page.goto("/settings/data");
+
+  const dialog = page.getByRole("dialog");
+  async function selectCsv(memo: string) {
+    const [fileChooser] = await Promise.all([
+      page.waitForEvent("filechooser"),
+      page.getByRole("button", { name: "支出データ（CSV）を選択" }).click(),
+    ]);
+    await fileChooser.setFiles({
+      name: "expenses.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(`日付,金額,カテゴリ,支払方法,メモ\n2026-01-15,1200,食費,現金,${memo}\n`),
+    });
+    await expect(dialog.getByText("1件をインポートします")).toBeVisible();
+  }
+
+  await selectCsv("Escで破棄");
+  await page.keyboard.press("Escape");
+  await expect(dialog).not.toBeVisible();
+
+  await selectCsv("外側クリックで破棄");
+  await page.mouse.click(5, 5);
+  await expect(dialog).not.toBeVisible();
+
+  await selectCsv("登録する分");
+  await dialog.getByRole("button", { name: "登録する" }).click();
+  await expect(
+    page.locator('[data-slot="title"]').filter({ hasText: "1件の支出をインポートしました" }),
+  ).toBeVisible();
+  await expect(dialog).not.toBeVisible();
+
+  expect(imported).toHaveLength(1);
+  expect(imported[0]).toContain("登録する分");
+});
+
+test("画面が低くてもプレビューの表を最後までスクロールでき、操作ボタンが画面内に残る", async ({
+  page,
+}) => {
+  const rows = Array.from({ length: 60 }, (_, index) => ({
+    transaction_date: "2026-01-15",
+    amount: "1200",
+    category: "食費",
+    category_is_new: false,
+    payment_method: "現金",
+    payment_method_is_new: false,
+    description: `明細${index + 1}`,
+  }));
+  await mockDataApi(page);
+  await page.route("**/api/import/expenses/preview", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ rows, created_categories: [], created_payment_methods: [] }),
+    }),
+  );
+  await page.setViewportSize({ width: 375, height: 420 });
+  await page.goto("/settings/data");
+
+  const [fileChooser] = await Promise.all([
+    page.waitForEvent("filechooser"),
+    page.getByRole("button", { name: "支出データ（CSV）を選択" }).click(),
+  ]);
+  await fileChooser.setFiles({
+    name: "expenses.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("日付,金額,カテゴリ,支払方法,メモ\n"),
+  });
+
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByText("60件をインポートします")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "登録する" })).toBeInViewport({ ratio: 1 });
+
+  // The table's scroll area must fit above the footer; otherwise its last rows are clipped.
+  const tableBox = await dialog.locator("div.overflow-auto").first().boundingBox();
+  const footerBox = await dialog.locator('[data-slot="footer"]').boundingBox();
+  expect(tableBox!.y + tableBox!.height).toBeLessThanOrEqual(footerBox!.y);
+
+  await dialog.getByText("明細60", { exact: true }).scrollIntoViewIfNeeded();
+  await expect(dialog.getByText("明細60", { exact: true })).toBeInViewport({ ratio: 1 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
 });

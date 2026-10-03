@@ -79,13 +79,30 @@ const columns = computed<TableColumn<Row>[]>(() => {
   ];
 });
 
-function resetPreview() {
-  hasPreview.value = false;
+function clearPreviewRows() {
   rows.value = [];
   previewCreatedCategories.value = [];
   previewCreatedPaymentMethods.value = [];
+}
+
+function resetPreview() {
+  closePreview();
+  clearPreviewRows();
+}
+
+/** Keeps the rows until the dialog has left, so its content doesn't empty while it closes. */
+function closePreview() {
+  hasPreview.value = false;
   pendingCsv.value = null;
   error.value = "";
+}
+
+function onPreviewOpenChange(open: boolean) {
+  if (!open && !importing.value) closePreview();
+}
+
+function onPreviewAfterLeave() {
+  if (!hasPreview.value) clearPreviewRows();
 }
 
 function selectFile() {
@@ -137,7 +154,7 @@ async function importPreview() {
   try {
     const result = await run(props.kind, pendingCsv.value);
     toast.add({ title: successMessage(result), color: "success" });
-    resetPreview();
+    closePreview();
   } catch (caught) {
     error.value = apiErrorMessage(caught);
   } finally {
@@ -172,81 +189,104 @@ async function importPreview() {
       </UButton>
     </div>
 
-    <UAlert v-if="error" color="error" :description="error" />
+    <UAlert v-if="error && !hasPreview" color="error" :description="error" />
 
-    <div
-      v-if="hasPreview"
-      class="flex min-w-0 flex-col gap-4 rounded-lg border border-default p-3 sm:p-4"
+    <UModal
+      :open="hasPreview"
+      :title="`${label}データのインポートプレビュー`"
+      :description="`${rows.length}件をインポートします`"
+      :dismissible="!importing"
+      :close="!importing"
+      :ui="{
+        content: 'max-w-6xl',
+        body: 'flex min-h-0 min-w-0 flex-col overflow-hidden',
+        footer: 'flex-wrap justify-end gap-2',
+      }"
+      @update:open="onPreviewOpenChange"
+      @after:leave="onPreviewAfterLeave"
     >
-      <div class="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-        <p class="text-sm font-medium">{{ rows.length }}件をインポートします</p>
-        <div class="flex flex-wrap gap-2">
-          <UButton color="neutral" variant="outline" :disabled="importing" @click="resetPreview">
-            キャンセル
-          </UButton>
-          <UButton :loading="importing" :disabled="importing" @click="importPreview">
-            登録する
-          </UButton>
+      <template #body>
+        <div class="flex min-h-0 min-w-0 flex-col gap-4">
+          <UAlert
+            v-if="error"
+            class="shrink-0"
+            color="error"
+            title="インポートできませんでした"
+            :description="error"
+          />
+          <div
+            v-if="previewCreatedCategories.length || previewCreatedPaymentMethods.length"
+            class="flex shrink-0 flex-wrap gap-x-4 gap-y-1 text-sm"
+          >
+            <span v-if="previewCreatedCategories.length">
+              新規カテゴリ: {{ previewCreatedCategories.join("、") }}
+            </span>
+            <span v-if="previewCreatedPaymentMethods.length">
+              新規支払方法: {{ previewCreatedPaymentMethods.join("、") }}
+            </span>
+          </div>
+          <div class="max-h-[28rem] min-h-0 min-w-0 overflow-auto rounded-md border border-default">
+            <UTable
+              class="min-w-max"
+              :ui="{ th: 'px-4 py-2', td: 'px-4 py-2' }"
+              :data="rows"
+              :columns="columns"
+            >
+              <template #amount-cell="{ row }">
+                <span v-if="kind === 'recurring-expense'" class="tabular-nums">
+                  {{ recurringRow(row.original).amount
+                  }}{{
+                    recurringRow(row.original).foreign_amount
+                      ? ` / ${recurringRow(row.original).foreign_amount}`
+                      : ""
+                  }}
+                </span>
+                <span v-else class="tabular-nums">{{ row.original.amount }}</span>
+              </template>
+              <template v-if="kind === 'recurring-expense'" #currency-cell="{ row }">
+                {{ recurringRow(row.original).currency || "JPY" }}
+              </template>
+              <template v-if="kind === 'recurring-expense'" #payment_day-cell="{ row }">
+                {{ recurringRow(row.original).payment_day }}日
+              </template>
+              <template #category-cell="{ row }">
+                <span>
+                  {{ row.original.category }}
+                  <UBadge v-if="row.original.category_is_new" color="secondary" variant="soft">
+                    新規
+                  </UBadge>
+                </span>
+              </template>
+              <template v-if="kind !== 'income'" #payment_method-cell="{ row }">
+                <span>
+                  {{ paymentMethodOf(row.original).payment_method }}
+                  <UBadge
+                    v-if="paymentMethodOf(row.original).payment_method_is_new"
+                    color="secondary"
+                    variant="soft"
+                  >
+                    新規
+                  </UBadge>
+                </span>
+              </template>
+              <template v-if="kind === 'recurring-expense'" #is_variable-cell="{ row }">
+                {{ recurringRow(row.original).is_variable || "なし" }}
+              </template>
+              <template #description-cell="{ row }">
+                {{ row.original.description || "" }}
+              </template>
+            </UTable>
+          </div>
         </div>
-      </div>
-      <div
-        v-if="previewCreatedCategories.length || previewCreatedPaymentMethods.length"
-        class="flex flex-wrap gap-x-4 gap-y-1 text-sm"
-      >
-        <span v-if="previewCreatedCategories.length">
-          新規カテゴリ: {{ previewCreatedCategories.join("、") }}
-        </span>
-        <span v-if="previewCreatedPaymentMethods.length">
-          新規支払方法: {{ previewCreatedPaymentMethods.join("、") }}
-        </span>
-      </div>
-      <div class="max-h-[28rem] min-w-0 overflow-auto rounded-md border border-default">
-        <UTable :ui="{ th: 'px-4 py-2', td: 'px-4 py-2' }" :data="rows" :columns="columns">
-          <template #amount-cell="{ row }">
-            <span v-if="kind === 'recurring-expense'" class="tabular-nums">
-              {{ recurringRow(row.original).amount
-              }}{{
-                recurringRow(row.original).foreign_amount
-                  ? ` / ${recurringRow(row.original).foreign_amount}`
-                  : ""
-              }}
-            </span>
-            <span v-else class="tabular-nums">{{ row.original.amount }}</span>
-          </template>
-          <template v-if="kind === 'recurring-expense'" #currency-cell="{ row }">
-            {{ recurringRow(row.original).currency || "JPY" }}
-          </template>
-          <template v-if="kind === 'recurring-expense'" #payment_day-cell="{ row }">
-            {{ recurringRow(row.original).payment_day }}日
-          </template>
-          <template #category-cell="{ row }">
-            <span>
-              {{ row.original.category }}
-              <UBadge v-if="row.original.category_is_new" color="secondary" variant="soft">
-                新規
-              </UBadge>
-            </span>
-          </template>
-          <template v-if="kind !== 'income'" #payment_method-cell="{ row }">
-            <span>
-              {{ paymentMethodOf(row.original).payment_method }}
-              <UBadge
-                v-if="paymentMethodOf(row.original).payment_method_is_new"
-                color="secondary"
-                variant="soft"
-              >
-                新規
-              </UBadge>
-            </span>
-          </template>
-          <template v-if="kind === 'recurring-expense'" #is_variable-cell="{ row }">
-            {{ recurringRow(row.original).is_variable || "なし" }}
-          </template>
-          <template #description-cell="{ row }">
-            {{ row.original.description || "" }}
-          </template>
-        </UTable>
-      </div>
-    </div>
+      </template>
+      <template #footer>
+        <UButton color="neutral" variant="outline" :disabled="importing" @click="closePreview">
+          キャンセル
+        </UButton>
+        <UButton :loading="importing" :disabled="importing" @click="importPreview">
+          登録する
+        </UButton>
+      </template>
+    </UModal>
   </div>
 </template>
