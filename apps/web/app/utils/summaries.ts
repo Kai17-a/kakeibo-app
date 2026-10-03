@@ -5,7 +5,7 @@ import type {
   RecurringExpense,
   RecurringIncome,
 } from "~/types/settings";
-import type { Expense, Income } from "~/types/transactions";
+import type { Expense, Income, Transfer } from "~/types/transactions";
 
 function activeInMonth(item: { start_date: string; end_date: string | null }, month: string) {
   const first = `${month}-01`;
@@ -82,7 +82,10 @@ export function recurringPostedAmounts(expenses: Expense[], incomes: Income[], m
   return { expenses: postedExpenses, incomes: postedIncomes };
 }
 
-export type Transaction = (Expense & { kind: "expense" }) | (Income & { kind: "income" });
+export type Transaction =
+  | (Expense & { kind: "expense" })
+  | (Income & { kind: "income" })
+  | (Transfer & { kind: "transfer" });
 
 export function inPeriod<T extends { transaction_date: string }>(items: T[], period: string): T[] {
   return items.filter((item) => item.transaction_date.startsWith(period));
@@ -92,10 +95,15 @@ export function sumAmounts(items: Array<{ amount: string | null }>): number {
   return items.reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
 }
 
-export function mergeTransactions(expenses: Expense[], incomes: Income[]): Transaction[] {
+export function mergeTransactions(
+  expenses: Expense[],
+  incomes: Income[],
+  transfers: Transfer[] = [],
+): Transaction[] {
   return [
     ...expenses.map((item) => ({ ...item, kind: "expense" as const })),
     ...incomes.map((item) => ({ ...item, kind: "income" as const })),
+    ...transfers.map((item) => ({ ...item, kind: "transfer" as const })),
   ].toSorted((a, b) => b.transaction_date.localeCompare(a.transaction_date));
 }
 
@@ -144,6 +152,7 @@ export function paymentMethodBalanceTrend(
   expenses: Expense[],
   paymentMethods: PaymentMethod[],
   year: string,
+  transfers: Transfer[] = [],
 ) {
   const trackedMethods = paymentMethods.filter((method) => method.initial_balance !== null);
   const yearStart = `${year}-01`;
@@ -160,7 +169,24 @@ export function paymentMethodBalanceTrend(
             expense.payment_method_id === method.id && expense.transaction_date < yearStart,
         ),
       );
-      return [method.id, Number(method.initial_balance) + priorIncome - priorExpense];
+      const priorTransferIn = sumAmounts(
+        transfers.filter(
+          (item) => item.to_payment_method_id === method.id && item.transaction_date < yearStart,
+        ),
+      );
+      const priorTransferOut = sumAmounts(
+        transfers.filter(
+          (item) => item.from_payment_method_id === method.id && item.transaction_date < yearStart,
+        ),
+      );
+      return [
+        method.id,
+        Number(method.initial_balance) +
+          priorIncome -
+          priorExpense +
+          priorTransferIn -
+          priorTransferOut,
+      ];
     }),
   );
 
@@ -177,7 +203,20 @@ export function paymentMethodBalanceTrend(
           (item) => item.payment_method_id === method.id && item.transaction_date.startsWith(month),
         ),
       );
-      const balance = (openingBalances.get(method.id) ?? 0) + income - expense;
+      const transferIn = sumAmounts(
+        transfers.filter(
+          (item) =>
+            item.to_payment_method_id === method.id && item.transaction_date.startsWith(month),
+        ),
+      );
+      const transferOut = sumAmounts(
+        transfers.filter(
+          (item) =>
+            item.from_payment_method_id === method.id && item.transaction_date.startsWith(month),
+        ),
+      );
+      const balance =
+        (openingBalances.get(method.id) ?? 0) + income - expense + transferIn - transferOut;
       openingBalances.set(method.id, balance);
       return { id: method.id, name: method.name, balance };
     });
@@ -187,6 +226,22 @@ export function paymentMethodBalanceTrend(
       total: values.reduce((sum, value) => sum + value.balance, 0),
     };
   });
+}
+
+export function investmentAmount(
+  transfers: Transfer[],
+  paymentMethods: PaymentMethod[],
+  period: string,
+) {
+  const investmentIds = new Set(
+    paymentMethods.filter((item) => item.is_investment).map((item) => item.id),
+  );
+  return inPeriod(transfers, period).reduce((total, item) => {
+    const fromInvestment = investmentIds.has(item.from_payment_method_id);
+    const toInvestment = investmentIds.has(item.to_payment_method_id);
+    if (fromInvestment === toInvestment) return total;
+    return total + Number(item.amount) * (toInvestment ? 1 : -1);
+  }, 0);
 }
 
 export function dailyCategoryTotals(

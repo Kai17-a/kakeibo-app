@@ -7,6 +7,8 @@ import type {
   Income,
   IncomeInput,
   TransactionSubmission,
+  Transfer,
+  TransferInput,
 } from "~/types/transactions";
 import { groupCategories } from "~/utils/settings";
 import { formatCurrency } from "~/utils/format";
@@ -21,6 +23,7 @@ const props = defineProps<{
   initialDate: string;
   initialExpense?: Expense | null;
   initialIncome?: Income | null;
+  initialTransfer?: Transfer | null;
   initialRecurring?: RecurringExpense | null;
   initialRecurringIncome?: RecurringIncome | null;
   exchangePreview?: ExchangeRatePreview | null;
@@ -29,10 +32,16 @@ const props = defineProps<{
 
 const emit = defineEmits<{ "update:open": [value: boolean] }>();
 
-const editing = computed(() => Boolean(props.initialExpense ?? props.initialIncome));
+const editing = computed(() =>
+  Boolean(props.initialExpense ?? props.initialIncome ?? props.initialTransfer),
+);
 const preset = computed(() => Boolean(props.initialRecurring ?? props.initialRecurringIncome));
-const kind = ref<"expense" | "income">(
-  props.initialIncome || props.initialRecurringIncome ? "income" : "expense",
+const kind = ref<"expense" | "income" | "transfer">(
+  props.initialTransfer
+    ? "transfer"
+    : props.initialIncome || props.initialRecurringIncome
+      ? "income"
+      : "expense",
 );
 
 function recurringDate() {
@@ -49,11 +58,13 @@ const state = reactive({
   date:
     props.initialExpense?.transaction_date ??
     props.initialIncome?.transaction_date ??
+    props.initialTransfer?.transaction_date ??
     recurringDate() ??
     props.initialDate,
   amount: String(
     props.initialExpense?.amount ??
       props.initialIncome?.amount ??
+      props.initialTransfer?.amount ??
       props.exchangePreview?.converted_amount ??
       props.initialRecurring?.amount ??
       props.initialRecurringIncome?.amount ??
@@ -68,11 +79,15 @@ const state = reactive({
   paymentMethodId:
     props.initialExpense?.payment_method_id ??
     props.initialIncome?.payment_method_id ??
+    props.initialTransfer?.from_payment_method_id ??
     props.initialRecurring?.payment_method_id ??
     (kind.value === "expense" ? (props.paymentMethods[0]?.id ?? "") : ""),
+  toPaymentMethodId:
+    props.initialTransfer?.to_payment_method_id ?? props.paymentMethods[1]?.id ?? "",
   description:
     props.initialExpense?.description ??
     props.initialIncome?.description ??
+    props.initialTransfer?.description ??
     (props.initialRecurring ?? props.initialRecurringIncome)?.name ??
     "",
 });
@@ -90,10 +105,17 @@ const categoryOptions = computed(() =>
 const paymentMethodOptions = computed(() =>
   props.paymentMethods.map((method) => ({ label: method.name, value: method.id })),
 );
+const transferUnavailable = computed(() => props.paymentMethods.length < 2);
+const fromPaymentMethodError = ref("");
+const toPaymentMethodError = ref("");
 
 watch(kind, (next, previous) => {
   if (next === previous) return;
-  state.paymentMethodId = next === "expense" ? (props.paymentMethods[0]?.id ?? "") : "";
+  state.paymentMethodId = next === "income" ? "" : (props.paymentMethods[0]?.id ?? "");
+  if (next === "transfer")
+    state.toPaymentMethodId =
+      props.paymentMethods.find((item) => item.id !== state.paymentMethodId)?.id ?? "";
+  if (next === "transfer") return;
   if (!categories.value.some((category) => category.id === state.categoryId)) {
     state.categoryId = categories.value[0]?.id ?? "";
   }
@@ -106,6 +128,7 @@ if (!state.categoryId) {
 const title = computed(() => {
   if (props.initialExpense) return "支出を編集";
   if (props.initialIncome) return "収入を編集";
+  if (props.initialTransfer) return "振替を編集";
   if (preset.value) return props.initialRecurringIncome ? "準固定収入を登録" : "準固定費を登録";
   return "収支を登録";
 });
@@ -123,45 +146,70 @@ async function handleSubmit(event: SubmitEvent) {
     dateError.value = "日付を選択してください。";
     return;
   }
+  if (kind.value === "transfer") {
+    fromPaymentMethodError.value = state.paymentMethodId ? "" : "移動元を選択してください。";
+    toPaymentMethodError.value = state.toPaymentMethodId ? "" : "移動先を選択してください。";
+    if (
+      transferUnavailable.value ||
+      fromPaymentMethodError.value ||
+      toPaymentMethodError.value ||
+      state.paymentMethodId === state.toPaymentMethodId
+    )
+      return;
+  }
   const keepOpen = (event.submitter as HTMLButtonElement | null)?.value === "continue";
   await submit(keepOpen);
 }
 
 async function submit(keepOpen: boolean) {
+  if (kind.value === "transfer" && state.paymentMethodId === state.toPaymentMethodId) return;
   const submission: TransactionSubmission =
-    kind.value === "expense"
+    kind.value === "transfer"
       ? {
-          kind: "expense",
+          kind: "transfer",
           input: {
             transaction_date: state.date,
             amount: state.amount,
-            category_id: state.categoryId,
-            payment_method_id: state.paymentMethodId,
-            recurring_expense_id:
-              props.initialExpense?.recurring_expense_id ?? props.initialRecurring?.id ?? null,
+            from_payment_method_id: state.paymentMethodId,
+            to_payment_method_id: state.toPaymentMethodId,
             description: state.description || null,
-            ...(props.exchangePreview
-              ? {
-                  foreign_amount: props.exchangePreview.foreign_amount,
-                  currency_code: props.exchangePreview.currency_code,
-                  exchange_rate: props.exchangePreview.exchange_rate,
-                  exchange_rate_date: props.exchangePreview.exchange_rate_date,
-                }
-              : {}),
-          } satisfies ExpenseInput,
+          } satisfies TransferInput,
         }
-      : {
-          kind: "income",
-          input: {
-            transaction_date: state.date,
-            amount: state.amount,
-            category_id: state.categoryId,
-            payment_method_id: state.paymentMethodId || undefined,
-            recurring_income_id:
-              props.initialIncome?.recurring_income_id ?? props.initialRecurringIncome?.id ?? null,
-            description: state.description || null,
-          } satisfies IncomeInput,
-        };
+      : kind.value === "expense"
+        ? {
+            kind: "expense",
+            input: {
+              transaction_date: state.date,
+              amount: state.amount,
+              category_id: state.categoryId,
+              payment_method_id: state.paymentMethodId,
+              recurring_expense_id:
+                props.initialExpense?.recurring_expense_id ?? props.initialRecurring?.id ?? null,
+              description: state.description || null,
+              ...(props.exchangePreview
+                ? {
+                    foreign_amount: props.exchangePreview.foreign_amount,
+                    currency_code: props.exchangePreview.currency_code,
+                    exchange_rate: props.exchangePreview.exchange_rate,
+                    exchange_rate_date: props.exchangePreview.exchange_rate_date,
+                  }
+                : {}),
+            } satisfies ExpenseInput,
+          }
+        : {
+            kind: "income",
+            input: {
+              transaction_date: state.date,
+              amount: state.amount,
+              category_id: state.categoryId,
+              payment_method_id: state.paymentMethodId || undefined,
+              recurring_income_id:
+                props.initialIncome?.recurring_income_id ??
+                props.initialRecurringIncome?.id ??
+                null,
+              description: state.description || null,
+            } satisfies IncomeInput,
+          };
   const saved = await props.onSubmit(submission, keepOpen);
   if (saved && keepOpen) {
     state.amount = "";
@@ -174,7 +222,7 @@ async function submit(keepOpen: boolean) {
   <UModal
     :open="open"
     :title="title"
-    description="日付や金額、カテゴリを入力してください。"
+    description="日付や金額など、明細の内容を入力してください。"
     :dismissible="!saving"
     :close="!saving"
     :ui="{ content: 'max-w-xl', body: 'sm:p-6', footer: 'flex-wrap justify-end gap-2' }"
@@ -187,10 +235,20 @@ async function submit(keepOpen: boolean) {
         :items="[
           { label: '支出', value: 'expense' },
           { label: '収入', value: 'income' },
+          { label: '振替', value: 'transfer', disabled: transferUnavailable },
         ]"
         variant="link"
         class="mb-5 w-fit"
       />
+      <p v-if="!editing && !preset && transferUnavailable" class="mb-5 text-sm text-muted">
+        振替を登録するには、
+        <NuxtLink
+          to="/settings/payment-methods"
+          class="text-primary underline-offset-2 hover:underline"
+        >
+          支払方法を2件以上登録してください。
+        </NuxtLink>
+      </p>
       <form
         id="transaction-form"
         class="grid grid-cols-1 gap-5 sm:grid-cols-2"
@@ -215,10 +273,14 @@ async function submit(keepOpen: boolean) {
             = {{ formatCurrency(exchangePreview.converted_amount) }}
           </template>
         </UFormField>
-        <UFormField label="カテゴリ">
+        <UFormField v-if="kind !== 'transfer'" label="カテゴリ">
           <USelect v-model="state.categoryId" :items="categoryOptions" class="w-full" />
         </UFormField>
-        <UFormField :label="`支払方法${kind === 'income' ? '（任意）' : ''}`">
+        <UFormField
+          :label="kind === 'transfer' ? '移動元' : `支払方法${kind === 'income' ? '（任意）' : ''}`"
+          :required="kind === 'transfer'"
+          :error="kind === 'transfer' ? fromPaymentMethodError || undefined : undefined"
+        >
           <USelect
             :model-value="state.paymentMethodId || NO_PAYMENT_METHOD_VALUE"
             :items="
@@ -232,6 +294,19 @@ async function submit(keepOpen: boolean) {
                 $event == null || $event === NO_PAYMENT_METHOD_VALUE ? '' : String($event)
             "
           />
+        </UFormField>
+        <UFormField
+          v-if="kind === 'transfer'"
+          label="移動先"
+          required
+          :error="
+            toPaymentMethodError ||
+            (state.paymentMethodId === state.toPaymentMethodId
+              ? '移動元と異なる支払方法を選択してください。'
+              : undefined)
+          "
+        >
+          <USelect v-model="state.toPaymentMethodId" :items="paymentMethodOptions" class="w-full" />
         </UFormField>
         <UFormField label="メモ（任意）" class="sm:col-span-2">
           <UTextarea v-model="state.description" class="w-full" />
@@ -255,11 +330,16 @@ async function submit(keepOpen: boolean) {
         color="neutral"
         variant="outline"
         :loading="saving"
-        :disabled="saving"
+        :disabled="saving || (kind === 'transfer' && transferUnavailable)"
       >
         登録して続ける
       </UButton>
-      <UButton type="submit" form="transaction-form" :loading="saving" :disabled="saving">
+      <UButton
+        type="submit"
+        form="transaction-form"
+        :loading="saving"
+        :disabled="saving || (kind === 'transfer' && transferUnavailable)"
+      >
         {{ editing ? "更新する" : "登録する" }}
       </UButton>
     </template>

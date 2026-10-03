@@ -38,6 +38,16 @@ useSeoMeta({ title: "データ管理設定" });
         >
           収入データ（CSV）
         </UButton>
+        <UButton
+          to="/api/export/transfers"
+          external
+          download
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-download"
+        >
+          振替データ（CSV）
+        </UButton>
       </div>
     </UCard>
     <UCard>
@@ -69,6 +79,11 @@ useSeoMeta({ title: "データ管理設定" });
         <div>
           <h4 class="mb-2 text-sm font-semibold">支出データ</h4>
           <SettingsCsvImportPanel kind="expense" />
+        </div>
+        <USeparator />
+        <div>
+          <h4 class="mb-2 text-sm font-semibold">振替データ</h4>
+          <SettingsCsvImportPanel kind="transfer" />
         </div>
         <USeparator />
         <div>

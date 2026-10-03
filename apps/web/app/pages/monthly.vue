@@ -8,6 +8,7 @@ import {
   recurringForecast,
   recurringPostedAmounts,
   sumAmounts,
+  investmentAmount,
   type Transaction,
 } from "~/utils/summaries";
 import { groupTransactionsByDate } from "~/utils/transactions";
@@ -25,6 +26,7 @@ const monthLabel = computed(() =>
 const {
   expenses,
   incomes,
+  transfers,
   expenseCategories,
   incomeCategories,
   paymentMethods,
@@ -38,6 +40,10 @@ const {
 
 const monthExpenses = computed(() => inPeriod(expenses.value, month.value));
 const monthIncomes = computed(() => inPeriod(incomes.value, month.value));
+const monthTransfers = computed(() => inPeriod(transfers.value, month.value));
+const investment = computed(() =>
+  investmentAmount(transfers.value, paymentMethods.value, month.value),
+);
 
 const usdPreviewsByMonth = useUsdRecurringPreviews(() => [month.value], recurringExpenses);
 const usdRecurringPreviews = computed(
@@ -58,7 +64,9 @@ const forecast = computed(() =>
 );
 const projectedExpenseTotal = computed(() => expenseTotal.value + forecast.value.expense);
 const projectedIncomeTotal = computed(() => incomeTotal.value + forecast.value.income);
-const transactions = computed(() => mergeTransactions(monthExpenses.value, monthIncomes.value));
+const transactions = computed(() =>
+  mergeTransactions(monthExpenses.value, monthIncomes.value, monthTransfers.value),
+);
 const transactionGroups = computed(() => groupTransactionsByDate(transactions.value));
 const postedRecurringAmounts = computed(() =>
   recurringPostedAmounts(monthExpenses.value, monthIncomes.value, month.value),
@@ -95,6 +103,11 @@ const budgetRate = computed(() =>
   budgetTotal.value ? (budgetSpent.value / budgetTotal.value) * 100 : 0,
 );
 function transactionLabel(item: Transaction) {
+  if (item.kind === "transfer")
+    return (
+      item.description ||
+      `${paymentNames.value.get(item.from_payment_method_id) ?? "不明"} → ${paymentNames.value.get(item.to_payment_method_id) ?? "不明"}`
+    );
   return (
     item.description ||
     (item.kind === "expense"
@@ -105,6 +118,8 @@ function transactionLabel(item: Transaction) {
 }
 
 function transactionMeta(item: Transaction) {
+  if (item.kind === "transfer")
+    return `${paymentNames.value.get(item.from_payment_method_id) ?? "不明"} → ${paymentNames.value.get(item.to_payment_method_id) ?? "不明"}`;
   const category =
     item.kind === "expense"
       ? expenseNames.value.get(item.category_id)
@@ -118,18 +133,21 @@ function transactionMeta(item: Transaction) {
 
 function editTransaction(item: Transaction) {
   if (item.kind === "expense") editExpense(item);
-  else editIncome(item);
+  else if (item.kind === "income") editIncome(item);
+  else editTransfer(item);
 }
 
 function deleteTransaction(item: Transaction) {
   if (item.kind === "expense") askDeleteExpense(item);
-  else askDeleteIncome(item);
+  else if (item.kind === "income") askDeleteIncome(item);
+  else askDeleteTransfer(item);
 }
 
 const {
   formOpen,
   editingExpense,
   editingIncome,
+  editingTransfer,
   recurringExpensePreset,
   recurringIncomePreset,
   exchangePreview,
@@ -138,6 +156,7 @@ const {
   openNew,
   editExpense,
   editIncome,
+  editTransfer,
   registerRecurringExpense,
   registerRecurringIncome,
   closeForm,
@@ -147,8 +166,9 @@ const {
   removing,
   askDeleteExpense,
   askDeleteIncome,
+  askDeleteTransfer,
   confirmDelete,
-} = useTransactionEditor({ month, expenses, incomes });
+} = useTransactionEditor({ month, expenses, incomes, transfers });
 </script>
 
 <template>
@@ -176,6 +196,7 @@ const {
               :forecast="forecast"
               :budget-total="budgetTotal"
               :budget-rate="budgetRate"
+              :investment="investment"
             />
 
             <div class="grid gap-6 lg:grid-cols-[1fr_1.6fr]">
@@ -219,6 +240,7 @@ const {
       :initial-date="initialDate"
       :initial-expense="editingExpense"
       :initial-income="editingIncome"
+      :initial-transfer="editingTransfer"
       :initial-recurring="recurringExpensePreset"
       :initial-recurring-income="recurringIncomePreset"
       :exchange-preview="exchangePreview"

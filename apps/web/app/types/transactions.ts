@@ -41,6 +41,17 @@ export interface IncomeInput {
   recurring_income_id?: string | null;
   description: string | null;
 }
+export interface Transfer extends BaseResource {
+  transaction_date: string;
+  amount: string;
+  from_payment_method_id: string;
+  to_payment_method_id: string;
+  description: string | null;
+}
+export type TransferInput = Pick<
+  Transfer,
+  "transaction_date" | "amount" | "from_payment_method_id" | "to_payment_method_id" | "description"
+>;
 
 export interface ExchangeRatePreview {
   foreign_amount: string;
@@ -58,4 +69,5 @@ export interface ListResponse<T> {
 /** A validated transaction form submission, discriminated by the transaction kind. */
 export type TransactionSubmission =
   | { kind: "expense"; input: ExpenseInput }
-  | { kind: "income"; input: IncomeInput };
+  | { kind: "income"; input: IncomeInput }
+  | { kind: "transfer"; input: TransferInput };

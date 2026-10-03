@@ -48,6 +48,7 @@ function baseResponses(overrides: MockResponses = {}): MockResponses {
   return {
     "/api/expenses": [],
     "/api/incomes": listOf([]),
+    "/api/transfers": [],
     "/api/expense-categories": listOf([category()]),
     "/api/income-categories": listOf([incomeCategory()]),
     "/api/payment-methods": listOf([paymentMethod()]),
@@ -100,6 +101,77 @@ test("収支を登録する", async ({ page }) => {
     category_id: "expense-category-1",
     payment_method_id: "payment-method-1",
   });
+});
+
+test("振替を登録・編集・削除し投資額と明細へ反映する", async ({ page }) => {
+  const bank = paymentMethod({ id: "bank", name: "銀行", initial_balance: "100000" });
+  const nisa = paymentMethod({
+    id: "nisa",
+    name: "NISA",
+    initial_balance: "0",
+    is_investment: true,
+  });
+  let transfers: Record<string, unknown>[] = [];
+  await mockApi(
+    page,
+    () =>
+      baseResponses({ "/api/payment-methods": listOf([bank, nisa]), "/api/transfers": transfers }),
+    {
+      "POST /api/transfers": (request) => {
+        const body = jsonBody(request);
+        transfers = [{ id: "transfer-1", created_at: isoNow, updated_at: isoNow, ...body }];
+        return { status: 201, body: transfers[0] };
+      },
+      "PUT /api/transfers/transfer-1": (request) => {
+        transfers = [{ ...transfers[0], ...jsonBody(request) }];
+        return { body: transfers[0] };
+      },
+      "DELETE /api/transfers/transfer-1": () => {
+        transfers = [];
+        return { status: 204 };
+      },
+    },
+  );
+  await page.goto(`/monthly?month=${month}`);
+  const investment = page.getByText("投資", { exact: true }).locator("..");
+  await expect(investment.getByText(/[¥￥]0/, { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "記録する" }).first().click();
+  await page.getByRole("tab", { name: "振替" }).click();
+  await page.getByLabel("金額").fill("30000");
+  await page.getByLabel("移動元").click();
+  await page.getByRole("option", { name: "銀行" }).click();
+  await page.getByLabel("移動先").click();
+  await page.getByRole("option", { name: "NISA" }).click();
+  await page.getByLabel("メモ（任意）").fill("積立");
+  await page.getByRole("button", { name: "登録する" }).click();
+  await expect(page.getByText("振替を登録しました", { exact: true })).toBeVisible();
+  await expect(investment.getByText(/[¥￥]30,000/, { exact: false })).toBeVisible();
+  await expect(page.getByText("銀行 → NISA", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /積立の操作/ }).click();
+  await page.getByRole("menuitem", { name: "編集" }).click();
+  await page.getByLabel("金額").fill("40000");
+  await page.getByRole("button", { name: "更新する" }).click();
+  await expect(page.getByText("振替を更新しました", { exact: true })).toBeVisible();
+  await expect(investment.getByText(/[¥￥]40,000/, { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: /積立の操作/ }).click();
+  await page.getByRole("menuitem", { name: "削除" }).click();
+  await page.getByRole("button", { name: "削除", exact: true }).click();
+  await expect(page.getByText("明細を削除しました", { exact: true })).toBeVisible();
+  await expect(investment.getByText(/[¥￥]0/, { exact: false })).toBeVisible();
+});
+
+test("支払方法が2件未満なら振替を登録できない", async ({ page }) => {
+  await mockMonthlyApi(page);
+  await page.goto(`/monthly?month=${month}`);
+  await page.getByRole("button", { name: "記録する" }).first().click();
+
+  await expect(page.getByRole("tab", { name: "振替" })).toBeDisabled();
+  await expect(
+    page.getByText("支払方法を2件以上登録してください。", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "支払方法を2件以上登録してください。" }),
+  ).toHaveAttribute("href", "/settings/payment-methods");
 });
 
 test("準固定費の今月分を登録する", async ({ page }) => {

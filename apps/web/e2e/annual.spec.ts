@@ -32,6 +32,7 @@ async function mockAnnualApi(
     {
       "/api/expenses": expenses,
       "/api/incomes": listOf(incomes),
+      "/api/transfers": [],
       "/api/expense-categories": listOf([category()]),
       "/api/income-categories": listOf([incomeCategory()]),
       "/api/payment-methods": listOf([

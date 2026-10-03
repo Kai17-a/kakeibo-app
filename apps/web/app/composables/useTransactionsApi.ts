@@ -5,6 +5,8 @@ import type {
   Income,
   IncomeInput,
   ListResponse,
+  Transfer,
+  TransferInput,
 } from "~/types/transactions";
 
 export function useTransactionsApi() {
@@ -42,6 +44,14 @@ export function useTransactionsApi() {
       client<Income>(`/api/incomes/${encodeURIComponent(id)}`, { method: "PUT", body }),
     deleteIncome: async (id: string): Promise<void> => {
       await client(`/api/incomes/${encodeURIComponent(id)}`, { method: "DELETE" });
+    },
+    transfers: () => client<Transfer[]>("/api/transfers"),
+    createTransfer: (body: TransferInput) =>
+      client<Transfer>("/api/transfers", { method: "POST", body }),
+    updateTransfer: (id: string, body: TransferInput) =>
+      client<Transfer>(`/api/transfers/${encodeURIComponent(id)}`, { method: "PUT", body }),
+    deleteTransfer: async (id: string): Promise<void> => {
+      await client(`/api/transfers/${encodeURIComponent(id)}`, { method: "DELETE" });
     },
     previewRecurringExpenseExchangeRate: (id: string, month: string) =>
       client<ExchangeRatePreview>(

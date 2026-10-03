@@ -24,11 +24,13 @@ export interface CategoryReorderInput {
 export interface PaymentMethod extends NamedResource {
   initial_balance: string | null;
   balance: string | null;
+  is_investment: boolean;
 }
 export interface PaymentMethodInput {
   name: string;
   description: string | null;
   initial_balance?: string;
+  is_investment: boolean;
 }
 export interface Budget extends BaseResource {
   category_id: string;

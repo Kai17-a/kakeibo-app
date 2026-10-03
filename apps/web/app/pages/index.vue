@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { annualCategoryRows, monthOfYear, projectedAnnualMonths } from "~/utils/annual";
-import { categoryMonthlyTotals, paymentMethodBalanceTrend } from "~/utils/summaries";
+import {
+  categoryMonthlyTotals,
+  investmentAmount,
+  paymentMethodBalanceTrend,
+} from "~/utils/summaries";
 import { currentMonth, currentYear } from "~/utils/format";
 
 useSeoMeta({ title: "年間集計" });
@@ -10,6 +14,7 @@ const { year, setYear } = useYearQuery("/");
 const {
   expenses,
   incomes,
+  transfers,
   expenseCategories,
   incomeCategories,
   paymentMethods,
@@ -22,7 +27,9 @@ const {
 
 const availableYears = computed(() => {
   const years = new Set(
-    [...expenses.value, ...incomes.value].map((item) => item.transaction_date.slice(0, 4)),
+    [...expenses.value, ...incomes.value, ...transfers.value].map((item) =>
+      item.transaction_date.slice(0, 4),
+    ),
   );
   years.add(year.value);
   return [...years].toSorted((a, b) => b.localeCompare(a));
@@ -49,6 +56,9 @@ const expenseTotal = computed(() =>
 const incomeTotal = computed(() =>
   projectedMonths.value.reduce((sum, item) => sum + item.income, 0),
 );
+const investment = computed(() =>
+  investmentAmount(transfers.value, paymentMethods.value, year.value),
+);
 
 const categoryRows = computed(() =>
   annualCategoryRows(year.value, expenses.value, expenseCategories.value, projectedMonths.value),
@@ -59,7 +69,13 @@ const categoryMonths = computed(() =>
   categoryMonthlyTotals(expenses.value, expenseCategories.value, year.value),
 );
 const balanceMonths = computed(() =>
-  paymentMethodBalanceTrend(incomes.value, expenses.value, paymentMethods.value, year.value),
+  paymentMethodBalanceTrend(
+    incomes.value,
+    expenses.value,
+    paymentMethods.value,
+    year.value,
+    transfers.value,
+  ),
 );
 
 /** New transactions default to this month in the current year, and to January otherwise. */
@@ -76,7 +92,7 @@ const {
   openNew,
   closeForm,
   save,
-} = useTransactionEditor({ month: recordMonth, expenses, incomes });
+} = useTransactionEditor({ month: recordMonth, expenses, incomes, transfers });
 </script>
 
 <template>
@@ -101,7 +117,11 @@ const {
       <template #body>
         <DataLoadState :loading="loading" :error="loadError" @retry="load">
           <div class="space-y-6">
-            <AnnualSummaryPanel :income="incomeTotal" :expense="expenseTotal" />
+            <AnnualSummaryPanel
+              :income="incomeTotal"
+              :expense="expenseTotal"
+              :investment="investment"
+            />
 
             <div class="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
               <AnnualCashflowChart :months="projectedMonths" />

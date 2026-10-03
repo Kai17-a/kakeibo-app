@@ -7,10 +7,16 @@ import { formatSignedCurrency } from "~/utils/format";
 useSeoMeta({ title: "支払方法設定" });
 const label = "支払方法";
 const api = useSettingsApi().paymentMethods;
-const state = reactive<{ name: string; description: string; initial_balance: string }>({
+const state = reactive<{
+  name: string;
+  description: string;
+  initial_balance: string;
+  is_investment: boolean;
+}>({
   name: "",
   description: "",
   initial_balance: "",
+  is_investment: false,
 });
 const columns: TableColumn<PaymentMethod>[] = [
   {
@@ -78,6 +84,7 @@ function openForm(item?: PaymentMethod) {
     name: item?.name ?? "",
     description: item?.description ?? "",
     initial_balance: item?.initial_balance ?? "",
+    is_investment: item?.is_investment ?? false,
   });
   openCrudForm(item);
 }
@@ -86,6 +93,7 @@ function save() {
     name: state.name.trim(),
     description: state.description.trim() || null,
     initial_balance: String(state.initial_balance).trim() || undefined,
+    is_investment: state.is_investment,
   });
 }
 </script>
@@ -191,6 +199,13 @@ function save() {
       </UFormField>
       <UFormField name="name" label="支払方法名" required>
         <UInput v-model="state.name" :maxlength="100" class="w-full" autofocus />
+      </UFormField>
+      <UFormField name="is_investment">
+        <UCheckbox
+          v-model="state.is_investment"
+          label="投資口座として扱う"
+          description="この口座への振替を投資額として集計します。変更すると過去の集計にも反映されます。"
+        />
       </UFormField>
       <UFormField name="description" label="説明（任意）">
         <UTextarea v-model="state.description" :maxlength="500" class="w-full" />

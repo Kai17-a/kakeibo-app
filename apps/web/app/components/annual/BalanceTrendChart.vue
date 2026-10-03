@@ -31,7 +31,7 @@ function barStyle(balance: number, index: number, count: number) {
   <UCard class="min-w-0">
     <template #header>
       <h2 class="text-lg font-semibold">資産残高推移</h2>
-      <p class="text-sm text-muted">支払方法ごとの月末残高</p>
+      <p class="text-sm text-muted">初期残高を設定した支払方法ごとの月末残高</p>
     </template>
     <template v-if="legend.length">
       <div class="relative flex h-72 gap-1 sm:gap-2">

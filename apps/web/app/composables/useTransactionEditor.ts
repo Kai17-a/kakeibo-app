@@ -3,6 +3,7 @@ import type {
   ExchangeRatePreview,
   Expense,
   Income,
+  Transfer,
   TransactionSubmission,
 } from "~/types/transactions";
 import { defaultTransactionDate } from "~/utils/transaction-date";
@@ -13,15 +14,24 @@ interface TransactionEditorOptions {
   /** The page-owned lists, updated in place after a successful mutation. */
   expenses: Ref<Expense[]>;
   incomes: Ref<Income[]>;
+  transfers: Ref<Transfer[]>;
 }
 
-type DeleteTarget = { kind: "expense"; item: Expense } | { kind: "income"; item: Income };
+type DeleteTarget =
+  | { kind: "expense"; item: Expense }
+  | { kind: "income"; item: Income }
+  | { kind: "transfer"; item: Transfer };
 
 /**
  * State and actions for the transaction form modal (create, edit, register a variable recurring
  * item) and for the transaction delete confirmation.
  */
-export function useTransactionEditor({ month, expenses, incomes }: TransactionEditorOptions) {
+export function useTransactionEditor({
+  month,
+  expenses,
+  incomes,
+  transfers,
+}: TransactionEditorOptions) {
   const transactionsApi = useTransactionsApi();
   const toast = useToast();
 
@@ -29,6 +39,7 @@ export function useTransactionEditor({ month, expenses, incomes }: TransactionEd
   const formOpen = ref(false);
   const editingExpense = ref<Expense | null>(null);
   const editingIncome = ref<Income | null>(null);
+  const editingTransfer = ref<Transfer | null>(null);
   const recurringExpensePreset = ref<RecurringExpense | null>(null);
   const recurringIncomePreset = ref<RecurringIncome | null>(null);
   const exchangePreview = ref<ExchangeRatePreview | null>(null);
@@ -38,6 +49,7 @@ export function useTransactionEditor({ month, expenses, incomes }: TransactionEd
   function resetForm() {
     editingExpense.value = null;
     editingIncome.value = null;
+    editingTransfer.value = null;
     recurringExpensePreset.value = null;
     recurringIncomePreset.value = null;
     exchangePreview.value = null;
@@ -57,6 +69,11 @@ export function useTransactionEditor({ month, expenses, incomes }: TransactionEd
   function editIncome(item: Income) {
     resetForm();
     editingIncome.value = item;
+    formOpen.value = true;
+  }
+  function editTransfer(item: Transfer) {
+    resetForm();
+    editingTransfer.value = item;
     formOpen.value = true;
   }
 
@@ -103,6 +120,19 @@ export function useTransactionEditor({ month, expenses, incomes }: TransactionEd
       expenses.value = [await transactionsApi.createExpense(submission.input), ...expenses.value];
       return "支出を登録しました";
     }
+    if (submission.kind === "transfer") {
+      const editing = editingTransfer.value;
+      if (editing) {
+        const updated = await transactionsApi.updateTransfer(editing.id, submission.input);
+        transfers.value = transfers.value.map((item) => (item.id === updated.id ? updated : item));
+        return "振替を更新しました";
+      }
+      transfers.value = [
+        await transactionsApi.createTransfer(submission.input),
+        ...transfers.value,
+      ];
+      return "振替を登録しました";
+    }
     const editing = editingIncome.value;
     if (editing) {
       const updated = await transactionsApi.updateIncome(editing.id, submission.input);
@@ -138,7 +168,7 @@ export function useTransactionEditor({ month, expenses, incomes }: TransactionEd
   });
   const deleteDescription = computed(() =>
     deleteTarget.value
-      ? `この${deleteTarget.value.kind === "expense" ? "支出" : "収入"}明細を削除しますか？`
+      ? `この${deleteTarget.value.kind === "expense" ? "支出" : deleteTarget.value.kind === "income" ? "収入" : "振替"}明細を削除しますか？`
       : "",
   );
   const removing = ref(false);
@@ -150,6 +180,9 @@ export function useTransactionEditor({ month, expenses, incomes }: TransactionEd
   function askDeleteIncome(item: Income) {
     deleteTarget.value = { kind: "income", item };
   }
+  function askDeleteTransfer(item: Transfer) {
+    deleteTarget.value = { kind: "transfer", item };
+  }
 
   async function confirmDelete() {
     const target = deleteTarget.value;
@@ -159,9 +192,12 @@ export function useTransactionEditor({ month, expenses, incomes }: TransactionEd
       if (target.kind === "expense") {
         await transactionsApi.deleteExpense(target.item.id);
         expenses.value = expenses.value.filter((item) => item.id !== target.item.id);
-      } else {
+      } else if (target.kind === "income") {
         await transactionsApi.deleteIncome(target.item.id);
         incomes.value = incomes.value.filter((item) => item.id !== target.item.id);
+      } else {
+        await transactionsApi.deleteTransfer(target.item.id);
+        transfers.value = transfers.value.filter((item) => item.id !== target.item.id);
       }
       toast.add({ title: "明細を削除しました", color: "success" });
       deleteTarget.value = null;
@@ -176,6 +212,7 @@ export function useTransactionEditor({ month, expenses, incomes }: TransactionEd
     formOpen,
     editingExpense,
     editingIncome,
+    editingTransfer,
     recurringExpensePreset,
     recurringIncomePreset,
     exchangePreview,
@@ -184,6 +221,7 @@ export function useTransactionEditor({ month, expenses, incomes }: TransactionEd
     openNew,
     editExpense,
     editIncome,
+    editTransfer,
     registerRecurringExpense,
     registerRecurringIncome,
     closeForm,
@@ -193,6 +231,7 @@ export function useTransactionEditor({ month, expenses, incomes }: TransactionEd
     removing,
     askDeleteExpense,
     askDeleteIncome,
+    askDeleteTransfer,
     confirmDelete,
   };
 }

@@ -5,6 +5,7 @@ const props = defineProps<{
   /** Yearly totals including forecasts of unrecorded recurring items. */
   income: number;
   expense: number;
+  investment: number;
 }>();
 
 const balance = computed(() => props.income - props.expense);
@@ -12,7 +13,7 @@ const balance = computed(() => props.income - props.expense);
 
 <template>
   <section
-    class="grid grid-cols-2 overflow-hidden rounded-lg border border-default bg-elevated sm:grid-cols-3 sm:divide-x sm:divide-default"
+    class="grid grid-cols-2 overflow-hidden rounded-lg border border-default bg-elevated sm:grid-cols-4 sm:divide-x sm:divide-default"
     aria-label="年間収支概要"
   >
     <div class="p-3 sm:p-6">
@@ -26,6 +27,15 @@ const balance = computed(() => props.income - props.expense);
         {{ formatSignedCurrency(income, "positive") }}
       </p>
       <p class="mt-2 text-sm text-muted tabular-nums">月平均 {{ formatCurrency(income / 12) }}</p>
+    </div>
+    <div class="border-l border-default p-3 sm:p-6">
+      <p class="text-sm text-muted">年間投資</p>
+      <p class="mt-1 text-base font-bold whitespace-nowrap tabular-nums sm:text-2xl">
+        {{ formatSignedCurrency(investment) }}
+      </p>
+      <p class="mt-2 text-sm text-muted tabular-nums">
+        月平均 {{ formatCurrency(investment / 12) }}
+      </p>
     </div>
     <div class="border-l border-default p-3 sm:border-t-0 sm:p-6">
       <p class="text-sm text-muted">年間支出</p>

@@ -22,7 +22,13 @@ export function groupTransactionsByDate<T extends Transaction>(
     date,
     items,
     total: items.reduce(
-      (sum, item) => sum + (item.kind === "income" ? Number(item.amount) : -Number(item.amount)),
+      (sum, item) =>
+        sum +
+        (item.kind === "income"
+          ? Number(item.amount)
+          : item.kind === "expense"
+            ? -Number(item.amount)
+            : 0),
       0,
     ),
   }));

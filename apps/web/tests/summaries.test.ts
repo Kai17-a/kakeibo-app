@@ -7,7 +7,7 @@ import type {
   RecurringExpense,
   RecurringIncome,
 } from "../app/types/settings.ts";
-import type { Expense, Income } from "../app/types/transactions.ts";
+import type { Expense, Income, Transfer } from "../app/types/transactions.ts";
 import {
   annualMonthlyTotals,
   budgetActuals,
@@ -15,12 +15,14 @@ import {
   categoryTotals,
   dailyCategoryTotals,
   inPeriod,
+  investmentAmount,
   mergeTransactions,
   paymentMethodBalanceTrend,
   recurringForecast,
   recurringPostedAmounts,
   sumAmounts,
 } from "../app/utils/summaries.ts";
+import { groupTransactionsByDate } from "../app/utils/transactions.ts";
 
 const timestamps = { created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" };
 
@@ -333,6 +335,7 @@ test("paymentMethodBalanceTrend applies prior activity then carries monthly bala
       description: null,
       initial_balance: "10000",
       balance: null,
+      is_investment: false,
     },
     {
       ...timestamps,
@@ -341,6 +344,7 @@ test("paymentMethodBalanceTrend applies prior activity then carries monthly bala
       description: null,
       initial_balance: "500",
       balance: null,
+      is_investment: false,
     },
     {
       ...timestamps,
@@ -349,6 +353,7 @@ test("paymentMethodBalanceTrend applies prior activity then carries monthly bala
       description: null,
       initial_balance: null,
       balance: null,
+      is_investment: false,
     },
   ];
   const result = paymentMethodBalanceTrend(
@@ -401,6 +406,133 @@ test("paymentMethodBalanceTrend applies prior activity then carries monthly bala
     values: [],
     total: 0,
   });
+});
+
+test("transfers affect only balances and investment, not income or expense summaries", () => {
+  const methods: PaymentMethod[] = [
+    {
+      ...timestamps,
+      id: "bank",
+      name: "銀行",
+      description: null,
+      initial_balance: "100000",
+      balance: null,
+      is_investment: false,
+    },
+    {
+      ...timestamps,
+      id: "nisa",
+      name: "NISA",
+      description: null,
+      initial_balance: "0",
+      balance: null,
+      is_investment: true,
+    },
+    {
+      ...timestamps,
+      id: "ideco",
+      name: "iDeCo",
+      description: null,
+      initial_balance: null,
+      balance: null,
+      is_investment: true,
+    },
+  ];
+  const transfers: Transfer[] = [
+    {
+      ...timestamps,
+      id: "t1",
+      transaction_date: "2026-01-10",
+      amount: "30000",
+      from_payment_method_id: "bank",
+      to_payment_method_id: "nisa",
+      description: null,
+    },
+    {
+      ...timestamps,
+      id: "t2",
+      transaction_date: "2026-02-10",
+      amount: "5000",
+      from_payment_method_id: "nisa",
+      to_payment_method_id: "bank",
+      description: null,
+    },
+    {
+      ...timestamps,
+      id: "t3",
+      transaction_date: "2026-03-10",
+      amount: "1000",
+      from_payment_method_id: "nisa",
+      to_payment_method_id: "ideco",
+      description: null,
+    },
+  ];
+  assert.equal(investmentAmount(transfers, methods, "2026"), 25000);
+  const trend = paymentMethodBalanceTrend([], [], methods, "2026", transfers);
+  assert.deepEqual(
+    trend[0]?.values.map(({ id, balance }) => ({ id, balance })),
+    [
+      { id: "bank", balance: 70000 },
+      { id: "nisa", balance: 30000 },
+    ],
+  );
+  assert.deepEqual(
+    trend[1]?.values.map(({ id, balance }) => ({ id, balance })),
+    [
+      { id: "bank", balance: 75000 },
+      { id: "nisa", balance: 25000 },
+    ],
+  );
+
+  const summaryExpenses = [
+    expense({ id: "summary-expense", transaction_date: "2026-01-10", amount: "1200" }),
+  ];
+  const summaryIncomes = [
+    income({ id: "summary-income", transaction_date: "2026-01-10", amount: "5000" }),
+  ];
+  const categories = [category("food", "食費")];
+  const budgets: Budget[] = [
+    { ...timestamps, id: "food-budget", category_id: "food", amount: "3000" },
+  ];
+  const recurringExpenses = [recurringExpense({ id: "rent", amount: "80000" })];
+  const recurringIncomes = [recurringIncome({ id: "salary", amount: "300000" })];
+
+  assert.equal(sumAmounts(inPeriod(summaryExpenses, "2026-01")), 1200);
+  assert.equal(sumAmounts(inPeriod(summaryIncomes, "2026-01")), 5000);
+  assert.deepEqual(annualMonthlyTotals(summaryExpenses, summaryIncomes, "2026")[0], {
+    month: 1,
+    income: 5000,
+    expense: 1200,
+    balance: 3800,
+  });
+  assert.deepEqual(categoryTotals(summaryExpenses, categories), [
+    { id: "food", name: "食費", total: 1200 },
+  ]);
+  assert.deepEqual(budgetActuals(summaryExpenses, categories, budgets, "2026-01"), [
+    {
+      id: "food-budget",
+      categoryId: "food",
+      name: "食費",
+      budget: 3000,
+      actual: 1200,
+      achievementRate: 40,
+      exceeded: false,
+    },
+  ]);
+  assert.deepEqual(
+    recurringForecast(
+      summaryExpenses,
+      summaryIncomes,
+      recurringExpenses,
+      recurringIncomes,
+      "2026-01",
+    ),
+    { expense: 80000, income: 300000, expensesByCategory: new Map([["housing", 80000]]) },
+  );
+  const day = groupTransactionsByDate(
+    mergeTransactions(summaryExpenses, summaryIncomes, [transfers[0]!]),
+  ).find((group) => group.date === "2026-01-10");
+  assert.equal(day?.total, 3800);
 });
 
 test("dailyCategoryTotals formats every calendar date and aggregates categories per day", () => {

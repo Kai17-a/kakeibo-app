@@ -7,6 +7,7 @@ import type {
   IncomePreviewRow,
   RecurringExpensePreviewRow,
   VariableExpensePreviewRow,
+  TransferPreviewRow,
 } from "~/types/import";
 import { formatRecurringPaymentDay } from "~/utils/recurring-payment-day";
 
@@ -17,6 +18,7 @@ const importLabels: Record<ImportKind, string> = {
   income: "収入",
   "recurring-expense": "固定費",
   "variable-expense": "準固定費（月別金額）",
+  transfer: "振替",
 };
 const label = computed(() => importLabels[props.kind]);
 const sampleUrl = computed(() => importSampleUrls[props.kind]);
@@ -25,7 +27,8 @@ type Row =
   | ExpensePreviewRow
   | IncomePreviewRow
   | RecurringExpensePreviewRow
-  | VariableExpensePreviewRow;
+  | VariableExpensePreviewRow
+  | TransferPreviewRow;
 const previewing = ref(false);
 const importing = ref(false);
 const error = ref("");
@@ -95,6 +98,19 @@ const columns = computed<TableColumn<Row>[]>(() => {
       { accessorKey: "description", header: "メモ" },
     ];
   }
+  if (props.kind === "transfer") {
+    return [
+      { accessorKey: "transaction_date", header: "日付" },
+      {
+        accessorKey: "amount",
+        header: "金額",
+        meta: { class: { th: "text-right", td: "text-right tabular-nums whitespace-nowrap" } },
+      },
+      { accessorKey: "from_payment_method", header: "移動元" },
+      { accessorKey: "to_payment_method", header: "移動先" },
+      { accessorKey: "description", header: "メモ" },
+    ];
+  }
   return [
     { accessorKey: "transaction_date", header: "日付" },
     {
@@ -147,6 +163,8 @@ function requestPreview(csv: string) {
       return preview("recurring-expense", csv);
     case "variable-expense":
       return preview("variable-expense", csv);
+    case "transfer":
+      return preview("transfer", csv);
   }
 }
 
@@ -162,7 +180,8 @@ async function onFileChange(event: Event) {
     const csv = await file.text();
     const result = await requestPreview(csv);
     rows.value = result.rows;
-    previewCreatedCategories.value = result.created_categories;
+    previewCreatedCategories.value =
+      "created_categories" in result ? result.created_categories : [];
     previewCreatedPaymentMethods.value =
       "created_payment_methods" in result ? result.created_payment_methods : [];
     pendingCsv.value = csv;
@@ -297,7 +316,10 @@ async function importPreview() {
                   </UBadge>
                 </span>
               </template>
-              <template v-if="kind !== 'income'" #payment_method-cell="{ row }">
+              <template
+                v-if="kind !== 'income' && kind !== 'transfer'"
+                #payment_method-cell="{ row }"
+              >
                 <span>
                   {{ paymentMethodOf(row.original).payment_method }}
                   <UBadge

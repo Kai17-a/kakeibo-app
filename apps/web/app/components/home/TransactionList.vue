@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Transaction } from "~/utils/summaries";
 import type { TransactionDayGroup } from "~/utils/transactions";
-import { formatDate, formatSignedCurrency } from "~/utils/format";
+import { formatCurrency, formatDate, formatSignedCurrency } from "~/utils/format";
 
 defineProps<{
   monthLabel: string;
@@ -64,7 +64,12 @@ const emit = defineEmits<{
               ]"
             >
               {{
-                formatSignedCurrency(item.amount, item.kind === "income" ? "positive" : "negative")
+                item.kind === "transfer"
+                  ? formatCurrency(item.amount)
+                  : formatSignedCurrency(
+                      item.amount,
+                      item.kind === "income" ? "positive" : "negative",
+                    )
               }}
             </p>
             <RowActionsMenu

@@ -5,7 +5,7 @@ import type {
   RecurringExpense,
   RecurringIncome,
 } from "~/types/settings";
-import type { Expense, Income } from "~/types/transactions";
+import type { Expense, Income, Transfer } from "~/types/transactions";
 
 interface FinanceDataOptions {
   /** Also load income categories (needed to register or edit incomes). */
@@ -27,6 +27,7 @@ export function useFinanceData(options: FinanceDataOptions = {}) {
 
   const expenses = ref<Expense[]>([]);
   const incomes = ref<Income[]>([]);
+  const transfers = ref<Transfer[]>([]);
   const expenseCategories = ref<Category[]>([]);
   const incomeCategories = ref<Category[]>([]);
   const paymentMethods = ref<PaymentMethod[]>([]);
@@ -43,6 +44,7 @@ export function useFinanceData(options: FinanceDataOptions = {}) {
       const [
         expenseData,
         incomeData,
+        transferData,
         expenseCategoryData,
         incomeCategoryData,
         paymentData,
@@ -52,6 +54,7 @@ export function useFinanceData(options: FinanceDataOptions = {}) {
       ] = await Promise.all([
         transactionsApi.expenses(),
         transactionsApi.incomes(),
+        transactionsApi.transfers(),
         settingsApi.categories("expense").list(),
         options.incomeCategories ? settingsApi.categories("income").list() : [],
         settingsApi.paymentMethods.list(),
@@ -61,6 +64,7 @@ export function useFinanceData(options: FinanceDataOptions = {}) {
       ]);
       expenses.value = expenseData;
       incomes.value = incomeData;
+      transfers.value = transferData;
       expenseCategories.value = expenseCategoryData;
       incomeCategories.value = incomeCategoryData;
       paymentMethods.value = paymentData;
@@ -79,6 +83,7 @@ export function useFinanceData(options: FinanceDataOptions = {}) {
   return {
     expenses,
     incomes,
+    transfers,
     expenseCategories,
     incomeCategories,
     paymentMethods,

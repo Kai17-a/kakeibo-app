@@ -39,6 +39,7 @@ export function paymentMethod(overrides: Partial<PaymentMethod> = {}): PaymentMe
     description: null,
     initial_balance: null,
     balance: null,
+    is_investment: false,
     ...timestamps,
     ...overrides,
   };

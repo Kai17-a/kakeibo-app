@@ -8,6 +8,7 @@ const { month, setMonth } = useMonthQuery("/daily");
 const {
   expenses,
   incomes,
+  transfers,
   expenseCategories,
   incomeCategories,
   paymentMethods,
@@ -19,12 +20,16 @@ const {
 
 const monthExpenses = computed(() => inPeriod(expenses.value, month.value));
 const monthIncomes = computed(() => inPeriod(incomes.value, month.value));
+const monthTransfers = computed(() => inPeriod(transfers.value, month.value).toSorted(byDate));
 
-const tab = ref<"summary" | "details" | "income-details" | "categories">("summary");
+const tab = ref<"summary" | "details" | "income-details" | "transfer-details" | "categories">(
+  "summary",
+);
 const tabItems = [
   { label: "収支・明細", value: "summary" },
   { label: "支出明細", value: "details" },
   { label: "収入明細", value: "income-details" },
+  { label: "振替明細", value: "transfer-details" },
   { label: "月ごとのカテゴリ別支出", value: "categories" },
 ];
 
@@ -66,12 +71,14 @@ const {
   formOpen,
   editingExpense,
   editingIncome,
+  editingTransfer,
   exchangePreview,
   saving,
   initialDate,
   openNew,
   editExpense,
   editIncome,
+  editTransfer,
   closeForm,
   save,
   deleteOpen,
@@ -79,8 +86,9 @@ const {
   removing,
   askDeleteExpense,
   askDeleteIncome,
+  askDeleteTransfer,
   confirmDelete,
-} = useTransactionEditor({ month, expenses, incomes });
+} = useTransactionEditor({ month, expenses, incomes, transfers });
 </script>
 
 <template>
@@ -170,6 +178,50 @@ const {
               />
             </div>
 
+            <div v-else-if="tab === 'transfer-details'" class="min-w-0">
+              <h2 class="mb-4 text-base font-semibold">振替明細</h2>
+              <div class="overflow-auto">
+                <table class="w-full min-w-[640px] text-sm">
+                  <thead>
+                    <tr class="border-b border-default">
+                      <th class="px-3 py-2 text-left">日付</th>
+                      <th class="px-3 py-2 text-left">移動</th>
+                      <th class="px-3 py-2 text-right">金額</th>
+                      <th class="px-3 py-2 text-left">メモ</th>
+                      <th><span class="sr-only">操作</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="item in monthTransfers"
+                      :key="item.id"
+                      class="border-t border-default"
+                    >
+                      <td class="px-3 py-2">{{ item.transaction_date }}</td>
+                      <td class="px-3 py-2">
+                        {{ paymentNames.get(item.from_payment_method_id) }} →
+                        {{ paymentNames.get(item.to_payment_method_id) }}
+                      </td>
+                      <td class="px-3 py-2 text-right tabular-nums">
+                        {{ Number(item.amount).toLocaleString("ja-JP") }}円
+                      </td>
+                      <td class="px-3 py-2">{{ item.description ?? "" }}</td>
+                      <td class="px-3 py-2 text-right">
+                        <RowActionsMenu
+                          :label="`${item.transaction_date} 振替`"
+                          @edit="editTransfer(item)"
+                          @delete="askDeleteTransfer(item)"
+                        />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p v-if="!monthTransfers.length" class="py-12 text-center text-sm text-muted">
+                  この月の振替明細はありません。
+                </p>
+              </div>
+            </div>
+
             <DailyMonthlyBreakdown
               v-else
               :month="month"
@@ -195,6 +247,7 @@ const {
       :initial-date="initialDate"
       :initial-expense="editingExpense"
       :initial-income="editingIncome"
+      :initial-transfer="editingTransfer"
       :exchange-preview="exchangePreview"
       :on-submit="save"
       @update:open="

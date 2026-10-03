@@ -114,8 +114,46 @@ async function mockDataApi(page: Page, options: { importExpenseFails?: boolean }
         created_payment_methods: [],
       },
     }),
+    "POST /api/import/transfers/preview": () => ({
+      body: {
+        rows: [
+          {
+            transaction_date: "2026-01-15",
+            amount: "30000",
+            from_payment_method: "カード",
+            to_payment_method: "NISA",
+            description: "積立",
+          },
+        ],
+      },
+    }),
+    "POST /api/import/transfers": () => ({
+      body: { imported: 1, created_categories: [], created_payment_methods: [] },
+    }),
   });
 }
+
+test("CSVをプレビューしてから振替データをインポートする", async ({ page }) => {
+  await mockDataApi(page);
+  await page.goto("/settings/data");
+  const [fileChooser] = await Promise.all([
+    page.waitForEvent("filechooser"),
+    page.getByRole("button", { name: "振替データ（CSV）を選択" }).click(),
+  ]);
+  await fileChooser.setFiles({
+    name: "transfers.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("日付,金額,移動元,移動先,メモ\n2026-01-15,30000,カード,NISA,積立\n"),
+  });
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("columnheader", { name: "移動元" })).toBeVisible();
+  await expect(dialog.getByText("カード", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("NISA", { exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "登録する" }).click();
+  await expect(
+    page.locator('[data-slot="title"]').filter({ hasText: "1件の振替をインポートしました" }),
+  ).toBeVisible();
+});
 
 test("CSVをプレビューしてから支出データをインポートする", async ({ page }) => {
   await mockDataApi(page);

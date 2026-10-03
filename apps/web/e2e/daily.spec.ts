@@ -4,6 +4,7 @@ import {
   category,
   expense as expenseFixture,
   incomeCategory,
+  isoNow,
   listOf,
   paymentMethod,
   recurringExpense,
@@ -21,6 +22,7 @@ function baseResponses(overrides: MockResponses = {}): MockResponses {
   return {
     "/api/expenses": [expense],
     "/api/incomes": listOf([]),
+    "/api/transfers": [],
     "/api/expense-categories": listOf([category({ name: "交通費" })]),
     "/api/income-categories": listOf([incomeCategory()]),
     "/api/payment-methods": listOf([paymentMethod({ name: "VISA" })]),
@@ -33,17 +35,72 @@ async function mockDailyApi(page: Page, overrides: MockResponses = {}) {
   await mockApi(page, baseResponses(overrides));
 }
 
-test("4つのタブを切り替えられる", async ({ page }) => {
+test("5つのタブを切り替えられる", async ({ page }) => {
   await mockDailyApi(page);
   await page.goto("/daily");
 
   await expect(page.getByText("収支サマリー")).toBeVisible();
+  await expect(page.getByRole("tab")).toHaveCount(5);
   await page.getByRole("tab", { name: "支出明細" }).click();
   await expect(page.getByRole("cell", { name: "電車代", exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "収入明細" }).click();
   await expect(page.getByText("この月の収入明細はありません。")).toBeVisible();
+  await page.getByRole("tab", { name: "振替明細" }).click();
+  await expect(page.getByText("この月の振替明細はありません。")).toBeVisible();
   await page.getByRole("tab", { name: "月ごとのカテゴリ別支出" }).click();
   await expect(page.getByText("日ごとのカテゴリ別支出")).toBeVisible();
+});
+
+test("振替明細で口座名と金額を表示し編集・削除する", async ({ page }) => {
+  const bank = paymentMethod({ id: "bank", name: "銀行" });
+  const nisa = paymentMethod({ id: "nisa", name: "NISA", is_investment: true });
+  let transfers = [
+    {
+      id: "transfer-1",
+      transaction_date: "2026-10-03",
+      amount: "30000",
+      from_payment_method_id: "bank",
+      to_payment_method_id: "nisa",
+      description: "積立",
+      created_at: isoNow,
+      updated_at: isoNow,
+    },
+  ];
+  await mockApi(
+    page,
+    () =>
+      baseResponses({
+        "/api/transfers": transfers,
+        "/api/payment-methods": listOf([bank, nisa]),
+      }),
+    {
+      "PUT /api/transfers/transfer-1": (request) => {
+        transfers = [{ ...transfers[0]!, ...jsonBody(request) }];
+        return { body: transfers[0] };
+      },
+      "DELETE /api/transfers/transfer-1": () => {
+        transfers = [];
+        return { status: 204 };
+      },
+    },
+  );
+  await page.goto("/daily?month=2026-10");
+  await page.getByRole("tab", { name: "振替明細" }).click();
+  await expect(page.getByRole("cell", { name: "銀行 → NISA" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "30,000円" })).toBeVisible();
+
+  await page.getByRole("button", { name: "2026-10-03 振替の操作" }).click();
+  await page.getByRole("menuitem", { name: "編集" }).click();
+  await page.getByLabel("金額").fill("40000");
+  await page.getByRole("button", { name: "更新する" }).click();
+  await expect(page.getByText("振替を更新しました", { exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "40,000円" })).toBeVisible();
+
+  await page.getByRole("button", { name: "2026-10-03 振替の操作" }).click();
+  await page.getByRole("menuitem", { name: "削除" }).click();
+  await page.getByRole("button", { name: "削除", exact: true }).click();
+  await expect(page.getByText("明細を削除しました", { exact: true })).toBeVisible();
+  await expect(page.getByText("この月の振替明細はありません。")).toBeVisible();
 });
 
 test("支出明細から支出を編集・削除する", async ({ page }) => {
