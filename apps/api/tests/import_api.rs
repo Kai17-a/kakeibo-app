@@ -55,6 +55,7 @@ async fn count(p: &sqlx::SqlitePool, sql: &'static str) -> i64 {
 const EXPENSE_SCHEMA: &str = "CREATE TABLE expense_categories(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,parent_category_id TEXT REFERENCES expense_categories(id));CREATE TABLE payment_methods(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,initial_balance TEXT);CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY);CREATE TABLE expenses(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,transaction_date TEXT NOT NULL,amount TEXT NOT NULL,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),recurring_expense_id TEXT REFERENCES recurring_expenses(id),description TEXT,foreign_amount TEXT,currency_code TEXT,exchange_rate TEXT,exchange_rate_date TEXT);INSERT INTO expense_categories(name,description) VALUES('食費',NULL);INSERT INTO payment_methods(name,description) VALUES('現金',NULL)";
 const INCOME_SCHEMA: &str = "CREATE TABLE income_categories(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,parent_category_id TEXT REFERENCES income_categories(id));CREATE TABLE incomes(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,category_id TEXT NOT NULL REFERENCES income_categories(id),transaction_date TEXT NOT NULL,amount TEXT NOT NULL,payment_method_id TEXT,recurring_income_id TEXT,description TEXT);INSERT INTO income_categories(name,description) VALUES('給与',NULL)";
 const RECURRING_EXPENSE_SCHEMA: &str = "CREATE TABLE expense_categories(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,parent_category_id TEXT REFERENCES expense_categories(id),display_order INTEGER NOT NULL DEFAULT 0);CREATE TABLE payment_methods(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,initial_balance TEXT);CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,amount TEXT NOT NULL,payment_day INTEGER NOT NULL,start_date TEXT NOT NULL,end_date TEXT,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),is_active INTEGER NOT NULL,is_variable INTEGER NOT NULL DEFAULT 0,description TEXT,foreign_amount TEXT,currency_code TEXT,exchange_rate TEXT);INSERT INTO expense_categories(name,description) VALUES('住居費',NULL);INSERT INTO payment_methods(name,description) VALUES('口座振替',NULL)";
+const VARIABLE_EXPENSE_SCHEMA: &str = "CREATE TABLE expense_categories(id TEXT PRIMARY KEY,created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,parent_category_id TEXT,display_order INTEGER NOT NULL DEFAULT 0);CREATE TABLE payment_methods(id TEXT PRIMARY KEY,created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,initial_balance TEXT);CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY,created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,amount TEXT NOT NULL,payment_day INTEGER NOT NULL,start_date TEXT NOT NULL,end_date TEXT,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),is_active INTEGER NOT NULL,is_variable INTEGER NOT NULL DEFAULT 0,description TEXT,foreign_amount TEXT,currency_code TEXT,exchange_rate TEXT);CREATE TABLE expenses(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,transaction_date TEXT NOT NULL,amount TEXT NOT NULL,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),recurring_expense_id TEXT REFERENCES recurring_expenses(id),description TEXT,foreign_amount TEXT,currency_code TEXT,exchange_rate TEXT,exchange_rate_date TEXT);INSERT INTO expense_categories(id,name,description) VALUES('utilities','水道光熱費',NULL),('housing','住居費',NULL);INSERT INTO payment_methods(id,name,description) VALUES('bank','口座振替',NULL),('card','カード',NULL);INSERT INTO recurring_expenses(id,name,amount,payment_day,start_date,end_date,category_id,payment_method_id,is_active,is_variable,description,foreign_amount,currency_code) VALUES('electricity','電気代','',31,'2026-03-01',NULL,'utilities','bank',1,1,'定義メモ',NULL,NULL),('rent','家賃','70000',1,'2020-01-01',NULL,'housing','card',1,0,NULL,NULL,NULL),('inactive-gas','ガス代','',15,'2020-01-01','2020-12-31','utilities','card',0,1,NULL,'30','USD')";
 
 #[tokio::test]
 async fn download_expense_import_sample() {
@@ -470,5 +471,215 @@ async fn preview_rejects_invalid_rows_without_writes_for_all_import_types() {
     assert_eq!(
         count(&p, "SELECT COUNT(*) FROM recurring_expenses").await,
         0
+    );
+}
+
+#[tokio::test]
+async fn import_variable_expenses_uses_definition_and_clamps_payment_day() {
+    let database = pool(VARIABLE_EXPENSE_SCHEMA).await;
+    let app = import::create(database.clone());
+    let csv = "年月,名称,金額,メモ\n2026-02,電気代,12345,\n2026-01,ガス代,6789,過去分\n";
+
+    let (status, body) = call(&app, "/api/import/variable-expenses", csv).await;
+
+    assert_eq!(status, StatusCode::CREATED);
+    assert_eq!(body["imported"], 2);
+    assert_eq!(body["created_categories"], json!([]));
+    assert_eq!(body["created_payment_methods"], json!([]));
+    let rows = sqlx::query(
+        "SELECT transaction_date, amount, category_id, payment_method_id, recurring_expense_id, description, foreign_amount, currency_code FROM expenses ORDER BY transaction_date",
+    )
+    .fetch_all(&database)
+    .await
+    .unwrap();
+    assert_eq!(rows.len(), 2);
+    use sqlx::Row;
+    assert_eq!(rows[0].get::<String, _>("transaction_date"), "2026-01-15");
+    assert_eq!(rows[0].get::<String, _>("amount"), "6789");
+    assert_eq!(rows[0].get::<String, _>("category_id"), "utilities");
+    assert_eq!(rows[0].get::<String, _>("payment_method_id"), "card");
+    assert_eq!(
+        rows[0].get::<String, _>("recurring_expense_id"),
+        "inactive-gas"
+    );
+    assert_eq!(
+        rows[0].get::<Option<String>, _>("description"),
+        Some("過去分".into())
+    );
+    assert_eq!(rows[0].get::<Option<String>, _>("foreign_amount"), None);
+    assert_eq!(rows[0].get::<Option<String>, _>("currency_code"), None);
+    assert_eq!(rows[1].get::<String, _>("transaction_date"), "2026-02-28");
+    assert_eq!(
+        rows[1].get::<String, _>("recurring_expense_id"),
+        "electricity"
+    );
+    assert_eq!(
+        rows[1].get::<Option<String>, _>("description"),
+        Some("電気代".into())
+    );
+}
+
+#[tokio::test]
+async fn preview_variable_expenses_returns_resolved_rows_without_writes() {
+    let database = pool(VARIABLE_EXPENSE_SCHEMA).await;
+    let app = import::create(database.clone());
+
+    let (status, body) = call(
+        &app,
+        "/api/import/variable-expenses/preview",
+        "年月,名称,金額,メモ\n2026-02,電気代,12345,2月分\n",
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(
+        body["rows"][0],
+        json!({
+            "year_month": "2026-02",
+            "name": "電気代",
+            "transaction_date": "2026-02-28",
+            "amount": "12345",
+            "category": "水道光熱費",
+            "payment_method": "口座振替",
+            "description": "2月分"
+        })
+    );
+    assert_eq!(count(&database, "SELECT count(*) FROM expenses").await, 0);
+}
+
+#[tokio::test]
+async fn variable_expense_import_rejects_name_errors_and_ambiguity() {
+    let database = pool(VARIABLE_EXPENSE_SCHEMA).await;
+    sqlx::query("INSERT INTO recurring_expenses(id,name,amount,payment_day,start_date,category_id,payment_method_id,is_active,is_variable) VALUES('electricity-2','電気代','',10,'2020-01-01','utilities','bank',1,1)")
+        .execute(&database)
+        .await
+        .unwrap();
+    let app = import::create(database.clone());
+    let csv = "年月,名称,金額,メモ\n2026-01,不明,1000,\n2026-01,家賃,2000,\n2026-01,電気代,3000,\n";
+
+    let (status, body) = call(&app, "/api/import/variable-expenses", csv).await;
+
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    let message = body["message"].as_str().unwrap();
+    assert!(message.contains("2行目"));
+    assert!(message.contains("見つかりません"));
+    assert!(message.contains("3行目"));
+    assert!(message.contains("固定費です"));
+    assert!(message.contains("4行目"));
+    assert!(message.contains("複数"));
+    assert_eq!(count(&database, "SELECT count(*) FROM expenses").await, 0);
+}
+
+#[tokio::test]
+async fn variable_expense_import_rejects_database_and_csv_duplicates_atomically() {
+    let database = pool(VARIABLE_EXPENSE_SCHEMA).await;
+    sqlx::query("INSERT INTO expenses(transaction_date,amount,category_id,payment_method_id,recurring_expense_id,description) VALUES('2026-01-31','9000','utilities','bank','electricity','登録済み')")
+        .execute(&database)
+        .await
+        .unwrap();
+    let app = import::create(database.clone());
+    let csv = "年月,名称,金額,メモ\n2026-02,ガス代,1000,正常行\n2026-01,電気代,2000,DB重複\n2026-03,電気代,3000,CSV重複1\n2026-03,電気代,4000,CSV重複2\n";
+
+    let (status, body) = call(&app, "/api/import/variable-expenses", csv).await;
+
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    let message = body["message"].as_str().unwrap();
+    assert!(message.contains("3行目"));
+    assert!(message.contains("登録済み"));
+    assert!(message.contains("5行目"));
+    assert!(message.contains("CSV内で重複"));
+    assert_eq!(count(&database, "SELECT count(*) FROM expenses").await, 1);
+}
+
+#[tokio::test]
+async fn variable_expense_import_rejects_invalid_year_month_and_amount() {
+    let database = pool(VARIABLE_EXPENSE_SCHEMA).await;
+    let app = import::create(database.clone());
+    let csv = "年月,名称,金額,メモ\n2026-13,電気代,1,\n2026-01,ガス代,1.5,\n";
+
+    let (status, body) = call(&app, "/api/import/variable-expenses", csv).await;
+
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    let message = body["message"].as_str().unwrap();
+    assert!(message.contains("年月「2026-13」はYYYY-MM形式"));
+    assert!(message.contains("金額「1.5」は1以上の整数"));
+    assert_eq!(count(&database, "SELECT count(*) FROM expenses").await, 0);
+}
+
+#[tokio::test]
+async fn variable_expense_import_rejects_malformed_year_months() {
+    let pool = pool(VARIABLE_EXPENSE_SCHEMA).await;
+    let app = import::create(pool.clone());
+    for year_month in [
+        "2026-1",
+        "2026-13",
+        "0000-01",
+        "２０２６-01",
+        "+026-01",
+        "2026/01",
+    ] {
+        let csv = format!("年月,名称,金額,メモ\n{year_month},電気代,12000,\n");
+        let (status, body) = call(&app, "/api/import/variable-expenses", &csv).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{year_month}: {body:?}");
+        assert!(
+            body["message"].as_str().unwrap().contains("YYYY-MM形式"),
+            "{year_month}: {body:?}"
+        );
+    }
+    assert_eq!(count(&pool, "SELECT count(*) FROM expenses").await, 0);
+}
+
+#[tokio::test]
+async fn variable_expense_import_clamps_payment_day_to_february_end() {
+    let pool = pool(VARIABLE_EXPENSE_SCHEMA).await;
+    let app = import::create(pool.clone());
+    let csv = "年月,名称,金額,メモ\n2024-02,電気代,9000,\n2025-02,電気代,9500,\n";
+    let (status, body) = call(&app, "/api/import/variable-expenses", csv).await;
+    assert_eq!(status, StatusCode::CREATED, "{body:?}");
+    let dates: Vec<(String,)> =
+        sqlx::query_as("SELECT transaction_date FROM expenses ORDER BY transaction_date")
+            .fetch_all(&pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        dates,
+        vec![("2024-02-29".to_owned(),), ("2025-02-28".to_owned(),)]
+    );
+}
+
+#[tokio::test]
+async fn variable_expense_import_rejects_definition_with_out_of_range_payment_day() {
+    let pool = pool(VARIABLE_EXPENSE_SCHEMA).await;
+    sqlx::query("INSERT INTO recurring_expenses(id,name,amount,payment_day,start_date,category_id,payment_method_id,is_active,is_variable) VALUES('zero','水道代','',0,'2020-01-01','utilities','bank',1,1),('negative','通信費','',-1,'2020-01-01','utilities','bank',1,1),('over','保険料','',32,'2020-01-01','utilities','bank',1,1)")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let app = import::create(pool.clone());
+    for name in ["水道代", "通信費", "保険料"] {
+        let csv = format!("年月,名称,金額,メモ\n2026-01,{name},3000,\n");
+        let (status, body) = call(&app, "/api/import/variable-expenses", &csv).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{name}: {body:?}");
+        assert!(
+            body["message"].as_str().unwrap().contains("1〜31の範囲外"),
+            "{name}: {body:?}"
+        );
+    }
+    assert_eq!(count(&pool, "SELECT count(*) FROM expenses").await, 0);
+}
+
+#[tokio::test]
+async fn download_variable_expense_import_sample() {
+    let app = import::create(pool(VARIABLE_EXPENSE_SCHEMA).await);
+    let (status, headers, body) = get(&app, "/api/import/variable-expenses/sample").await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(headers["content-type"], "text/csv; charset=utf-8");
+    assert_eq!(
+        headers["content-disposition"],
+        "attachment; filename=\"variable_expense_import_sample.csv\""
+    );
+    assert_eq!(
+        String::from_utf8(body).unwrap(),
+        "\u{feff}年月,名称,金額,メモ\n2026-01,電気代,12000,1月分\n"
     );
 }

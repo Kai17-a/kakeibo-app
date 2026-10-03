@@ -1,6 +1,7 @@
 use crate::{
     model::import::{
         ExpenseImportPreview, ImportResult, IncomeImportPreview, RecurringExpenseImportPreview,
+        VariableExpenseImportPreview,
     },
     service::import::ImportService,
     utils::error::AppResult,
@@ -69,6 +70,25 @@ pub async fn preview_recurring_expenses(
     Ok(Json(s.import.preview_recurring_expenses(&body).await?))
 }
 
+#[utoipa::path(post,path="/api/import/variable-expenses",request_body(content=String,content_type="text/csv"),responses((status=201,body=ImportResult),(status=400)))]
+pub async fn variable_expenses(
+    State(s): State<AppState>,
+    body: String,
+) -> AppResult<(StatusCode, Json<ImportResult>)> {
+    Ok((
+        StatusCode::CREATED,
+        Json(s.import.import_variable_expenses(&body).await?),
+    ))
+}
+
+#[utoipa::path(post,path="/api/import/variable-expenses/preview",request_body(content=String,content_type="text/csv"),responses((status=200,body=VariableExpenseImportPreview),(status=400)))]
+pub async fn preview_variable_expenses(
+    State(s): State<AppState>,
+    body: String,
+) -> AppResult<Json<VariableExpenseImportPreview>> {
+    Ok(Json(s.import.preview_variable_expenses(&body).await?))
+}
+
 pub async fn expense_sample() -> impl IntoResponse {
     csv_response(
         "expense_import_sample.csv",
@@ -87,6 +107,13 @@ pub async fn recurring_expense_sample() -> impl IntoResponse {
     csv_response(
         "recurring_expense_import_sample.csv",
         ImportService::recurring_expense_sample_csv(),
+    )
+}
+
+pub async fn variable_expense_sample() -> impl IntoResponse {
+    csv_response(
+        "variable_expense_import_sample.csv",
+        ImportService::variable_expense_sample_csv(),
     )
 }
 

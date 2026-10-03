@@ -6,16 +6,25 @@ import type {
   ExpensePreviewRow,
   IncomePreviewRow,
   RecurringExpensePreviewRow,
+  VariableExpensePreviewRow,
 } from "~/types/import";
 
 const props = defineProps<{ kind: ImportKind }>();
 
-const label = computed(() =>
-  props.kind === "expense" ? "支出" : props.kind === "income" ? "収入" : "固定費",
-);
+const importLabels: Record<ImportKind, string> = {
+  expense: "支出",
+  income: "収入",
+  "recurring-expense": "固定費",
+  "variable-expense": "準固定費（月別金額）",
+};
+const label = computed(() => importLabels[props.kind]);
 const sampleUrl = computed(() => importSampleUrls[props.kind]);
 
-type Row = ExpensePreviewRow | IncomePreviewRow | RecurringExpensePreviewRow;
+type Row =
+  | ExpensePreviewRow
+  | IncomePreviewRow
+  | RecurringExpensePreviewRow
+  | VariableExpensePreviewRow;
 const previewing = ref(false);
 const importing = ref(false);
 const error = ref("");
@@ -34,6 +43,9 @@ function recurringRow(row: Row) {
 }
 function paymentMethodOf(row: Row) {
   return row as { payment_method?: string; payment_method_is_new?: boolean };
+}
+function categoryOf(row: Row) {
+  return row as { category: string; category_is_new?: boolean };
 }
 
 const columns = computed<TableColumn<Row>[]>(() => {
@@ -57,6 +69,21 @@ const columns = computed<TableColumn<Row>[]>(() => {
   if (props.kind === "expense") {
     return [
       { accessorKey: "transaction_date", header: "日付" },
+      {
+        accessorKey: "amount",
+        header: "金額",
+        meta: { class: { th: "text-right", td: "text-right tabular-nums whitespace-nowrap" } },
+      },
+      { accessorKey: "category", header: "カテゴリ" },
+      { accessorKey: "payment_method", header: "支払方法" },
+      { accessorKey: "description", header: "メモ" },
+    ];
+  }
+  if (props.kind === "variable-expense") {
+    return [
+      { accessorKey: "year_month", header: "年月" },
+      { accessorKey: "name", header: "名称" },
+      { accessorKey: "transaction_date", header: "計上日" },
       {
         accessorKey: "amount",
         header: "金額",
@@ -109,6 +136,19 @@ function selectFile() {
   fileInput.value?.click();
 }
 
+function requestPreview(csv: string) {
+  switch (props.kind) {
+    case "expense":
+      return preview("expense", csv);
+    case "income":
+      return preview("income", csv);
+    case "recurring-expense":
+      return preview("recurring-expense", csv);
+    case "variable-expense":
+      return preview("variable-expense", csv);
+  }
+}
+
 async function onFileChange(event: Event) {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
@@ -119,12 +159,7 @@ async function onFileChange(event: Event) {
   resetPreview();
   try {
     const csv = await file.text();
-    const result =
-      props.kind === "expense"
-        ? await preview("expense", csv)
-        : props.kind === "income"
-          ? await preview("income", csv)
-          : await preview("recurring-expense", csv);
+    const result = await requestPreview(csv);
     rows.value = result.rows;
     previewCreatedCategories.value = result.created_categories;
     previewCreatedPaymentMethods.value =
@@ -251,8 +286,12 @@ async function importPreview() {
               </template>
               <template #category-cell="{ row }">
                 <span>
-                  {{ row.original.category }}
-                  <UBadge v-if="row.original.category_is_new" color="secondary" variant="soft">
+                  {{ categoryOf(row.original).category }}
+                  <UBadge
+                    v-if="categoryOf(row.original).category_is_new"
+                    color="secondary"
+                    variant="soft"
+                  >
                     新規
                   </UBadge>
                 </span>

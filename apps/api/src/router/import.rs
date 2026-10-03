@@ -37,5 +37,17 @@ pub fn create(pool: SqlitePool) -> Router {
             "/api/import/recurring-expenses/sample",
             get(handler::recurring_expense_sample),
         )
+        .route(
+            "/api/import/variable-expenses",
+            post(handler::variable_expenses),
+        )
+        .route(
+            "/api/import/variable-expenses/preview",
+            post(handler::preview_variable_expenses),
+        )
+        .route(
+            "/api/import/variable-expenses/sample",
+            get(handler::variable_expense_sample),
+        )
         .with_state(state)
 }

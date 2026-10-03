@@ -90,6 +90,30 @@ async function mockDataApi(page: Page, options: { importExpenseFails?: boolean }
         created_payment_methods: ["口座振替"],
       },
     }),
+    "POST /api/import/variable-expenses/preview": () => ({
+      body: {
+        rows: [
+          {
+            year_month: "2026-02",
+            name: "電気代",
+            transaction_date: "2026-02-28",
+            amount: "12345",
+            category: "水道光熱費",
+            payment_method: "口座振替",
+            description: "2月分",
+          },
+        ],
+        created_categories: [],
+        created_payment_methods: [],
+      },
+    }),
+    "POST /api/import/variable-expenses": () => ({
+      body: {
+        imported: 1,
+        created_categories: [],
+        created_payment_methods: [],
+      },
+    }),
   });
 }
 
@@ -161,6 +185,39 @@ test("CSVをプレビューしてから固定費データをインポートす�
   await expect(dialog.getByText("新規カテゴリ: 住居費")).toBeVisible();
   await dialog.getByRole("button", { name: "キャンセル" }).click();
   await expect(dialog).not.toBeVisible();
+});
+
+test("CSVをプレビューしてから準固定費の月別金額をインポートする", async ({ page }) => {
+  await mockDataApi(page);
+  await page.goto("/settings/data");
+
+  const [fileChooser] = await Promise.all([
+    page.waitForEvent("filechooser"),
+    page.getByRole("button", { name: "準固定費（月別金額）データ（CSV）を選択" }).click(),
+  ]);
+  await fileChooser.setFiles({
+    name: "variable-expenses.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("年月,名称,金額,メモ\n2026-02,電気代,12345,2月分\n"),
+  });
+
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("columnheader", { name: "年月" })).toBeVisible();
+  await expect(dialog.getByRole("columnheader", { name: "計上日" })).toBeVisible();
+  await expect(dialog.getByText("2026-02", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("電気代", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("2026-02-28", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("水道光熱費", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("口座振替", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("2月分", { exact: true })).toBeVisible();
+
+  await dialog.getByRole("button", { name: "登録する" }).click();
+  await expect(
+    page
+      .locator('[data-slot="title"]')
+      .filter({ hasText: "1件の準固定費（月別金額）をインポートしました" }),
+  ).toBeVisible();
 });
 
 test("CSVインポート失敗をプレビューモーダル内に表示する", async ({ page }) => {

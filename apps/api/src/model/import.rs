@@ -49,6 +49,30 @@ pub struct RecurringExpenseCsvRow {
     #[serde(rename = "備考")]
     pub description: Option<String>,
 }
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct VariableExpenseCsvRow {
+    #[serde(rename = "年月")]
+    pub year_month: String,
+    #[serde(rename = "名称")]
+    pub name: String,
+    #[serde(rename = "金額")]
+    pub amount: String,
+    #[serde(rename = "メモ")]
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct VariableExpenseDefinition {
+    pub id: String,
+    pub name: String,
+    pub payment_day: i64,
+    pub category_id: String,
+    pub category: String,
+    pub payment_method_id: String,
+    pub payment_method: String,
+    pub is_variable: bool,
+}
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct ImportResult {
     pub imported: usize,
@@ -110,5 +134,23 @@ pub struct RecurringExpensePreviewRow {
     pub payment_method: String,
     pub payment_method_is_new: bool,
     pub is_variable: String,
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct VariableExpenseImportPreview {
+    pub rows: Vec<VariableExpensePreviewRow>,
+    pub created_categories: Vec<String>,
+    pub created_payment_methods: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct VariableExpensePreviewRow {
+    pub year_month: String,
+    pub name: String,
+    pub transaction_date: String,
+    pub amount: String,
+    pub category: String,
+    pub payment_method: String,
     pub description: Option<String>,
 }

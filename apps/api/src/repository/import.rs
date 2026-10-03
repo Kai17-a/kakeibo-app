@@ -1,7 +1,7 @@
 use crate::{
     model::{
-        expenses::ExpenseUpsertRequest, incomes::IncomeUpsertRequest,
-        recurring_expenses::RecurringExpenseUpsertRequest,
+        expenses::ExpenseUpsertRequest, import::VariableExpenseDefinition,
+        incomes::IncomeUpsertRequest, recurring_expenses::RecurringExpenseUpsertRequest,
     },
     utils::error::AppResult,
 };
@@ -52,6 +52,44 @@ impl ImportRepository {
             name,
         )
         .await
+    }
+    pub async fn find_recurring_expenses_by_name(
+        &self,
+        tx: &mut Transaction<'_, Sqlite>,
+        name: &str,
+    ) -> AppResult<Vec<VariableExpenseDefinition>> {
+        Ok(sqlx::query(include_str!(
+            "../../queries/import/find_recurring_expenses_by_name.sql"
+        ))
+        .bind(name)
+        .fetch_all(&mut **tx)
+        .await?
+        .into_iter()
+        .map(|row| VariableExpenseDefinition {
+            id: row.get("id"),
+            name: row.get("name"),
+            payment_day: row.get("payment_day"),
+            category_id: row.get("category_id"),
+            category: row.get("category"),
+            payment_method_id: row.get("payment_method_id"),
+            payment_method: row.get("payment_method"),
+            is_variable: row.get("is_variable"),
+        })
+        .collect())
+    }
+    pub async fn has_variable_expense_for_month(
+        &self,
+        tx: &mut Transaction<'_, Sqlite>,
+        recurring_expense_id: &str,
+        year_month: &str,
+    ) -> AppResult<bool> {
+        Ok(sqlx::query_scalar(include_str!(
+            "../../queries/import/has_variable_expense_for_month.sql"
+        ))
+        .bind(recurring_expense_id)
+        .bind(year_month)
+        .fetch_one(&mut **tx)
+        .await?)
     }
     pub async fn create_expense_category(
         &self,

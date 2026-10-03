@@ -1,4 +1,4 @@
-export type ImportKind = "expense" | "income" | "recurring-expense";
+export type ImportKind = "expense" | "income" | "recurring-expense" | "variable-expense";
 
 export interface ImportResult {
   imported: number;
@@ -54,7 +54,23 @@ export interface RecurringExpenseImportPreview {
   created_payment_methods: string[];
 }
 
+export interface VariableExpensePreviewRow {
+  year_month: string;
+  name: string;
+  transaction_date: string;
+  amount: string;
+  category: string;
+  payment_method: string;
+  description: string | null;
+}
+export interface VariableExpenseImportPreview {
+  rows: VariableExpensePreviewRow[];
+  created_categories: string[];
+  created_payment_methods: string[];
+}
+
 export type ImportPreview =
   | ExpenseImportPreview
   | IncomeImportPreview
-  | RecurringExpenseImportPreview;
+  | RecurringExpenseImportPreview
+  | VariableExpenseImportPreview;

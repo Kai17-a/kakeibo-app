@@ -80,6 +80,11 @@ useSeoMeta({ title: "データ管理設定" });
           <h4 class="mb-2 text-sm font-semibold">固定費データ</h4>
           <SettingsCsvImportPanel kind="recurring-expense" />
         </div>
+        <USeparator />
+        <div>
+          <h4 class="mb-2 text-sm font-semibold">準固定費データ（月別金額）</h4>
+          <SettingsCsvImportPanel kind="variable-expense" />
+        </div>
       </div>
     </UCard>
   </section>

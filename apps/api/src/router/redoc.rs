@@ -18,6 +18,7 @@ use crate::{
     model::health::Health,
     model::import::{
         ExpenseImportPreview, ImportResult, IncomeImportPreview, RecurringExpenseImportPreview,
+        VariableExpenseImportPreview,
     },
     model::income_categories::{
         IncomeCategory, IncomeCategoryListResponse, IncomeCategoryPagination,
@@ -66,6 +67,8 @@ use crate::{
         import::preview_incomes,
         import::recurring_expenses,
         import::preview_recurring_expenses,
+        import::variable_expenses,
+        import::preview_variable_expenses,
         payment_methods::list,
         payment_methods::get,
         payment_methods::create,
@@ -112,6 +115,7 @@ use crate::{
         ExpenseImportPreview,
         IncomeImportPreview,
         RecurringExpenseImportPreview,
+        VariableExpenseImportPreview,
         PaymentMethod,
         PaymentMethodUpsertRequest,
         PaymentMethodListResponse,
@@ -196,7 +200,9 @@ fn tag_for_path(path: &str) -> &'static str {
         | "/api/import/incomes"
         | "/api/import/incomes/preview"
         | "/api/import/recurring-expenses"
-        | "/api/import/recurring-expenses/preview" => "インポート",
+        | "/api/import/recurring-expenses/preview"
+        | "/api/import/variable-expenses"
+        | "/api/import/variable-expenses/preview" => "インポート",
         "/api/payment-methods" | "/api/payment-methods/{id}" => "支払方法",
         "/api/recurring-expenses"
         | "/api/recurring-expenses/{id}"

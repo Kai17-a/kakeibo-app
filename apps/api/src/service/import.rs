@@ -4,7 +4,8 @@ use crate::{
         import::{
             ExpenseCsvRow, ExpenseImportPreview, ExpensePreviewRow, ImportResult, IncomeCsvRow,
             IncomeImportPreview, IncomePreviewRow, RecurringExpenseCsvRow,
-            RecurringExpenseImportPreview, RecurringExpensePreviewRow,
+            RecurringExpenseImportPreview, RecurringExpensePreviewRow, VariableExpenseCsvRow,
+            VariableExpenseDefinition, VariableExpenseImportPreview, VariableExpensePreviewRow,
         },
         incomes::IncomeUpsertRequest,
         recurring_expenses::RecurringExpenseUpsertRequest,
@@ -12,8 +13,9 @@ use crate::{
     repository::import::ImportRepository,
     utils::error::{AppError, AppResult},
 };
-use chrono::NaiveDate;
+use chrono::{Datelike, NaiveDate};
 use serde::de::DeserializeOwned;
+use std::collections::HashSet;
 const UTF8_BOM: &str = "\u{feff}";
 const EXPENSE_HEADERS: &[&str] = &["日付", "金額", "カテゴリ", "支払方法", "メモ"];
 const INCOME_HEADERS: &[&str] = &["日付", "金額", "カテゴリ", "メモ"];
@@ -30,6 +32,7 @@ const RECURRING_EXPENSE_HEADERS: &[&str] = &[
     "金額変動",
     "備考",
 ];
+const VARIABLE_EXPENSE_HEADERS: &[&str] = &["年月", "名称", "金額", "メモ"];
 const EXPENSE_SAMPLE_ROW: &[&str] = &["2026-01-15", "1200", "食費", "現金", "昼食"];
 const INCOME_SAMPLE_ROW: &[&str] = &["2026-01-15", "300000", "給与", "1月分"];
 const RECURRING_EXPENSE_SAMPLE_ROW: &[&str] = &[
@@ -58,6 +61,7 @@ const VARIABLE_RECURRING_EXPENSE_SAMPLE_ROW: &[&str] = &[
     "true",
     "金額は毎月入力",
 ];
+const VARIABLE_EXPENSE_SAMPLE_ROW: &[&str] = &["2026-01", "電気代", "12000", "1月分"];
 const MAX_REPORTED_ERRORS: usize = 3;
 #[derive(Clone)]
 pub struct ImportService {
@@ -83,6 +87,10 @@ impl ImportService {
             RECURRING_EXPENSE_SAMPLE_ROW.join(","),
             VARIABLE_RECURRING_EXPENSE_SAMPLE_ROW.join(",")
         )
+    }
+
+    pub fn variable_expense_sample_csv() -> String {
+        sample_csv(VARIABLE_EXPENSE_HEADERS, VARIABLE_EXPENSE_SAMPLE_ROW)
     }
 
     pub async fn preview_expenses(&self, csv_text: &str) -> AppResult<ExpenseImportPreview> {
@@ -222,6 +230,34 @@ impl ImportService {
         })
     }
 
+    pub async fn preview_variable_expenses(
+        &self,
+        csv_text: &str,
+    ) -> AppResult<VariableExpenseImportPreview> {
+        let rows = parse_csv::<VariableExpenseCsvRow>(csv_text, VARIABLE_EXPENSE_HEADERS)?;
+        validate_variable_expenses(&rows)?;
+        let mut tx = self.repository.begin().await?;
+        let prepared = self.prepare_variable_expenses(&mut tx, &rows).await?;
+        let preview_rows = prepared
+            .into_iter()
+            .map(|row| VariableExpensePreviewRow {
+                year_month: row.year_month,
+                name: row.definition.name,
+                transaction_date: row.transaction_date,
+                amount: row.amount,
+                category: row.definition.category,
+                payment_method: row.definition.payment_method,
+                description: row.description,
+            })
+            .collect();
+        tx.rollback().await?;
+        Ok(VariableExpenseImportPreview {
+            rows: preview_rows,
+            created_categories: Vec::new(),
+            created_payment_methods: Vec::new(),
+        })
+    }
+
     pub async fn import_expenses(&self, csv_text: &str) -> AppResult<ImportResult> {
         let rows = parse_csv::<ExpenseCsvRow>(csv_text, EXPENSE_HEADERS)?;
         validate_expenses(&rows)?;
@@ -318,6 +354,118 @@ impl ImportService {
             created_categories,
             created_payment_methods,
         })
+    }
+
+    pub async fn import_variable_expenses(&self, csv_text: &str) -> AppResult<ImportResult> {
+        let rows = parse_csv::<VariableExpenseCsvRow>(csv_text, VARIABLE_EXPENSE_HEADERS)?;
+        validate_variable_expenses(&rows)?;
+        let mut tx = self.repository.begin().await?;
+        let prepared = self.prepare_variable_expenses(&mut tx, &rows).await?;
+        for row in &prepared {
+            self.repository
+                .insert_expense(
+                    &mut tx,
+                    &ExpenseUpsertRequest {
+                        transaction_date: row.transaction_date.clone(),
+                        amount: row.amount.clone(),
+                        category_id: row.definition.category_id.clone(),
+                        payment_method_id: row.definition.payment_method_id.clone(),
+                        recurring_expense_id: Some(row.definition.id.clone()),
+                        description: row.description.clone(),
+                        foreign_amount: None,
+                        currency_code: None,
+                        exchange_rate: None,
+                        exchange_rate_date: None,
+                    },
+                )
+                .await?;
+        }
+        tx.commit().await?;
+        Ok(ImportResult {
+            imported: prepared.len(),
+            created_categories: Vec::new(),
+            created_payment_methods: Vec::new(),
+        })
+    }
+
+    async fn prepare_variable_expenses(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Sqlite>,
+        rows: &[VariableExpenseCsvRow],
+    ) -> AppResult<Vec<PreparedVariableExpense>> {
+        let mut prepared = Vec::with_capacity(rows.len());
+        let mut errors = Vec::new();
+        let mut seen = HashSet::new();
+        for (index, row) in rows.iter().enumerate() {
+            let row_number = index + 2;
+            let name = row.name.trim();
+            let matches = self
+                .repository
+                .find_recurring_expenses_by_name(tx, name)
+                .await?;
+            let definition = match matches.as_slice() {
+                [] => {
+                    errors.push(format!(
+                        "{row_number}行目: 名称「{name}」の定期支出が見つかりません"
+                    ));
+                    continue;
+                }
+                [definition] if !definition.is_variable => {
+                    errors.push(format!(
+                        "{row_number}行目: 名称「{name}」は準固定費ではなく固定費です"
+                    ));
+                    continue;
+                }
+                [definition] => definition.clone(),
+                _ => {
+                    errors.push(format!(
+                        "{row_number}行目: 名称「{name}」に一致する定期支出が複数あり特定できません"
+                    ));
+                    continue;
+                }
+            };
+            if !(1..=31).contains(&definition.payment_day) {
+                errors.push(format!(
+                    "{row_number}行目: 名称「{name}」の支払日「{}」が1〜31の範囲外のため計上日を決められません",
+                    definition.payment_day
+                ));
+                continue;
+            }
+            let year_month = row.year_month.trim().to_owned();
+            let key = (definition.id.clone(), year_month.clone());
+            if !seen.insert(key) {
+                errors.push(format!(
+                    "{row_number}行目: 名称「{name}」の{year_month}はCSV内で重複しています"
+                ));
+                continue;
+            }
+            if self
+                .repository
+                .has_variable_expense_for_month(tx, &definition.id, &year_month)
+                .await?
+            {
+                errors.push(format!(
+                    "{row_number}行目: 名称「{name}」の{year_month}は登録済みです"
+                ));
+                continue;
+            }
+            let transaction_date = payment_date(&year_month, definition.payment_day);
+            let description = row
+                .description
+                .as_ref()
+                .filter(|value| !value.trim().is_empty())
+                .cloned()
+                .or_else(|| Some(definition.name.clone()));
+            prepared.push(PreparedVariableExpense {
+                year_month,
+                transaction_date,
+                amount: row.amount.trim().to_owned(),
+                description,
+                definition,
+            });
+        }
+        validate_all(std::iter::once(errors))?;
+        Ok(prepared)
     }
 
     async fn resolve_expense_category(
@@ -476,6 +624,70 @@ fn validate_recurring_expenses(rows: &[RecurringExpenseCsvRow]) -> AppResult<()>
         }
         errors
     }))
+}
+
+fn validate_variable_expenses(rows: &[VariableExpenseCsvRow]) -> AppResult<()> {
+    validate_all(rows.iter().enumerate().map(|(index, row)| {
+        let row_number = index + 2;
+        let mut errors = Vec::new();
+        validate_required(row_number, &[("名称", &row.name)], &mut errors);
+        if parse_year_month(row.year_month.trim()).is_none() {
+            errors.push(format!(
+                "{row_number}行目: 年月「{}」はYYYY-MM形式で指定してください",
+                row.year_month
+            ));
+        }
+        if !is_positive_integer(&row.amount) {
+            errors.push(format!(
+                "{row_number}行目: 金額「{}」は1以上の整数で指定してください",
+                row.amount
+            ));
+        }
+        errors
+    }))
+}
+
+#[derive(Debug)]
+struct PreparedVariableExpense {
+    year_month: String,
+    transaction_date: String,
+    amount: String,
+    description: Option<String>,
+    definition: VariableExpenseDefinition,
+}
+
+fn parse_year_month(value: &str) -> Option<NaiveDate> {
+    let (year, month) = value.split_once('-')?;
+    if year.len() != 4 || month.len() != 2 {
+        return None;
+    }
+    if !year
+        .bytes()
+        .chain(month.bytes())
+        .all(|b| b.is_ascii_digit())
+    {
+        return None;
+    }
+    let year = year.parse::<i32>().ok().filter(|year| *year >= 1)?;
+    NaiveDate::from_ymd_opt(year, month.parse().ok()?, 1)
+}
+
+fn payment_date(year_month: &str, payment_day: i64) -> String {
+    let first = parse_year_month(year_month).expect("validated year-month");
+    let (next_year, next_month) = if first.month() == 12 {
+        (first.year() + 1, 1)
+    } else {
+        (first.year(), first.month() + 1)
+    };
+    let last_day = NaiveDate::from_ymd_opt(next_year, next_month, 1)
+        .expect("valid next month")
+        .pred_opt()
+        .expect("month has a previous day")
+        .day();
+    first
+        .with_day(u32::try_from(payment_day).map_or(last_day, |day| day.clamp(1, last_day)))
+        .expect("valid clamped payment day")
+        .to_string()
 }
 
 fn recurring_expense_request(
