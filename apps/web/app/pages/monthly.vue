@@ -174,18 +174,7 @@ const {
               :budget-rate="budgetRate"
             />
 
-            <div class="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-              <HomeTransactionList
-                :month-label="monthLabel"
-                :groups="transactionGroups"
-                :count="transactions.length"
-                :label-of="transactionLabel"
-                :meta-of="transactionMeta"
-                @create="openNew"
-                @edit="editTransaction"
-                @delete="deleteTransaction"
-              />
-
+            <div class="grid gap-6 lg:grid-cols-[1fr_1.6fr]">
               <div class="space-y-6">
                 <HomeSpendingBreakdown :spending="spending" :total="expenseTotal" />
                 <HomeBudgetProgress :actuals="actuals" />
@@ -197,6 +186,17 @@ const {
                   @register-income="registerRecurringIncome"
                 />
               </div>
+
+              <HomeTransactionList
+                :month-label="monthLabel"
+                :groups="transactionGroups"
+                :count="transactions.length"
+                :label-of="transactionLabel"
+                :meta-of="transactionMeta"
+                @create="openNew"
+                @edit="editTransaction"
+                @delete="deleteTransaction"
+              />
             </div>
           </div>
         </DataLoadState>
