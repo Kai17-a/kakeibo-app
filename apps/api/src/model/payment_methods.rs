@@ -9,6 +9,7 @@ pub struct PaymentMethod {
     pub name: String,
     pub description: Option<String>,
     pub initial_balance: Option<String>,
+    pub is_investment: bool,
     pub balance: Option<String>,
 }
 impl TryFrom<PaymentMethodRow> for PaymentMethod {
@@ -25,6 +26,8 @@ impl TryFrom<PaymentMethodRow> for PaymentMethod {
                 initial_balance
                     .checked_add(v.income_total)
                     .and_then(|value| value.checked_sub(v.expense_total))
+                    .and_then(|value| value.checked_add(v.transfer_in_total))
+                    .and_then(|value| value.checked_sub(v.transfer_out_total))
                     .map(|value| value.to_string())
                     .ok_or_else(|| {
                         crate::utils::error::AppError::bad_request("balance is outside i64 range")
@@ -38,6 +41,7 @@ impl TryFrom<PaymentMethodRow> for PaymentMethod {
             name: v.name,
             description: v.description,
             initial_balance: v.initial_balance,
+            is_investment: v.is_investment,
             balance,
         })
     }
@@ -47,6 +51,8 @@ pub struct PaymentMethodUpsertRequest {
     pub name: String,
     pub description: Option<String>,
     pub initial_balance: Option<String>,
+    #[serde(default)]
+    pub is_investment: bool,
 }
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct PaymentMethodListResponse {

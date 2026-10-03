@@ -7,6 +7,9 @@ pub struct PaymentMethodRow {
     pub name: String,
     pub description: Option<String>,
     pub initial_balance: Option<String>,
+    pub is_investment: bool,
     pub income_total: i64,
     pub expense_total: i64,
+    pub transfer_in_total: i64,
+    pub transfer_out_total: i64,
 }

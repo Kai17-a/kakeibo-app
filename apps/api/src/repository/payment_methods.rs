@@ -16,11 +16,15 @@ impl PaymentMethodRepository {
     }
     pub async fn find_all(&self, q: &PaymentMethodQuery) -> AppResult<Vec<PaymentMethodRow>> {
         let mut b = QueryBuilder::<Sqlite>::new(
-            "SELECT id,created_at,updated_at,name,description,initial_balance, \
+            "SELECT id,created_at,updated_at,name,description,initial_balance,is_investment, \
              (SELECT COALESCE(SUM(CAST(amount AS INTEGER)), 0) FROM incomes \
               WHERE payment_method_id = payment_methods.id) AS income_total, \
              (SELECT COALESCE(SUM(CAST(amount AS INTEGER)), 0) FROM expenses \
-              WHERE payment_method_id = payment_methods.id) AS expense_total \
+              WHERE payment_method_id = payment_methods.id) AS expense_total, \
+             (SELECT COALESCE(SUM(CAST(amount AS INTEGER)), 0) FROM transfers \
+              WHERE to_payment_method_id = payment_methods.id) AS transfer_in_total, \
+             (SELECT COALESCE(SUM(CAST(amount AS INTEGER)), 0) FROM transfers \
+              WHERE from_payment_method_id = payment_methods.id) AS transfer_out_total \
              FROM payment_methods WHERE 1=1",
         );
         if let Some(id) = &q.id {
@@ -53,6 +57,7 @@ impl PaymentMethodRepository {
             .bind(&v.name)
             .bind(&v.description)
             .bind(&v.initial_balance)
+            .bind(v.is_investment)
             .fetch_one(&self.pool)
             .await
             .map_err(Into::into)
@@ -66,6 +71,7 @@ impl PaymentMethodRepository {
             .bind(&v.name)
             .bind(&v.description)
             .bind(&v.initial_balance)
+            .bind(v.is_investment)
             .bind(id)
             .fetch_optional(&self.pool)
             .await
@@ -84,7 +90,8 @@ impl PaymentMethodRepository {
     pub async fn is_referenced_by_transactions(&self, id: &str) -> AppResult<bool> {
         let count: i64 = sqlx::query_scalar(
             "SELECT (SELECT COUNT(*) FROM expenses WHERE payment_method_id = ?1) + \
-             (SELECT COUNT(*) FROM incomes WHERE payment_method_id = ?1)",
+             (SELECT COUNT(*) FROM incomes WHERE payment_method_id = ?1) + \
+             (SELECT COUNT(*) FROM transfers WHERE from_payment_method_id = ?1 OR to_payment_method_id = ?1)",
         )
         .bind(id)
         .fetch_one(&self.pool)

@@ -1,5 +1,5 @@
 use crate::{
-    database::models::export::{ExpenseExportRow, IncomeExportRow},
+    database::models::export::{ExpenseExportRow, IncomeExportRow, TransferExportRow},
     utils::error::AppResult,
 };
 use sqlx::SqlitePool;
@@ -22,5 +22,12 @@ impl ExportRepository {
             .fetch_all(&self.pool)
             .await
             .map_err(Into::into)
+    }
+    pub async fn find_transfers(&self) -> AppResult<Vec<TransferExportRow>> {
+        Ok(
+            sqlx::query_as(include_str!("../../queries/export/transfers.sql"))
+                .fetch_all(&self.pool)
+                .await?,
+        )
     }
 }

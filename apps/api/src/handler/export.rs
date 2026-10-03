@@ -12,6 +12,13 @@ pub async fn expenses(State(s): State<AppState>) -> AppResult<impl IntoResponse>
 pub async fn incomes(State(s): State<AppState>) -> AppResult<impl IntoResponse> {
     Ok(csv_response("incomes.csv", s.export.incomes_csv().await?))
 }
+#[utoipa::path(get,path="/api/export/transfers",responses((status=200,description="振替のCSVファイル",content_type="text/csv")))]
+pub async fn transfers(State(s): State<AppState>) -> AppResult<impl IntoResponse> {
+    Ok(csv_response(
+        "transfers.csv",
+        s.export.transfers_csv().await?,
+    ))
+}
 fn csv_response(filename: &str, body: String) -> impl IntoResponse {
     (
         [

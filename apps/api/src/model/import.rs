@@ -61,6 +61,19 @@ pub struct VariableExpenseCsvRow {
     #[serde(rename = "メモ")]
     pub description: Option<String>,
 }
+#[derive(Debug, Clone, Deserialize)]
+pub struct TransferCsvRow {
+    #[serde(rename = "日付")]
+    pub transaction_date: String,
+    #[serde(rename = "金額")]
+    pub amount: String,
+    #[serde(rename = "移動元")]
+    pub from_payment_method: String,
+    #[serde(rename = "移動先")]
+    pub to_payment_method: String,
+    #[serde(rename = "メモ")]
+    pub description: Option<String>,
+}
 
 #[derive(Debug, Clone)]
 pub struct VariableExpenseDefinition {
@@ -152,5 +165,17 @@ pub struct VariableExpensePreviewRow {
     pub amount: String,
     pub category: String,
     pub payment_method: String,
+    pub description: Option<String>,
+}
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct TransferImportPreview {
+    pub rows: Vec<TransferPreviewRow>,
+}
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct TransferPreviewRow {
+    pub transaction_date: String,
+    pub amount: String,
+    pub from_payment_method: String,
+    pub to_payment_method: String,
     pub description: Option<String>,
 }

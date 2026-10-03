@@ -56,6 +56,55 @@ const EXPENSE_SCHEMA: &str = "CREATE TABLE expense_categories(id TEXT PRIMARY KE
 const INCOME_SCHEMA: &str = "CREATE TABLE income_categories(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,parent_category_id TEXT REFERENCES income_categories(id));CREATE TABLE incomes(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,category_id TEXT NOT NULL REFERENCES income_categories(id),transaction_date TEXT NOT NULL,amount TEXT NOT NULL,payment_method_id TEXT,recurring_income_id TEXT,description TEXT);INSERT INTO income_categories(name,description) VALUES('給与',NULL)";
 const RECURRING_EXPENSE_SCHEMA: &str = "CREATE TABLE expense_categories(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,parent_category_id TEXT REFERENCES expense_categories(id),display_order INTEGER NOT NULL DEFAULT 0);CREATE TABLE payment_methods(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,initial_balance TEXT);CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,amount TEXT NOT NULL,payment_day INTEGER NOT NULL,start_date TEXT NOT NULL,end_date TEXT,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),is_active INTEGER NOT NULL,is_variable INTEGER NOT NULL DEFAULT 0,description TEXT,foreign_amount TEXT,currency_code TEXT,exchange_rate TEXT);INSERT INTO expense_categories(name,description) VALUES('住居費',NULL);INSERT INTO payment_methods(name,description) VALUES('口座振替',NULL)";
 const VARIABLE_EXPENSE_SCHEMA: &str = "CREATE TABLE expense_categories(id TEXT PRIMARY KEY,created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,parent_category_id TEXT,display_order INTEGER NOT NULL DEFAULT 0);CREATE TABLE payment_methods(id TEXT PRIMARY KEY,created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,initial_balance TEXT);CREATE TABLE recurring_expenses(id TEXT PRIMARY KEY,created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,amount TEXT NOT NULL,payment_day INTEGER NOT NULL,start_date TEXT NOT NULL,end_date TEXT,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),is_active INTEGER NOT NULL,is_variable INTEGER NOT NULL DEFAULT 0,description TEXT,foreign_amount TEXT,currency_code TEXT,exchange_rate TEXT);CREATE TABLE expenses(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,transaction_date TEXT NOT NULL,amount TEXT NOT NULL,category_id TEXT NOT NULL REFERENCES expense_categories(id),payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),recurring_expense_id TEXT REFERENCES recurring_expenses(id),description TEXT,foreign_amount TEXT,currency_code TEXT,exchange_rate TEXT,exchange_rate_date TEXT);INSERT INTO expense_categories(id,name,description) VALUES('utilities','水道光熱費',NULL),('housing','住居費',NULL);INSERT INTO payment_methods(id,name,description) VALUES('bank','口座振替',NULL),('card','カード',NULL);INSERT INTO recurring_expenses(id,name,amount,payment_day,start_date,end_date,category_id,payment_method_id,is_active,is_variable,description,foreign_amount,currency_code) VALUES('electricity','電気代','',31,'2026-03-01',NULL,'utilities','bank',1,1,'定義メモ',NULL,NULL),('rent','家賃','70000',1,'2020-01-01',NULL,'housing','card',1,0,NULL,NULL,NULL),('inactive-gas','ガス代','',15,'2020-01-01','2020-12-31','utilities','card',0,1,NULL,'30','USD')";
+const TRANSFER_SCHEMA: &str = "CREATE TABLE payment_methods(id TEXT PRIMARY KEY,name TEXT NOT NULL);INSERT INTO payment_methods VALUES('bank','銀行'),('nisa','NISA'),('dup1','重複'),('dup2','重複');CREATE TABLE transfers(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,transaction_date TEXT NOT NULL,amount TEXT NOT NULL,from_payment_method_id TEXT NOT NULL,to_payment_method_id TEXT NOT NULL,description TEXT);";
+
+#[tokio::test]
+async fn transfer_import_preview_is_atomic_and_template_is_importable() {
+    let p = pool(TRANSFER_SCHEMA).await;
+    let app = import::create(p.clone());
+    let csv = "日付,金額,移動元,移動先,メモ\n2026-10-03,30000,銀行,NISA,積立\n";
+    let (status, body) = call(&app, "/api/import/transfers/preview", csv).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["rows"][0]["from_payment_method"], "銀行");
+    assert_eq!(count(&p, "SELECT COUNT(*) FROM transfers").await, 0);
+    let (status, body) = call(&app, "/api/import/transfers", csv).await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+    assert_eq!(count(&p, "SELECT COUNT(*) FROM transfers").await, 1);
+    let (status, _, sample) = get(&app, "/api/import/transfers/sample").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        String::from_utf8(sample)
+            .unwrap()
+            .contains("日付,金額,移動元,移動先,メモ")
+    );
+}
+
+#[tokio::test]
+async fn transfer_import_rejects_unknown_duplicate_same_and_format_without_writes() {
+    for csv in [
+        "日付,金額,移動元,移動先,メモ\n2026-10-03,1,不明,NISA,\n",
+        "日付,金額,移動元,移動先,メモ\n2026-10-03,1,重複,NISA,\n",
+        "日付,金額,移動元,移動先,メモ\n2026-10-03,1,銀行,銀行,\n",
+        "日付,金額,移動元,移動先,メモ\n2026/10/03,0,銀行,NISA,\n",
+    ] {
+        let p = pool(TRANSFER_SCHEMA).await;
+        let app = import::create(p.clone());
+        let (status, body) = call(&app, "/api/import/transfers", csv).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{body}");
+        assert_eq!(count(&p, "SELECT COUNT(*) FROM transfers").await, 0);
+    }
+}
+
+#[tokio::test]
+async fn transfer_import_rejects_amount_over_i64_max_without_writes() {
+    let p = pool(TRANSFER_SCHEMA).await;
+    let app = import::create(p.clone());
+    let csv = "日付,金額,移動元,移動先,メモ\n2026-01-15,18446744073709551615,銀行,NISA,積立\n";
+    let (status, body) = call(&app, "/api/import/transfers", csv).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST, "{body}");
+    assert!(body.to_string().contains("i64"), "{body}");
+    assert_eq!(count(&p, "SELECT COUNT(*) FROM transfers").await, 0);
+}
 
 #[tokio::test]
 async fn download_expense_import_sample() {

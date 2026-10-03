@@ -35,7 +35,7 @@ async fn payment_method_crud() {
         .connect("sqlite::memory:")
         .await
         .unwrap();
-    sqlx::query("PRAGMA foreign_keys = ON; CREATE TABLE payment_methods(id TEXT PRIMARY KEY DEFAULT 'pm-1',created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,initial_balance TEXT);CREATE TABLE expenses(id TEXT PRIMARY KEY,amount TEXT NOT NULL,payment_method_id TEXT NOT NULL REFERENCES payment_methods(id));CREATE TABLE incomes(id TEXT PRIMARY KEY,amount TEXT NOT NULL,payment_method_id TEXT REFERENCES payment_methods(id))").execute(&p).await.unwrap();
+    sqlx::query("PRAGMA foreign_keys = ON; CREATE TABLE payment_methods(id TEXT PRIMARY KEY DEFAULT 'pm-1',created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,initial_balance TEXT,is_investment INTEGER NOT NULL DEFAULT 0);CREATE TABLE expenses(id TEXT PRIMARY KEY,amount TEXT NOT NULL,payment_method_id TEXT NOT NULL REFERENCES payment_methods(id));CREATE TABLE incomes(id TEXT PRIMARY KEY,amount TEXT NOT NULL,payment_method_id TEXT REFERENCES payment_methods(id));CREATE TABLE transfers(id TEXT PRIMARY KEY,amount TEXT NOT NULL,from_payment_method_id TEXT NOT NULL,to_payment_method_id TEXT NOT NULL)").execute(&p).await.unwrap();
     let app = payment_methods::create(p);
     let (s, _) = call(
         &app,
@@ -62,7 +62,7 @@ async fn computes_tracked_balance_from_linked_transactions() {
         .connect("sqlite::memory:")
         .await
         .unwrap();
-    sqlx::query("PRAGMA foreign_keys = ON; CREATE TABLE payment_methods(id TEXT PRIMARY KEY DEFAULT 'pm-1',created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,initial_balance TEXT);CREATE TABLE expenses(id TEXT PRIMARY KEY,amount TEXT NOT NULL,payment_method_id TEXT NOT NULL REFERENCES payment_methods(id));CREATE TABLE incomes(id TEXT PRIMARY KEY,amount TEXT NOT NULL,payment_method_id TEXT REFERENCES payment_methods(id))").execute(&p).await.unwrap();
+    sqlx::query("PRAGMA foreign_keys = ON; CREATE TABLE payment_methods(id TEXT PRIMARY KEY DEFAULT 'pm-1',created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,initial_balance TEXT,is_investment INTEGER NOT NULL DEFAULT 0);CREATE TABLE expenses(id TEXT PRIMARY KEY,amount TEXT NOT NULL,payment_method_id TEXT NOT NULL REFERENCES payment_methods(id));CREATE TABLE incomes(id TEXT PRIMARY KEY,amount TEXT NOT NULL,payment_method_id TEXT REFERENCES payment_methods(id));CREATE TABLE transfers(id TEXT PRIMARY KEY,amount TEXT NOT NULL,from_payment_method_id TEXT NOT NULL,to_payment_method_id TEXT NOT NULL)").execute(&p).await.unwrap();
     let app = payment_methods::create(p.clone());
     let (status, created) = call(
         &app,
@@ -98,7 +98,7 @@ async fn rejects_invalid_initial_balances() {
         .connect("sqlite::memory:")
         .await
         .unwrap();
-    sqlx::query("CREATE TABLE payment_methods(id TEXT PRIMARY KEY DEFAULT 'pm-1',created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,initial_balance TEXT);CREATE TABLE expenses(id TEXT PRIMARY KEY,amount TEXT NOT NULL,payment_method_id TEXT NOT NULL);CREATE TABLE incomes(id TEXT PRIMARY KEY,amount TEXT NOT NULL,payment_method_id TEXT)").execute(&p).await.unwrap();
+    sqlx::query("CREATE TABLE payment_methods(id TEXT PRIMARY KEY DEFAULT 'pm-1',created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,initial_balance TEXT,is_investment INTEGER NOT NULL DEFAULT 0);CREATE TABLE expenses(id TEXT PRIMARY KEY,amount TEXT NOT NULL,payment_method_id TEXT NOT NULL);CREATE TABLE incomes(id TEXT PRIMARY KEY,amount TEXT NOT NULL,payment_method_id TEXT);CREATE TABLE transfers(id TEXT PRIMARY KEY,amount TEXT NOT NULL,from_payment_method_id TEXT NOT NULL,to_payment_method_id TEXT NOT NULL)").execute(&p).await.unwrap();
     let app = payment_methods::create(p);
     for initial_balance in ["-1", "abc"] {
         let (status, _) = call(
@@ -119,7 +119,7 @@ async fn blocks_delete_when_an_income_references_payment_method() {
         .connect("sqlite::memory:")
         .await
         .unwrap();
-    sqlx::query("PRAGMA foreign_keys = ON; CREATE TABLE payment_methods(id TEXT PRIMARY KEY DEFAULT 'pm-1',created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,initial_balance TEXT);CREATE TABLE expenses(id TEXT PRIMARY KEY,amount TEXT NOT NULL,payment_method_id TEXT NOT NULL REFERENCES payment_methods(id));CREATE TABLE incomes(id TEXT PRIMARY KEY,amount TEXT NOT NULL,payment_method_id TEXT REFERENCES payment_methods(id));INSERT INTO payment_methods(name) VALUES('Bank');INSERT INTO incomes VALUES('i-1','500','pm-1')").execute(&p).await.unwrap();
+    sqlx::query("PRAGMA foreign_keys = ON; CREATE TABLE payment_methods(id TEXT PRIMARY KEY DEFAULT 'pm-1',created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,initial_balance TEXT,is_investment INTEGER NOT NULL DEFAULT 0);CREATE TABLE expenses(id TEXT PRIMARY KEY,amount TEXT NOT NULL,payment_method_id TEXT NOT NULL REFERENCES payment_methods(id));CREATE TABLE incomes(id TEXT PRIMARY KEY,amount TEXT NOT NULL,payment_method_id TEXT REFERENCES payment_methods(id));CREATE TABLE transfers(id TEXT PRIMARY KEY,amount TEXT NOT NULL,from_payment_method_id TEXT NOT NULL,to_payment_method_id TEXT NOT NULL);INSERT INTO payment_methods(name) VALUES('Bank');INSERT INTO incomes VALUES('i-1','500','pm-1')").execute(&p).await.unwrap();
     let app = payment_methods::create(p);
     let (status, body) = call(&app, "DELETE", "/api/payment-methods/pm-1", None).await;
     assert_eq!(status, StatusCode::BAD_REQUEST, "{body:?}");
@@ -127,6 +127,27 @@ async fn blocks_delete_when_an_income_references_payment_method() {
         body.unwrap()["message"]
             .as_str()
             .unwrap()
-            .contains("expense or income")
+            .contains("expense, income, or transfer")
+    );
+}
+
+#[tokio::test]
+async fn transfer_updates_balances_and_blocks_payment_method_delete() {
+    let p = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect("sqlite::memory:")
+        .await
+        .unwrap();
+    sqlx::query("CREATE TABLE payment_methods(id TEXT PRIMARY KEY,created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,name TEXT NOT NULL,description TEXT,initial_balance TEXT,is_investment INTEGER NOT NULL DEFAULT 0);CREATE TABLE expenses(id TEXT PRIMARY KEY,amount TEXT NOT NULL,payment_method_id TEXT NOT NULL);CREATE TABLE incomes(id TEXT PRIMARY KEY,amount TEXT NOT NULL,payment_method_id TEXT);CREATE TABLE transfers(id TEXT PRIMARY KEY,amount TEXT NOT NULL,from_payment_method_id TEXT NOT NULL,to_payment_method_id TEXT NOT NULL);INSERT INTO payment_methods(id,name,initial_balance) VALUES('bank','Bank','1000'),('nisa','NISA','0');INSERT INTO transfers VALUES('t1','300','bank','nisa')").execute(&p).await.unwrap();
+    let app = payment_methods::create(p);
+    let (_, bank) = call(&app, "GET", "/api/payment-methods/bank", None).await;
+    assert_eq!(bank.unwrap()["balance"], "700");
+    let (_, nisa) = call(&app, "GET", "/api/payment-methods/nisa", None).await;
+    assert_eq!(nisa.unwrap()["balance"], "300");
+    assert_eq!(
+        call(&app, "DELETE", "/api/payment-methods/bank", None)
+            .await
+            .0,
+        StatusCode::BAD_REQUEST
     );
 }

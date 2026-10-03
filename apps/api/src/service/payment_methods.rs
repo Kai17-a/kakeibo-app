@@ -60,7 +60,7 @@ impl PaymentMethodService {
     pub async fn delete(&self, id: &str) -> AppResult<()> {
         if self.repository.is_referenced_by_transactions(id).await? {
             return Err(AppError::bad_request(
-                "payment method is used by an expense or income and cannot be deleted",
+                "payment method is used by an expense, income, or transfer and cannot be deleted",
             ));
         }
         if self.repository.delete(id).await? {

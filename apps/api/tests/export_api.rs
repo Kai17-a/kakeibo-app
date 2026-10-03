@@ -63,3 +63,18 @@ async fn export_incomes_csv() {
         "\u{feff}日付,金額,カテゴリ,メモ\n2026-07-25,300000,給与,7月分\n"
     );
 }
+#[tokio::test]
+async fn export_transfers_csv() {
+    let p = pool("CREATE TABLE payment_methods(id TEXT PRIMARY KEY,name TEXT NOT NULL);CREATE TABLE transfers(id TEXT PRIMARY KEY,created_at TEXT NOT NULL DEFAULT current_timestamp,transaction_date TEXT NOT NULL,amount TEXT NOT NULL,from_payment_method_id TEXT NOT NULL,to_payment_method_id TEXT NOT NULL,description TEXT);INSERT INTO payment_methods VALUES('bank','銀行'),('nisa','NISA');INSERT INTO transfers(id,transaction_date,amount,from_payment_method_id,to_payment_method_id,description) VALUES('t1','2026-10-03','30000','bank','nisa','積立')").await;
+    let app = export::create(p);
+    let (status, headers, body) = call(&app, "/api/export/transfers").await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(
+        headers["content-disposition"],
+        "attachment; filename=\"transfers.csv\""
+    );
+    assert_eq!(
+        body,
+        "\u{feff}日付,金額,移動元,移動先,メモ\n2026-10-03,30000,銀行,NISA,積立\n"
+    );
+}

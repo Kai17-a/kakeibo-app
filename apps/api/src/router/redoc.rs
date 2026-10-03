@@ -6,7 +6,7 @@ use utoipa_redoc::{Redoc, Servable};
 use crate::{
     handler::{
         backup, budgets, expense_categories, expenses, export, health, import, income_categories,
-        incomes, payment_methods, recurring_expenses, recurring_incomes,
+        incomes, payment_methods, recurring_expenses, recurring_incomes, transfers,
     },
     model::budgets::{Budget, BudgetUpsertRequest},
     model::expense_categories::{
@@ -18,7 +18,7 @@ use crate::{
     model::health::Health,
     model::import::{
         ExpenseImportPreview, ImportResult, IncomeImportPreview, RecurringExpenseImportPreview,
-        VariableExpenseImportPreview,
+        TransferImportPreview, VariableExpenseImportPreview,
     },
     model::income_categories::{
         IncomeCategory, IncomeCategoryListResponse, IncomeCategoryPagination,
@@ -37,6 +37,7 @@ use crate::{
         BackfillResponse, PendingMonthsResponse, RecurringExpense, RecurringExpenseUpsertRequest,
     },
     model::recurring_incomes::{RecurringIncome, RecurringIncomeUpsertRequest},
+    model::transfers::{Transfer, TransferUpsertRequest},
 };
 
 #[derive(OpenApi)]
@@ -59,8 +60,14 @@ use crate::{
         expenses::create,
         expenses::update,
         expenses::delete,
+        transfers::list,
+        transfers::get,
+        transfers::create,
+        transfers::update,
+        transfers::delete,
         export::expenses,
         export::incomes,
+        export::transfers,
         import::expenses,
         import::preview_expenses,
         import::incomes,
@@ -69,6 +76,8 @@ use crate::{
         import::preview_recurring_expenses,
         import::variable_expenses,
         import::preview_variable_expenses,
+        import::transfers,
+        import::preview_transfers,
         payment_methods::list,
         payment_methods::get,
         payment_methods::create,
@@ -116,6 +125,9 @@ use crate::{
         IncomeImportPreview,
         RecurringExpenseImportPreview,
         VariableExpenseImportPreview,
+        TransferImportPreview,
+        Transfer,
+        TransferUpsertRequest,
         PaymentMethod,
         PaymentMethodUpsertRequest,
         PaymentMethodListResponse,
@@ -154,6 +166,7 @@ use crate::{
         (name = "収入", description = "収入の登録・参照・更新・削除"),
         (name = "収入カテゴリ", description = "収入カテゴリの管理"),
         (name = "支出", description = "支出の登録・参照・更新・削除"),
+        (name = "振替", description = "資産移動の登録・参照・更新・削除"),
         (name = "支出カテゴリ", description = "支出カテゴリの管理"),
         (name = "エクスポート", description = "収支データのCSVエクスポート"),
         (name = "インポート", description = "収支データのCSVインポート"),
@@ -193,8 +206,9 @@ fn tag_for_path(path: &str) -> &'static str {
         "/api/incomes" | "/api/incomes/{id}" => "収入",
         "/api/income-categories" | "/api/income-categories/{id}" => "収入カテゴリ",
         "/api/expenses" | "/api/expenses/{id}" => "支出",
+        "/api/transfers" | "/api/transfers/{id}" => "振替",
         "/api/expense-categories" | "/api/expense-categories/{id}" => "支出カテゴリ",
-        "/api/export/expenses" | "/api/export/incomes" => "エクスポート",
+        "/api/export/expenses" | "/api/export/incomes" | "/api/export/transfers" => "エクスポート",
         "/api/import/expenses"
         | "/api/import/expenses/preview"
         | "/api/import/incomes"
@@ -202,7 +216,9 @@ fn tag_for_path(path: &str) -> &'static str {
         | "/api/import/recurring-expenses"
         | "/api/import/recurring-expenses/preview"
         | "/api/import/variable-expenses"
-        | "/api/import/variable-expenses/preview" => "インポート",
+        | "/api/import/variable-expenses/preview"
+        | "/api/import/transfers"
+        | "/api/import/transfers/preview" => "インポート",
         "/api/payment-methods" | "/api/payment-methods/{id}" => "支払方法",
         "/api/recurring-expenses"
         | "/api/recurring-expenses/{id}"

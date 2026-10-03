@@ -1,5 +1,5 @@
 use crate::{
-    model::export::{ExpenseCsvRecord, IncomeCsvRecord},
+    model::export::{ExpenseCsvRecord, IncomeCsvRecord, TransferCsvRecord},
     repository::export::ExportRepository,
     utils::error::{AppError, AppResult},
 };
@@ -32,6 +32,17 @@ impl ExportService {
             .map(Into::into)
             .collect::<Vec<IncomeCsvRecord>>();
         to_csv(&records)
+    }
+    pub async fn transfers_csv(&self) -> AppResult<String> {
+        to_csv(
+            &self
+                .repository
+                .find_transfers()
+                .await?
+                .into_iter()
+                .map(Into::into)
+                .collect::<Vec<TransferCsvRecord>>(),
+        )
     }
 }
 fn to_csv<T: Serialize>(records: &[T]) -> AppResult<String> {

@@ -4,11 +4,13 @@ use crate::{
         import::{
             ExpenseCsvRow, ExpenseImportPreview, ExpensePreviewRow, ImportResult, IncomeCsvRow,
             IncomeImportPreview, IncomePreviewRow, RecurringExpenseCsvRow,
-            RecurringExpenseImportPreview, RecurringExpensePreviewRow, VariableExpenseCsvRow,
+            RecurringExpenseImportPreview, RecurringExpensePreviewRow, TransferCsvRow,
+            TransferImportPreview, TransferPreviewRow, VariableExpenseCsvRow,
             VariableExpenseDefinition, VariableExpenseImportPreview, VariableExpensePreviewRow,
         },
         incomes::IncomeUpsertRequest,
         recurring_expenses::RecurringExpenseUpsertRequest,
+        transfers::TransferUpsertRequest,
     },
     repository::import::ImportRepository,
     utils::error::{AppError, AppResult},
@@ -33,6 +35,7 @@ const RECURRING_EXPENSE_HEADERS: &[&str] = &[
     "備考",
 ];
 const VARIABLE_EXPENSE_HEADERS: &[&str] = &["年月", "名称", "金額", "メモ"];
+const TRANSFER_HEADERS: &[&str] = &["日付", "金額", "移動元", "移動先", "メモ"];
 const EXPENSE_SAMPLE_ROW: &[&str] = &["2026-01-15", "1200", "食費", "現金", "昼食"];
 const INCOME_SAMPLE_ROW: &[&str] = &["2026-01-15", "300000", "給与", "1月分"];
 const RECURRING_EXPENSE_SAMPLE_ROW: &[&str] = &[
@@ -62,6 +65,13 @@ const VARIABLE_RECURRING_EXPENSE_SAMPLE_ROW: &[&str] = &[
     "金額は毎月入力",
 ];
 const VARIABLE_EXPENSE_SAMPLE_ROW: &[&str] = &["2026-01", "電気代", "12000", "1月分"];
+const TRANSFER_SAMPLE_ROW: &[&str] = &[
+    "2026-01-15",
+    "30000",
+    "クレジットカード",
+    "NISA口座",
+    "積立",
+];
 const MAX_REPORTED_ERRORS: usize = 3;
 #[derive(Clone)]
 pub struct ImportService {
@@ -91,6 +101,98 @@ impl ImportService {
 
     pub fn variable_expense_sample_csv() -> String {
         sample_csv(VARIABLE_EXPENSE_HEADERS, VARIABLE_EXPENSE_SAMPLE_ROW)
+    }
+    pub fn transfer_sample_csv() -> String {
+        sample_csv(TRANSFER_HEADERS, TRANSFER_SAMPLE_ROW)
+    }
+
+    pub async fn preview_transfers(&self, csv_text: &str) -> AppResult<TransferImportPreview> {
+        let rows = parse_csv::<TransferCsvRow>(csv_text, TRANSFER_HEADERS)?;
+        validate_transfers(&rows)?;
+        let mut tx = self.repository.begin().await?;
+        let prepared = self.prepare_transfers(&mut tx, &rows).await?;
+        let preview = prepared
+            .into_iter()
+            .map(|(row, _)| TransferPreviewRow {
+                transaction_date: row.transaction_date.trim().to_owned(),
+                amount: row.amount.trim().to_owned(),
+                from_payment_method: row.from_payment_method.trim().to_owned(),
+                to_payment_method: row.to_payment_method.trim().to_owned(),
+                description: row.description.clone(),
+            })
+            .collect();
+        tx.rollback().await?;
+        Ok(TransferImportPreview { rows: preview })
+    }
+
+    pub async fn import_transfers(&self, csv_text: &str) -> AppResult<ImportResult> {
+        let rows = parse_csv::<TransferCsvRow>(csv_text, TRANSFER_HEADERS)?;
+        validate_transfers(&rows)?;
+        let mut tx = self.repository.begin().await?;
+        let prepared = self.prepare_transfers(&mut tx, &rows).await?;
+        for (_, request) in &prepared {
+            self.repository.insert_transfer(&mut tx, request).await?;
+        }
+        tx.commit().await?;
+        Ok(ImportResult {
+            imported: prepared.len(),
+            created_categories: Vec::new(),
+            created_payment_methods: Vec::new(),
+        })
+    }
+
+    async fn prepare_transfers(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Sqlite>,
+        rows: &[TransferCsvRow],
+    ) -> AppResult<Vec<(TransferCsvRow, TransferUpsertRequest)>> {
+        let mut prepared = Vec::with_capacity(rows.len());
+        let mut errors = Vec::new();
+        for (index, row) in rows.iter().enumerate() {
+            let line = index + 2;
+            let from_name = row.from_payment_method.trim();
+            let to_name = row.to_payment_method.trim();
+            let from = self
+                .repository
+                .find_payment_method_ids(tx, from_name)
+                .await?;
+            let to = self.repository.find_payment_method_ids(tx, to_name).await?;
+            if from.is_empty() {
+                errors.push(format!("{line}行目: 移動元「{from_name}」が見つかりません"));
+            } else if from.len() > 1 {
+                errors.push(format!(
+                    "{line}行目: 移動元「{from_name}」が複数あり特定できません"
+                ));
+            }
+            if to.is_empty() {
+                errors.push(format!("{line}行目: 移動先「{to_name}」が見つかりません"));
+            } else if to.len() > 1 {
+                errors.push(format!(
+                    "{line}行目: 移動先「{to_name}」が複数あり特定できません"
+                ));
+            }
+            if from_name == to_name {
+                errors.push(format!(
+                    "{line}行目: 移動元と移動先は異なる支払方法を指定してください"
+                ));
+            }
+            if let ([from_id], [to_id]) = (from.as_slice(), to.as_slice())
+                && from_id != to_id
+            {
+                prepared.push((
+                    row.clone(),
+                    TransferUpsertRequest {
+                        transaction_date: row.transaction_date.trim().to_owned(),
+                        amount: row.amount.trim().to_owned(),
+                        from_payment_method_id: from_id.clone(),
+                        to_payment_method_id: to_id.clone(),
+                        description: row.description.clone(),
+                    },
+                ));
+            }
+        }
+        validate_all(std::iter::once(errors))?;
+        Ok(prepared)
     }
 
     pub async fn preview_expenses(&self, csv_text: &str) -> AppResult<ExpenseImportPreview> {
@@ -642,6 +744,32 @@ fn validate_variable_expenses(rows: &[VariableExpenseCsvRow]) -> AppResult<()> {
         if !is_positive_integer(&row.amount) {
             errors.push(format!(
                 "{row_number}行目: 金額「{}」は1以上の整数で指定してください",
+                row.amount
+            ));
+        }
+        errors
+    }))
+}
+
+fn validate_transfers(rows: &[TransferCsvRow]) -> AppResult<()> {
+    validate_all(rows.iter().enumerate().map(|(index, row)| {
+        let mut errors = Vec::new();
+        validate_row(
+            index + 2,
+            &row.transaction_date,
+            &row.amount,
+            &[
+                ("移動元", &row.from_payment_method),
+                ("移動先", &row.to_payment_method),
+            ],
+            &mut errors,
+        );
+        if matches!(row.amount.trim().parse::<u64>(), Ok(value) if value >= 1)
+            && !crate::service::transfers::is_valid_amount(row.amount.trim())
+        {
+            errors.push(format!(
+                "{}行目: 金額「{}」はi64の範囲内で指定してください",
+                index + 2,
                 row.amount
             ));
         }

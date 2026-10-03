@@ -14,3 +14,11 @@ pub struct IncomeExportRow {
     pub category_name: String,
     pub description: Option<String>,
 }
+#[derive(Debug, Clone, FromRow)]
+pub struct TransferExportRow {
+    pub transaction_date: String,
+    pub amount: String,
+    pub from_payment_method_name: String,
+    pub to_payment_method_name: String,
+    pub description: Option<String>,
+}

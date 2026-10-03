@@ -2,6 +2,7 @@ use crate::{
     model::{
         expenses::ExpenseUpsertRequest, import::VariableExpenseDefinition,
         incomes::IncomeUpsertRequest, recurring_expenses::RecurringExpenseUpsertRequest,
+        transfers::TransferUpsertRequest,
     },
     utils::error::AppResult,
 };
@@ -52,6 +53,21 @@ impl ImportRepository {
             name,
         )
         .await
+    }
+    pub async fn find_payment_method_ids(
+        &self,
+        tx: &mut Transaction<'_, Sqlite>,
+        name: &str,
+    ) -> AppResult<Vec<String>> {
+        Ok(
+            sqlx::query("SELECT id FROM payment_methods WHERE name = ? ORDER BY id")
+                .bind(name)
+                .fetch_all(&mut **tx)
+                .await?
+                .into_iter()
+                .map(|row| row.get("id"))
+                .collect(),
+        )
     }
     pub async fn find_recurring_expenses_by_name(
         &self,
@@ -180,6 +196,21 @@ impl ImportRepository {
             .bind(&v.foreign_amount)
             .bind(&v.currency_code)
             .bind(&v.exchange_rate)
+            .fetch_one(&mut **tx)
+            .await?;
+        Ok(())
+    }
+    pub async fn insert_transfer(
+        &self,
+        tx: &mut Transaction<'_, Sqlite>,
+        value: &TransferUpsertRequest,
+    ) -> AppResult<()> {
+        sqlx::query(include_str!("../../queries/transfers/insert.sql"))
+            .bind(&value.transaction_date)
+            .bind(&value.amount)
+            .bind(&value.from_payment_method_id)
+            .bind(&value.to_payment_method_id)
+            .bind(&value.description)
             .fetch_one(&mut **tx)
             .await?;
         Ok(())

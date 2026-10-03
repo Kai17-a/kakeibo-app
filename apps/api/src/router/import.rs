@@ -49,5 +49,14 @@ pub fn create(pool: SqlitePool) -> Router {
             "/api/import/variable-expenses/sample",
             get(handler::variable_expense_sample),
         )
+        .route("/api/import/transfers", post(handler::transfers))
+        .route(
+            "/api/import/transfers/preview",
+            post(handler::preview_transfers),
+        )
+        .route(
+            "/api/import/transfers/sample",
+            get(handler::transfer_sample),
+        )
         .with_state(state)
 }

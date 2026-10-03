@@ -12,5 +12,6 @@ pub fn create(pool: SqlitePool) -> Router {
     Router::new()
         .route("/api/export/expenses", get(handler::expenses))
         .route("/api/export/incomes", get(handler::incomes))
+        .route("/api/export/transfers", get(handler::transfers))
         .with_state(state)
 }
