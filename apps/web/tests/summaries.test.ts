@@ -18,6 +18,7 @@ import {
   mergeTransactions,
   paymentMethodBalanceTrend,
   recurringForecast,
+  recurringPostedAmounts,
   sumAmounts,
 } from "../app/utils/summaries.ts";
 
@@ -227,6 +228,50 @@ test("recurringForecast uses USD previews and skips USD items without one", () =
     income: 0,
     expensesByCategory: new Map(),
   });
+});
+
+test("recurringPostedAmounts sums recurring transactions only in the selected month", () => {
+  const result = recurringPostedAmounts(
+    [
+      expense({
+        id: "e-first",
+        transaction_date: "2026-09-01",
+        amount: "1200",
+        recurring_expense_id: "electricity",
+      }),
+      expense({
+        id: "e-second",
+        transaction_date: "2026-09-30",
+        amount: "800",
+        recurring_expense_id: "electricity",
+      }),
+      expense({
+        id: "e-other-month",
+        transaction_date: "2026-10-01",
+        amount: "9999",
+        recurring_expense_id: "electricity",
+      }),
+      expense({ id: "e-one-off", transaction_date: "2026-09-15", amount: "500" }),
+    ],
+    [
+      income({
+        id: "i-first",
+        transaction_date: "2026-09-10",
+        amount: "10000",
+        recurring_income_id: "commission",
+      }),
+      income({
+        id: "i-second",
+        transaction_date: "2026-09-20",
+        amount: "5000",
+        recurring_income_id: "commission",
+      }),
+    ],
+    "2026-09",
+  );
+
+  assert.deepEqual([...result.expenses], [["electricity", 2000]]);
+  assert.deepEqual([...result.incomes], [["commission", 15000]]);
 });
 
 test("categoryTotals preserves category order and includes zero totals", () => {

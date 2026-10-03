@@ -9,6 +9,9 @@ const props = defineProps<{
   recurringIncomes: RecurringIncome[];
   /** This month's JPY conversion of fixed USD recurring expenses, keyed by recurring expense id. */
   usdPreviews: Map<string, ExchangeRatePreview>;
+  /** Amounts already recorded for the displayed month, keyed by recurring item id. */
+  postedExpenseAmounts: Map<string, number>;
+  postedIncomeAmounts: Map<string, number>;
 }>();
 
 const emit = defineEmits<{
@@ -76,7 +79,12 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
               ></small
             >
           </span>
+          <span v-if="postedExpenseAmounts.has(item.id)" class="text-right">
+            <b class="block">{{ formatCurrency(postedExpenseAmounts.get(item.id) ?? 0) }}</b>
+            <small class="text-muted">登録済み</small>
+          </span>
           <UButton
+            v-else
             color="neutral"
             variant="outline"
             size="sm"
@@ -125,7 +133,12 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
               ></small
             >
           </span>
+          <span v-if="postedIncomeAmounts.has(item.id)" class="text-right">
+            <b class="block">{{ formatCurrency(postedIncomeAmounts.get(item.id) ?? 0) }}</b>
+            <small class="text-muted">登録済み</small>
+          </span>
           <UButton
+            v-else
             color="neutral"
             variant="outline"
             size="sm"

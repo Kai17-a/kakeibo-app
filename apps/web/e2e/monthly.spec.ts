@@ -5,6 +5,7 @@ import {
   category,
   currentMonth as month,
   expense,
+  income,
   incomeCategory,
   isoNow,
   listOf,
@@ -27,6 +28,21 @@ const usdVariableRecurring = recurringExpense({
   foreign_amount: "10",
   currency_code: "USD",
 });
+
+const variableRecurringIncome = {
+  id: "recurring-income-1",
+  name: "副業",
+  amount: null,
+  payment_day: 25,
+  start_date: "2026-01-01",
+  end_date: null,
+  category_id: "income-category-1",
+  is_active: true,
+  is_variable: true,
+  description: null,
+  created_at: isoNow,
+  updated_at: isoNow,
+};
 
 function baseResponses(overrides: MockResponses = {}): MockResponses {
   return {
@@ -88,7 +104,14 @@ test("収支を登録する", async ({ page }) => {
 
 test("準固定費の今月分を登録する", async ({ page }) => {
   const { captured, handlers } = captureExpenseCreation();
-  await mockMonthlyApi(page, {}, handlers);
+  await mockMonthlyApi(
+    page,
+    {},
+    {
+      ...handlers,
+      "DELETE /api/expenses/expense-1": () => ({ status: 204 }),
+    },
+  );
 
   await page.goto("/monthly");
   await expect(page.getByText("準固定費（金額変動）")).toBeVisible();
@@ -100,6 +123,40 @@ test("準固定費の今月分を登録する", async ({ page }) => {
 
   await expect(page.getByText("支出を登録しました", { exact: true })).toBeVisible();
   expect(captured.body).toMatchObject({ amount: "7500", recurring_expense_id: "recurring-1" });
+  await expect(page.getByRole("button", { name: "電気代の今月分を登録" })).toHaveCount(0);
+  await expect(page.getByText("登録済み", { exact: true })).toBeVisible();
+  await expect(page.getByText("￥7,500", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "電気代の操作" }).click();
+  await page.getByRole("menuitem", { name: "削除" }).click();
+  await page.getByRole("button", { name: "削除", exact: true }).click();
+
+  await expect(page.getByText("明細を削除しました", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "電気代の今月分を登録" })).toBeVisible();
+  await expect(page.getByText("登録済み", { exact: true })).toHaveCount(0);
+});
+
+test("登録済みの準固定費・準固定収入は今月分の登録ボタンを表示しない", async ({ page }) => {
+  await mockMonthlyApi(page, {
+    "/api/expenses": [expense({ amount: "7500", recurring_expense_id: "recurring-1" })],
+    "/api/incomes": listOf([
+      income({ amount: "12000", recurring_income_id: "recurring-income-1" }),
+    ]),
+    "/api/recurring-expenses": [
+      variableRecurring,
+      { ...variableRecurringWithoutEstimate, id: "recurring-2" },
+    ],
+    "/api/recurring-incomes": [variableRecurringIncome],
+  });
+
+  await page.goto("/monthly");
+  await expect(page.getByText("準固定収入（金額変動）")).toBeVisible();
+  await expect(page.getByRole("button", { name: "電気代の今月分を登録" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "副業の今月分を登録" })).toHaveCount(0);
+  await expect(page.getByText("登録済み", { exact: true })).toHaveCount(2);
+  await expect(page.getByText("￥7,500", { exact: true })).toBeVisible();
+  await expect(page.getByText("￥12,000", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "水道代の今月分を登録" })).toBeVisible();
 });
 
 test("目安なしの準固定費は空の金額で今月分を登録できる", async ({ page }) => {

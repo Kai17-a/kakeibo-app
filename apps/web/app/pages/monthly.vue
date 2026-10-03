@@ -6,6 +6,7 @@ import {
   inPeriod,
   mergeTransactions,
   recurringForecast,
+  recurringPostedAmounts,
   sumAmounts,
   type Transaction,
 } from "~/utils/summaries";
@@ -59,6 +60,9 @@ const projectedExpenseTotal = computed(() => expenseTotal.value + forecast.value
 const projectedIncomeTotal = computed(() => incomeTotal.value + forecast.value.income);
 const transactions = computed(() => mergeTransactions(monthExpenses.value, monthIncomes.value));
 const transactionGroups = computed(() => groupTransactionsByDate(transactions.value));
+const postedRecurringAmounts = computed(() =>
+  recurringPostedAmounts(monthExpenses.value, monthIncomes.value, month.value),
+);
 
 const activeRecurringExpenses = computed(() =>
   recurringExpenses.value.filter((item) => item.is_active),
@@ -182,6 +186,8 @@ const {
                   :recurring-expenses="activeRecurringExpenses"
                   :recurring-incomes="activeRecurringIncomes"
                   :usd-previews="usdRecurringPreviews"
+                  :posted-expense-amounts="postedRecurringAmounts.expenses"
+                  :posted-income-amounts="postedRecurringAmounts.incomes"
                   @register-expense="registerRecurringExpense"
                   @register-income="registerRecurringIncome"
                 />

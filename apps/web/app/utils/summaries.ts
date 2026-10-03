@@ -23,29 +23,20 @@ export function recurringForecast(
   month: string,
   usdRecurringPreviews: Map<string, { converted_amount: string }> = new Map(),
 ) {
-  const postedExpenseIds = new Set(
-    inPeriod(expenses, month).flatMap((item) =>
-      item.recurring_expense_id ? [item.recurring_expense_id] : [],
-    ),
-  );
-  const postedIncomeIds = new Set(
-    inPeriod(incomes, month).flatMap((item) =>
-      item.recurring_income_id ? [item.recurring_income_id] : [],
-    ),
-  );
+  const postedAmounts = recurringPostedAmounts(expenses, incomes, month);
   const projectedExpenses = recurringExpenses.filter(
     (item) =>
       item.is_active &&
       !item.is_variable &&
       activeInMonth(item, month) &&
-      !postedExpenseIds.has(item.id),
+      !postedAmounts.expenses.has(item.id),
   );
   const projectedIncomes = recurringIncomes.filter(
     (item) =>
       item.is_active &&
       !item.is_variable &&
       activeInMonth(item, month) &&
-      !postedIncomeIds.has(item.id),
+      !postedAmounts.incomes.has(item.id),
   );
   const expensesByCategory = new Map<string, number>();
   let projectedExpenseTotal = 0;
@@ -67,6 +58,28 @@ export function recurringForecast(
     income: projectedIncomes.reduce((sum, item) => sum + Number(item.amount ?? 0), 0),
     expensesByCategory,
   };
+}
+
+export function recurringPostedAmounts(expenses: Expense[], incomes: Income[], month: string) {
+  const postedExpenses = new Map<string, number>();
+  for (const item of inPeriod(expenses, month)) {
+    if (!item.recurring_expense_id) continue;
+    postedExpenses.set(
+      item.recurring_expense_id,
+      (postedExpenses.get(item.recurring_expense_id) ?? 0) + Number(item.amount ?? 0),
+    );
+  }
+
+  const postedIncomes = new Map<string, number>();
+  for (const item of inPeriod(incomes, month)) {
+    if (!item.recurring_income_id) continue;
+    postedIncomes.set(
+      item.recurring_income_id,
+      (postedIncomes.get(item.recurring_income_id) ?? 0) + Number(item.amount ?? 0),
+    );
+  }
+
+  return { expenses: postedExpenses, incomes: postedIncomes };
 }
 
 export type Transaction = (Expense & { kind: "expense" }) | (Income & { kind: "income" });
