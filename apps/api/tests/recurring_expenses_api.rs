@@ -195,6 +195,24 @@ async fn preview_pool() -> sqlx::SqlitePool {
     pool
 }
 
+/// Months from `from` (YYYY-MM) through last month, which is the range a backfill covers.
+async fn months_through_last_month(pool: &sqlx::SqlitePool, from: &str) -> Vec<String> {
+    sqlx::query_scalar(
+        "WITH RECURSIVE months(first_day) AS (\
+           SELECT ?1 || '-01' \
+           UNION ALL \
+           SELECT date(first_day, '+1 month') FROM months \
+           WHERE first_day < date('now', 'localtime', 'start of month', '-1 month')\
+         ) \
+         SELECT strftime('%Y-%m', first_day) FROM months \
+         WHERE first_day <= date('now', 'localtime', 'start of month', '-1 month')",
+    )
+    .bind(from)
+    .fetch_all(pool)
+    .await
+    .unwrap()
+}
+
 async fn insert_usd_recurring(pool: &sqlx::SqlitePool) {
     sqlx::query("INSERT INTO recurring_expenses(id,name,amount,payment_day,start_date,category_id,payment_method_id,is_active,is_variable,foreign_amount,currency_code) VALUES('usd','Cloud','0',1,'2026-01-01','ec','pm',1,0,'10','USD')")
         .execute(pool)
@@ -213,6 +231,7 @@ async fn pending_months_excludes_existing_months_and_backfill_is_idempotent() {
         .execute(&pool)
         .await
         .unwrap();
+    let expected_months = months_through_last_month(&pool, "2026-01").await;
     let app = recurring_expenses::create_with_exchange_rate_provider(
         pool.clone(),
         Arc::new(FixedRateProvider),
@@ -229,11 +248,14 @@ async fn pending_months_excludes_existing_months_and_backfill_is_idempotent() {
     let months = body.unwrap()["months"].as_array().unwrap().clone();
     assert!(!months.iter().any(|month| month == "2026-03"));
     assert_eq!(months.first().unwrap(), "2026-01");
-    assert_eq!(months.last().unwrap(), "2026-08");
+    assert_eq!(months.last().unwrap(), expected_months.last().unwrap());
 
     let (status, body) = call(&app, "POST", "/api/recurring-expenses/jpy/backfill", None).await;
     assert_eq!(status, StatusCode::OK, "{body:?}");
-    assert_eq!(body.unwrap()["created"].as_array().unwrap().len(), 7);
+    assert_eq!(
+        body.unwrap()["created"].as_array().unwrap().len(),
+        expected_months.len() - 1
+    );
     let (status, body) = call(&app, "POST", "/api/recurring-expenses/jpy/backfill", None).await;
     assert_eq!(status, StatusCode::OK, "{body:?}");
     assert!(body.unwrap()["created"].as_array().unwrap().is_empty());
@@ -242,7 +264,7 @@ async fn pending_months_excludes_existing_months_and_backfill_is_idempotent() {
             .fetch_one(&pool)
             .await
             .unwrap();
-    assert_eq!(count, 8);
+    assert_eq!(count, expected_months.len() as i64);
 }
 
 #[tokio::test]
@@ -256,9 +278,13 @@ async fn usd_backfill_uses_exchange_rate_and_variable_backfill_is_rejected() {
         pool.clone(),
         Arc::new(FixedRateProvider),
     );
+    let expected_months = months_through_last_month(&pool, "2026-07").await;
     let (status, body) = call(&app, "POST", "/api/recurring-expenses/usd/backfill", None).await;
     assert_eq!(status, StatusCode::OK, "{body:?}");
-    assert_eq!(body.unwrap()["created"].as_array().unwrap().len(), 2);
+    assert_eq!(
+        body.unwrap()["created"].as_array().unwrap().len(),
+        expected_months.len()
+    );
     let rows: Vec<(String, String, Option<String>)> = sqlx::query_as(
         "SELECT strftime('%Y-%m', transaction_date), amount, exchange_rate FROM expenses WHERE recurring_expense_id = 'usd' ORDER BY transaction_date",
     )
@@ -267,10 +293,10 @@ async fn usd_backfill_uses_exchange_rate_and_variable_backfill_is_rejected() {
     .unwrap();
     assert_eq!(
         rows,
-        vec![
-            ("2026-07".into(), "1505".into(), Some("150.5".into())),
-            ("2026-08".into(), "1505".into(), Some("150.5".into()))
-        ]
+        expected_months
+            .into_iter()
+            .map(|month| (month, "1505".into(), Some("150.5".into())))
+            .collect::<Vec<_>>()
     );
 
     assert_eq!(
@@ -298,7 +324,10 @@ async fn usd_backfill_skips_months_when_exchange_rate_resolution_fails() {
     assert_eq!(status, StatusCode::OK, "{body:?}");
     let body = body.unwrap();
     assert!(body["created"].as_array().unwrap().is_empty());
-    assert_eq!(body["skipped"].as_array().unwrap().len(), 8);
+    assert_eq!(
+        body["skipped"].as_array().unwrap().len(),
+        months_through_last_month(&pool, "2026-01").await.len()
+    );
     let (count,): (i64,) = sqlx::query_as("SELECT count(*) FROM expenses")
         .fetch_one(&pool)
         .await
