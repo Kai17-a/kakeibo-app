@@ -6,14 +6,18 @@ use sqlx::{
 };
 use tracing::{info, instrument};
 
-static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
+pub(crate) static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
 
 #[instrument(name = "database.migrate", skip_all)]
 pub async fn connect() -> AppResult<SqlitePool> {
+    connect_path("kakeibo.db").await
+}
+
+pub async fn connect_path(path: impl AsRef<std::path::Path>) -> AppResult<SqlitePool> {
     info!("Opening database");
 
     let options = SqliteConnectOptions::new()
-        .filename("kakeibo.db")
+        .filename(path)
         .create_if_missing(true)
         .foreign_keys(true);
 

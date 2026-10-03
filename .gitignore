@@ -8,6 +8,7 @@
 
 *.db
 *.sqlite
+.restore-backups/
 
 # Personal financial data exports (never commit household data)
 /過去データ/

@@ -44,6 +44,7 @@ use crate::{
 #[openapi(
     paths(
         backup::get,
+        backup::restore,
         budgets::list,
         budgets::get,
         budgets::create,
@@ -127,6 +128,7 @@ use crate::{
         VariableExpenseImportPreview,
         TransferImportPreview,
         Transfer,
+        backup::RestoreResponse,
         TransferUpsertRequest,
         PaymentMethod,
         PaymentMethodUpsertRequest,
@@ -202,7 +204,7 @@ fn set_operation(operation: &mut Option<Operation>, tag: &str, summary: &str) {
 
 fn tag_for_path(path: &str) -> &'static str {
     match path {
-        "/api/backup" => "バックアップ",
+        "/api/backup" | "/api/backup/restore" => "バックアップ",
         "/api/incomes" | "/api/incomes/{id}" => "収入",
         "/api/income-categories" | "/api/income-categories/{id}" => "収入カテゴリ",
         "/api/expenses" | "/api/expenses/{id}" => "支出",
@@ -234,6 +236,7 @@ fn tag_for_path(path: &str) -> &'static str {
 fn operation_summary(method: &str, path: &str) -> &'static str {
     match (method, path.ends_with("{id}")) {
         ("GET", false) if path == "/api/backup" => "DBをバックアップ",
+        ("POST", false) if path == "/api/backup/restore" => "DBを復元",
         ("GET", false) if path == "/health" => "稼働状態を確認",
         ("GET", false) if path.starts_with("/api/export/") => "CSVをエクスポート",
         ("GET", false) if path.ends_with("/pending-months") => "未計上月を取得",

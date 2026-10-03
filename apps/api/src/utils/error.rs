@@ -30,6 +30,34 @@ impl AppError {
         }
     }
 
+    pub fn payload_too_large(message: &str) -> Self {
+        Self {
+            message: message.to_owned(),
+            status: StatusCode::PAYLOAD_TOO_LARGE,
+        }
+    }
+
+    pub fn unsupported_media_type(message: &str) -> Self {
+        Self {
+            message: message.to_owned(),
+            status: StatusCode::UNSUPPORTED_MEDIA_TYPE,
+        }
+    }
+
+    pub fn forbidden(message: &str) -> Self {
+        Self {
+            message: message.to_owned(),
+            status: StatusCode::FORBIDDEN,
+        }
+    }
+
+    pub fn conflict(message: &str) -> Self {
+        Self {
+            message: message.to_owned(),
+            status: StatusCode::CONFLICT,
+        }
+    }
+
     pub fn not_found(resource: &str, id: &str) -> Self {
         Self {
             message: format!("{resource} '{id}' was not found"),

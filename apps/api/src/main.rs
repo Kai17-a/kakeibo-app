@@ -1,4 +1,5 @@
 use clap::Parser;
+use kakeibo_app::service::backup::RestoreConfig;
 use kakeibo_app::{cli::Cli, database::migration::connect, router, utils};
 use std::process::ExitCode;
 use tokio::net::TcpListener;
@@ -33,7 +34,10 @@ async fn main() -> ExitCode {
     info!(address = %format_args!("0.0.0.0:{}", cli.port), "Application initialized successfully");
 
     let app = router::incomes::create(pool.clone())
-        .merge(router::backup::create(pool.clone()))
+        .merge(router::backup::create(
+            pool.clone(),
+            RestoreConfig::production(),
+        ))
         .merge(router::budgets::create(pool.clone()))
         .merge(router::expense_categories::create(pool.clone()))
         .merge(router::income_categories::create(pool.clone()))
