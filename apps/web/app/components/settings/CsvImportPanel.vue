@@ -219,17 +219,18 @@ async function importPreview() {
 </script>
 
 <template>
-  <div class="flex min-w-0 flex-col gap-3">
-    <div class="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+  <div class="flex min-w-0 flex-col items-start gap-3 sm:max-w-md sm:items-end">
+    <div class="flex min-w-0 flex-wrap items-center gap-2 sm:justify-end">
       <UButton
         icon="i-lucide-upload"
         color="neutral"
         variant="outline"
+        :aria-label="`${label}データのCSVを${previewing ? '確認中…' : '選択'}`"
         :loading="previewing"
         :disabled="previewing || importing"
         @click="selectFile"
       >
-        {{ label }}データ（CSV）を{{ previewing ? "確認中…" : "選択" }}
+        {{ previewing ? "確認中…" : "CSVを選択" }}
       </UButton>
       <input
         ref="fileInput"
@@ -239,12 +240,19 @@ async function importPreview() {
         :disabled="previewing || importing"
         @change="onFileChange"
       />
-      <UButton :to="sampleUrl" external download variant="link" size="sm">
-        テンプレートをダウンロード
+      <UButton
+        :to="sampleUrl"
+        external
+        download
+        variant="link"
+        size="sm"
+        :aria-label="`${label}データのテンプレートをダウンロード`"
+      >
+        テンプレート
       </UButton>
     </div>
 
-    <UAlert v-if="error && !hasPreview" color="error" :description="error" />
+    <UAlert v-if="error && !hasPreview" class="w-full" color="error" :description="error" />
 
     <UModal
       :open="hasPreview"

@@ -133,12 +133,46 @@ async function mockDataApi(page: Page, options: { importExpenseFails?: boolean }
   });
 }
 
+test("データ管理の各行に正しい操作リンクがあり、狭い画面でも横スクロールしない", async ({
+  page,
+}) => {
+  await mockDataApi(page);
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/settings/data");
+
+  const imports = [
+    ["支出", "/api/import/expenses/sample"],
+    ["収入", "/api/import/incomes/sample"],
+    ["振替", "/api/import/transfers/sample"],
+    ["固定費", "/api/import/recurring-expenses/sample"],
+    ["準固定費（月別金額）", "/api/import/variable-expenses/sample"],
+  ] as const;
+  for (const [label, href] of imports) {
+    await expect(page.getByRole("button", { name: `${label}データのCSVを選択` })).toHaveText(
+      "CSVを選択",
+    );
+    await expect(
+      page.getByRole("link", { name: `${label}データのテンプレートをダウンロード` }),
+    ).toHaveAttribute("href", href);
+  }
+
+  const csvDownloads = page.getByRole("link", { name: "CSVをダウンロード" });
+  await expect(csvDownloads.nth(0)).toHaveAttribute("href", "/api/export/expenses");
+  await expect(csvDownloads.nth(1)).toHaveAttribute("href", "/api/export/incomes");
+  await expect(csvDownloads.nth(2)).toHaveAttribute("href", "/api/export/transfers");
+  await expect(page.getByRole("link", { name: "バックアップをダウンロード" })).toHaveAttribute(
+    "href",
+    "/api/backup",
+  );
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+});
+
 test("CSVをプレビューしてから振替データをインポートする", async ({ page }) => {
   await mockDataApi(page);
   await page.goto("/settings/data");
   const [fileChooser] = await Promise.all([
     page.waitForEvent("filechooser"),
-    page.getByRole("button", { name: "振替データ（CSV）を選択" }).click(),
+    page.getByRole("button", { name: "振替データのCSVを選択" }).click(),
   ]);
   await fileChooser.setFiles({
     name: "transfers.csv",
@@ -161,7 +195,7 @@ test("CSVをプレビューしてから支出データをインポートする",
 
   const [fileChooser] = await Promise.all([
     page.waitForEvent("filechooser"),
-    page.getByRole("button", { name: "支出データ（CSV）を選択" }).click(),
+    page.getByRole("button", { name: "支出データのCSVを選択" }).click(),
   ]);
   await fileChooser.setFiles({
     name: "expenses.csv",
@@ -187,7 +221,7 @@ test("CSVをプレビューしてから収入データをインポートする",
 
   const [fileChooser] = await Promise.all([
     page.waitForEvent("filechooser"),
-    page.getByRole("button", { name: "収入データ（CSV）を選択" }).click(),
+    page.getByRole("button", { name: "収入データのCSVを選択" }).click(),
   ]);
   await fileChooser.setFiles({
     name: "incomes.csv",
@@ -208,7 +242,7 @@ test("CSVをプレビューしてから固定費データをインポートす�
 
   const [fileChooser] = await Promise.all([
     page.waitForEvent("filechooser"),
-    page.getByRole("button", { name: "固定費データ（CSV）を選択" }).click(),
+    page.getByRole("button", { name: "固定費データのCSVを選択" }).click(),
   ]);
   await fileChooser.setFiles({
     name: "recurring.csv",
@@ -231,7 +265,7 @@ test("CSVをプレビューしてから準固定費の月別金額をインポ�
 
   const [fileChooser] = await Promise.all([
     page.waitForEvent("filechooser"),
-    page.getByRole("button", { name: "準固定費（月別金額）データ（CSV）を選択" }).click(),
+    page.getByRole("button", { name: "準固定費（月別金額）データのCSVを選択" }).click(),
   ]);
   await fileChooser.setFiles({
     name: "variable-expenses.csv",
@@ -264,7 +298,7 @@ test("CSVインポート失敗をプレビューモーダル内に表示する",
 
   const [fileChooser] = await Promise.all([
     page.waitForEvent("filechooser"),
-    page.getByRole("button", { name: "支出データ（CSV）を選択" }).click(),
+    page.getByRole("button", { name: "支出データのCSVを選択" }).click(),
   ]);
   await fileChooser.setFiles({
     name: "expenses.csv",
@@ -293,7 +327,7 @@ test("プレビューをEscや外側クリックで閉じると破棄され、�
   async function selectCsv(memo: string) {
     const [fileChooser] = await Promise.all([
       page.waitForEvent("filechooser"),
-      page.getByRole("button", { name: "支出データ（CSV）を選択" }).click(),
+      page.getByRole("button", { name: "支出データのCSVを選択" }).click(),
     ]);
     await fileChooser.setFiles({
       name: "expenses.csv",
@@ -346,7 +380,7 @@ test("画面が低くてもプレビューの表を最後までスクロール�
 
   const [fileChooser] = await Promise.all([
     page.waitForEvent("filechooser"),
-    page.getByRole("button", { name: "支出データ（CSV）を選択" }).click(),
+    page.getByRole("button", { name: "支出データのCSVを選択" }).click(),
   ]);
   await fileChooser.setFiles({
     name: "expenses.csv",
