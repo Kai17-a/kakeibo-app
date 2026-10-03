@@ -75,6 +75,13 @@ const importGroups: {
     ],
   },
 ];
+
+const toast = useToast();
+onMounted(() => {
+  if (sessionStorage.getItem("kakeibo-restore-success") !== "true") return;
+  sessionStorage.removeItem("kakeibo-restore-success");
+  toast.add({ title: "フルバックアップを復元しました", color: "success" });
+});
 </script>
 
 <template>
@@ -128,7 +135,7 @@ const importGroups: {
       <template #header>
         <h3 class="text-lg font-semibold">データのインポート</h3>
         <p class="mt-2 text-sm text-muted">
-          CSVファイルを選択すると内容を確認してから登録できます。登録前にデータベースへの反映は行われません。
+          CSVは明細を追加し、フルバックアップは現在の全データを置き換えます。
         </p>
       </template>
 
@@ -146,6 +153,25 @@ const importGroups: {
                 <p class="mt-0.5 text-sm break-words text-muted">{{ item.description }}</p>
               </div>
               <SettingsCsvImportPanel :kind="item.kind" />
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="backup-restore-heading">
+          <h4 id="backup-restore-heading" class="text-sm font-medium text-muted">
+            データベース全体の復元
+          </h4>
+          <div class="mt-2 divide-y divide-default border-t border-default">
+            <div
+              class="flex min-w-0 flex-col gap-3 py-4 last:pb-0 sm:flex-row sm:items-start sm:justify-between"
+            >
+              <div class="min-w-0">
+                <p class="font-medium text-default">フルバックアップの復元</p>
+                <p class="mt-0.5 text-sm break-words text-muted">
+                  現在の全データをバックアップ（SQLite）の内容で置き換えます。追加・マージではありません。
+                </p>
+              </div>
+              <SettingsFullBackupRestorePanel />
             </div>
           </div>
         </section>
