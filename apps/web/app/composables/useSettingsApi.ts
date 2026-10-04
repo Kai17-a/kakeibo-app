@@ -13,6 +13,8 @@ import type {
   RecurringExpenseInput,
   RecurringIncome,
   RecurringIncomeInput,
+  RecurringTransfer,
+  RecurringTransferInput,
 } from "~/types/settings";
 
 export function useSettingsApi() {
@@ -59,6 +61,10 @@ export function useSettingsApi() {
     recurringIncomes: {
       ...resource<RecurringIncome, RecurringIncomeInput>("/api/recurring-incomes"),
       list: () => client<RecurringIncome[]>("/api/recurring-incomes"),
+    },
+    recurringTransfers: {
+      ...resource<RecurringTransfer, RecurringTransferInput>("/api/recurring-transfers"),
+      list: () => client<RecurringTransfer[]>("/api/recurring-transfers"),
     },
     recurringExpenses: {
       ...resource<RecurringExpense, RecurringExpenseInput>("/api/recurring-expenses"),

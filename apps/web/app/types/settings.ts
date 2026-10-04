@@ -54,6 +54,19 @@ export interface RecurringIncomeInput {
 }
 export interface RecurringIncome extends BaseResource, RecurringIncomeInput {}
 
+export interface RecurringTransferInput {
+  name: string;
+  amount: string;
+  payment_day: number;
+  start_date: string;
+  end_date: string | null;
+  from_payment_method_id: string;
+  to_payment_method_id: string;
+  is_active: boolean;
+  description: string | null;
+}
+export interface RecurringTransfer extends BaseResource, RecurringTransferInput {}
+
 export interface RecurringExpenseInput {
   name: string;
   amount: string | null;

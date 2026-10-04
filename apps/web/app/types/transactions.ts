@@ -46,12 +46,16 @@ export interface Transfer extends BaseResource {
   amount: string;
   from_payment_method_id: string;
   to_payment_method_id: string;
+  recurring_transfer_id: string | null;
   description: string | null;
 }
-export type TransferInput = Pick<
-  Transfer,
-  "transaction_date" | "amount" | "from_payment_method_id" | "to_payment_method_id" | "description"
->;
+export interface TransferInput {
+  transaction_date: string;
+  amount: string;
+  from_payment_method_id: string;
+  to_payment_method_id: string;
+  description: string | null;
+}
 
 export interface ExchangeRatePreview {
   foreign_amount: string;
