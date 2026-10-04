@@ -1,0 +1,5 @@
+DROP INDEX idx_transfers_recurring_transfer_id;
+ALTER TABLE transfers DROP COLUMN recurring_transfer_id;
+DROP INDEX idx_recurring_transfers_to_payment_method_id;
+DROP INDEX idx_recurring_transfers_from_payment_method_id;
+DROP TABLE recurring_transfers;

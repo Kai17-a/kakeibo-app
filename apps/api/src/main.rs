@@ -44,6 +44,7 @@ async fn main() -> ExitCode {
         .merge(router::payment_methods::create(pool.clone()))
         .merge(router::recurring_expenses::create(pool.clone()))
         .merge(router::recurring_incomes::create(pool.clone()))
+        .merge(router::recurring_transfers::create(pool.clone()))
         .merge(router::expenses::create(pool.clone()))
         .merge(router::transfers::create(pool.clone()))
         .merge(router::export::create(pool.clone()))

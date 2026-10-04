@@ -88,7 +88,7 @@ impl PaymentMethodRepository {
             > 0)
     }
     pub async fn is_referenced_by_transactions(&self, id: &str) -> AppResult<bool> {
-        let count: i64 = sqlx::query_scalar(
+        let transaction_count: i64 = sqlx::query_scalar(
             "SELECT (SELECT COUNT(*) FROM expenses WHERE payment_method_id = ?1) + \
              (SELECT COUNT(*) FROM incomes WHERE payment_method_id = ?1) + \
              (SELECT COUNT(*) FROM transfers WHERE from_payment_method_id = ?1 OR to_payment_method_id = ?1)",
@@ -96,6 +96,23 @@ impl PaymentMethodRepository {
         .bind(id)
         .fetch_one(&self.pool)
         .await?;
-        Ok(count > 0)
+        if transaction_count > 0 {
+            return Ok(true);
+        }
+        let has_table: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'recurring_transfers')",
+        )
+        .fetch_one(&self.pool)
+        .await?;
+        if !has_table {
+            return Ok(false);
+        }
+        Ok(sqlx::query_scalar::<_, i64>(
+            "SELECT COUNT(*) FROM recurring_transfers WHERE from_payment_method_id = ?1 OR to_payment_method_id = ?1",
+        )
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await?
+            > 0)
     }
 }

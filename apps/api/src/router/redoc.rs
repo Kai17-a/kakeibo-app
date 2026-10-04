@@ -6,7 +6,8 @@ use utoipa_redoc::{Redoc, Servable};
 use crate::{
     handler::{
         backup, budgets, expense_categories, expenses, export, health, import, income_categories,
-        incomes, payment_methods, recurring_expenses, recurring_incomes, transfers,
+        incomes, payment_methods, recurring_expenses, recurring_incomes, recurring_transfers,
+        transfers,
     },
     model::budgets::{Budget, BudgetUpsertRequest},
     model::expense_categories::{
@@ -37,6 +38,7 @@ use crate::{
         BackfillResponse, PendingMonthsResponse, RecurringExpense, RecurringExpenseUpsertRequest,
     },
     model::recurring_incomes::{RecurringIncome, RecurringIncomeUpsertRequest},
+    model::recurring_transfers::{RecurringTransfer, RecurringTransferUpsertRequest},
     model::transfers::{Transfer, TransferUpsertRequest},
 };
 
@@ -96,6 +98,11 @@ use crate::{
         recurring_incomes::create,
         recurring_incomes::update,
         recurring_incomes::delete,
+        recurring_transfers::list,
+        recurring_transfers::get,
+        recurring_transfers::create,
+        recurring_transfers::update,
+        recurring_transfers::delete,
         income_categories::list,
         income_categories::get,
         income_categories::create,
@@ -142,6 +149,8 @@ use crate::{
         BackfillResponse,
         RecurringIncome,
         RecurringIncomeUpsertRequest,
+        RecurringTransfer,
+        RecurringTransferUpsertRequest,
         IncomeCategory,
         IncomeCategoryUpsertRequest,
         IncomeCategoryListResponse,
@@ -175,6 +184,7 @@ use crate::{
         (name = "支払方法", description = "支払方法の管理"),
         (name = "定期支出", description = "定期支出の管理"),
         (name = "定期収入", description = "定期収入の管理"),
+        (name = "定期振替", description = "定期振替の管理"),
         (name = "予算", description = "カテゴリ別月額予算の管理"),
         (name = "システム", description = "稼働状態の確認")
     )
@@ -228,6 +238,7 @@ fn tag_for_path(path: &str) -> &'static str {
         | "/api/recurring-expenses/{id}/pending-months"
         | "/api/recurring-expenses/{id}/backfill" => "定期支出",
         "/api/recurring-incomes" | "/api/recurring-incomes/{id}" => "定期収入",
+        "/api/recurring-transfers" | "/api/recurring-transfers/{id}" => "定期振替",
         "/api/budgets" | "/api/budgets/{id}" => "予算",
         _ => "システム",
     }

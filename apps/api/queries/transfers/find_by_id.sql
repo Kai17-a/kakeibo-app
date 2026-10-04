@@ -6,6 +6,7 @@ SELECT
   , amount
   , from_payment_method_id
   , to_payment_method_id
+  , recurring_transfer_id
   , description
 FROM
   transfers

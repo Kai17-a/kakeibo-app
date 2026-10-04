@@ -6,4 +6,4 @@ WHERE
   id = ?
 RETURNING
   id, created_at, updated_at, transaction_date, amount
-  , from_payment_method_id, to_payment_method_id, description;
+  , from_payment_method_id, to_payment_method_id, recurring_transfer_id, description;

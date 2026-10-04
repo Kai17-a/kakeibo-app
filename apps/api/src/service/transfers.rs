@@ -17,7 +17,7 @@ impl TransferService {
     pub async fn list(&self) -> AppResult<Vec<Transfer>> {
         Ok(self
             .repository
-            .find_all()
+            .post_recurring_and_find_all()
             .await?
             .into_iter()
             .map(Into::into)

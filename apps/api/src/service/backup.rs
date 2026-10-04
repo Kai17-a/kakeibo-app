@@ -31,6 +31,7 @@ const KNOWN_TABLES: &[&str] = &[
     "incomes",
     "income_categories",
     "recurring_incomes",
+    "recurring_transfers",
     "budgets",
     "exchange_rates",
     "transfers",
@@ -60,6 +61,10 @@ pub const DATA_TABLES: &[(&str, &str)] = &[
         "id, created_at, updated_at, name, amount, payment_day, start_date, end_date, category_id, is_active, is_variable, description",
     ),
     (
+        "recurring_transfers",
+        "id, created_at, updated_at, name, amount, payment_day, start_date, end_date, from_payment_method_id, to_payment_method_id, is_active, description",
+    ),
+    (
         "incomes",
         "id, created_at, updated_at, category_id, transaction_date, amount, description, recurring_income_id, payment_method_id",
     ),
@@ -74,7 +79,7 @@ pub const DATA_TABLES: &[(&str, &str)] = &[
     ),
     (
         "transfers",
-        "id, created_at, updated_at, transaction_date, amount, from_payment_method_id, to_payment_method_id, description",
+        "id, created_at, updated_at, transaction_date, amount, from_payment_method_id, to_payment_method_id, description, recurring_transfer_id",
     ),
 ];
 pub const DELETE_ORDER: &[&str] = &[
@@ -84,6 +89,7 @@ pub const DELETE_ORDER: &[&str] = &[
     "incomes",
     "recurring_expenses",
     "recurring_incomes",
+    "recurring_transfers",
     "exchange_rates",
     "payment_methods",
     "expense_categories",

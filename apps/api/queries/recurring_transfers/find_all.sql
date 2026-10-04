@@ -2,12 +2,15 @@ SELECT
   id
   , created_at
   , updated_at
-  , transaction_date
+  , name
   , amount
+  , payment_day
+  , start_date
+  , end_date
   , from_payment_method_id
   , to_payment_method_id
-  , recurring_transfer_id
+  , is_active
   , description
 FROM
-  transfers
-ORDER BY transaction_date DESC, created_at DESC, id ASC;
+  recurring_transfers
+ORDER BY start_date DESC, id ASC;

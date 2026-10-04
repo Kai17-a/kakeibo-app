@@ -13,7 +13,7 @@ async fn setup() -> (sqlx::SqlitePool, axum::Router) {
         .connect("sqlite::memory:")
         .await
         .unwrap();
-    sqlx::query("PRAGMA foreign_keys=ON; CREATE TABLE payment_methods(id TEXT PRIMARY KEY,name TEXT NOT NULL); INSERT INTO payment_methods VALUES('bank','Bank'),('nisa','NISA'); CREATE TABLE transfers(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,transaction_date TEXT NOT NULL,amount TEXT NOT NULL,from_payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),to_payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),description TEXT,CHECK(CAST(amount AS INTEGER)>=1),CHECK(from_payment_method_id<>to_payment_method_id));").execute(&pool).await.unwrap();
+    sqlx::query("PRAGMA foreign_keys=ON; CREATE TABLE payment_methods(id TEXT PRIMARY KEY,name TEXT NOT NULL); INSERT INTO payment_methods VALUES('bank','Bank'),('nisa','NISA'); CREATE TABLE recurring_transfers(id TEXT PRIMARY KEY,amount TEXT NOT NULL,payment_day INTEGER NOT NULL,start_date TEXT NOT NULL,end_date TEXT,from_payment_method_id TEXT NOT NULL,to_payment_method_id TEXT NOT NULL,is_active INTEGER NOT NULL,description TEXT); CREATE TABLE transfers(id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),created_at TEXT NOT NULL DEFAULT current_timestamp,updated_at TEXT NOT NULL DEFAULT current_timestamp,transaction_date TEXT NOT NULL,amount TEXT NOT NULL,from_payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),to_payment_method_id TEXT NOT NULL REFERENCES payment_methods(id),description TEXT,recurring_transfer_id TEXT REFERENCES recurring_transfers(id),CHECK(CAST(amount AS INTEGER)>=1),CHECK(from_payment_method_id<>to_payment_method_id));").execute(&pool).await.unwrap();
     let app = transfers::create(pool.clone());
     (pool, app)
 }
@@ -109,6 +109,29 @@ async fn transfer_crud_and_validation() {
 }
 
 #[tokio::test]
+async fn recurring_transfer_id_is_managed_internally() {
+    let (pool, app) = setup().await;
+    let manual = json!({"transaction_date":"2026-10-03","amount":"30000","from_payment_method_id":"bank","to_payment_method_id":"nisa","recurring_transfer_id":"client-value","description":"積立"});
+    let (status, created) = call(&app, "POST", "/api/transfers", Some(manual)).await;
+    assert_eq!(status, StatusCode::CREATED, "{created:?}");
+    assert_eq!(created.unwrap()["recurring_transfer_id"], Value::Null);
+
+    sqlx::query("INSERT INTO recurring_transfers(id,amount,payment_day,start_date,end_date,from_payment_method_id,to_payment_method_id,is_active,description) VALUES('automatic','1000',1,'2020-01-01','2020-01-31','bank','nisa',1,NULL); INSERT INTO transfers(transaction_date,amount,from_payment_method_id,to_payment_method_id,recurring_transfer_id) VALUES('2020-01-01','1000','bank','nisa','automatic')")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let id: String =
+        sqlx::query_scalar("SELECT id FROM transfers WHERE recurring_transfer_id = 'automatic'")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    let update = json!({"transaction_date":"2020-01-02","amount":"2000","from_payment_method_id":"bank","to_payment_method_id":"nisa","recurring_transfer_id":null,"description":"変更"});
+    let (status, updated) = call(&app, "PUT", &format!("/api/transfers/{id}"), Some(update)).await;
+    assert_eq!(status, StatusCode::OK, "{updated:?}");
+    assert_eq!(updated.unwrap()["recurring_transfer_id"], "automatic");
+}
+
+#[tokio::test]
 async fn transfer_migration_applies_and_reverts() {
     static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
     let pool = SqlitePoolOptions::new()
@@ -131,6 +154,28 @@ async fn transfer_migration_applies_and_reverts() {
     .await
     .unwrap();
     assert_eq!(tables, 1);
+    let recurring_tables: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='recurring_transfers'",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(recurring_tables, 1);
+    let recurring_index: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='idx_transfers_recurring_transfer_id'",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(recurring_index, 1);
+    MIGRATOR.undo(&pool, 1).await.unwrap();
+    let recurring_tables: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='recurring_transfers'",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(recurring_tables, 0);
     MIGRATOR.undo(&pool, 1).await.unwrap();
     let tables: i64 = sqlx::query_scalar(
         "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='transfers'",

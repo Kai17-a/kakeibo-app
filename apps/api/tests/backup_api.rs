@@ -394,7 +394,7 @@ async fn upgrades_version_twelve_backup_before_restoring() {
         .execute(&pool)
         .await
         .unwrap();
-    sqlx::query("DROP INDEX idx_transfers_transaction_date; DROP INDEX idx_transfers_to_payment_method_id; DROP INDEX idx_transfers_from_payment_method_id; DROP TABLE transfers; ALTER TABLE payment_methods DROP COLUMN is_investment; DELETE FROM _sqlx_migrations WHERE version = 13")
+    sqlx::query("DROP INDEX idx_transfers_recurring_transfer_id; ALTER TABLE transfers DROP COLUMN recurring_transfer_id; DROP INDEX idx_recurring_transfers_to_payment_method_id; DROP INDEX idx_recurring_transfers_from_payment_method_id; DROP TABLE recurring_transfers; DELETE FROM _sqlx_migrations WHERE version = 14; DROP INDEX idx_transfers_transaction_date; DROP INDEX idx_transfers_to_payment_method_id; DROP INDEX idx_transfers_from_payment_method_id; DROP TABLE transfers; ALTER TABLE payment_methods DROP COLUMN is_investment; DELETE FROM _sqlx_migrations WHERE version = 13")
         .execute(&pool).await.unwrap();
     pool.close().await;
     let old_bytes = fs::read(root.0.join("live.db")).unwrap();
@@ -432,6 +432,30 @@ async fn upgrades_version_twelve_backup_before_restoring() {
         .execute(&current)
         .await
         .unwrap();
+    current.close().await;
+}
+
+#[tokio::test]
+async fn upgrades_version_thirteen_backup_before_restoring() {
+    let root = TestDirectory::new("restore-v13");
+    let pool = migrated_pool(&root.0.join("old.db")).await;
+    seed_income(&pool, "old", "100").await;
+    sqlx::query("DROP INDEX idx_transfers_recurring_transfer_id; ALTER TABLE transfers DROP COLUMN recurring_transfer_id; DROP INDEX idx_recurring_transfers_to_payment_method_id; DROP INDEX idx_recurring_transfers_from_payment_method_id; DROP TABLE recurring_transfers; DELETE FROM _sqlx_migrations WHERE version = 14")
+        .execute(&pool).await.unwrap();
+    pool.close().await;
+    let old_bytes = fs::read(root.0.join("old.db")).unwrap();
+    let current = migrated_pool(&root.0.join("current.db")).await;
+    let app = app(current.clone(), &root.0);
+    let (status, body) = restore(&app, old_bytes).await;
+    assert_eq!(status, StatusCode::OK, "{}", String::from_utf8_lossy(&body));
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM recurring_transfers")
+            .fetch_one(&current)
+            .await
+            .unwrap(),
+        0
+    );
+    assert_eq!(sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM pragma_table_info('transfers') WHERE name = 'recurring_transfer_id'").fetch_one(&current).await.unwrap(), 1);
     current.close().await;
 }
 
@@ -770,6 +794,8 @@ async fn restores_every_column_of_every_table() {
            ('re-1', '2025-04-01 00:00:00', '2025-04-02 00:00:00', '動画', '1500', 31, '2025-01-01', '2026-12-31', 'ec-child', 'pm-bank', 0, '備考', 1, '10', 'USD', '150.5');
          INSERT INTO recurring_incomes (id, created_at, updated_at, name, amount, payment_day, start_date, end_date, category_id, is_active, is_variable, description) VALUES
            ('ri-1', '2025-05-01 00:00:00', '2025-05-02 00:00:00', '副業', '30000', 25, '2025-01-01', '2026-12-31', 'ic-child', 0, 1, '備考');
+         INSERT INTO recurring_transfers (id, created_at, updated_at, name, amount, payment_day, start_date, end_date, from_payment_method_id, to_payment_method_id, is_active, description) VALUES
+           ('rt-1', '2025-05-03 00:00:00', '2025-05-04 00:00:00', '積立', '33333', 31, '2025-01-01', '2026-12-31', 'pm-bank', 'pm-nisa', 1, '定期積立');
          INSERT INTO incomes (id, created_at, updated_at, category_id, transaction_date, amount, description, recurring_income_id, payment_method_id) VALUES
            ('in-1', '2025-06-01 00:00:00', '2025-06-02 00:00:00', 'ic-child', '2025-06-25', '30000', '6月分', 'ri-1', 'pm-bank');
          INSERT INTO expenses (id, created_at, updated_at, transaction_date, amount, category_id, payment_method_id, recurring_expense_id, description, foreign_amount, currency_code, exchange_rate, exchange_rate_date) VALUES
@@ -778,8 +804,8 @@ async fn restores_every_column_of_every_table() {
            ('bg-1', '2025-08-01 00:00:00', '2025-08-02 00:00:00', 'ec-parent', '40000');
          INSERT INTO exchange_rates (target_date, base_currency, quote_currency, rate, effective_date, source, fetched_at) VALUES
            ('2025-07-31', 'USD', 'JPY', '150.5', '2025-07-30', 'test', '2025-07-31 01:02:03');
-         INSERT INTO transfers (id, created_at, updated_at, transaction_date, amount, from_payment_method_id, to_payment_method_id, description) VALUES
-           ('tr-1', '2025-09-01 00:00:00', '2025-09-02 00:00:00', '2025-09-15', '33333', 'pm-bank', 'pm-nisa', '積立');",
+         INSERT INTO transfers (id, created_at, updated_at, transaction_date, amount, from_payment_method_id, to_payment_method_id, description, recurring_transfer_id) VALUES
+           ('tr-1', '2025-09-01 00:00:00', '2025-09-02 00:00:00', '2025-09-15', '33333', 'pm-bank', 'pm-nisa', '積立', 'rt-1');",
     )
     .execute(&pool)
     .await
@@ -797,7 +823,7 @@ async fn restores_every_column_of_every_table() {
 
     sqlx::query(
         "DELETE FROM transfers; DELETE FROM budgets; DELETE FROM expenses; DELETE FROM incomes;
-         DELETE FROM exchange_rates;
+         DELETE FROM recurring_transfers; DELETE FROM exchange_rates;
          UPDATE payment_methods SET name = 'changed', is_investment = 1 - is_investment;
          UPDATE recurring_expenses SET amount = '1', is_active = 1, is_variable = 0;
          INSERT INTO payment_methods (id, name) VALUES ('pm-extra', '追加');",

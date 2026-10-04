@@ -20,6 +20,19 @@ impl TransferRepository {
                 .await?,
         )
     }
+    pub async fn post_recurring_and_find_all(&self) -> AppResult<Vec<TransferRow>> {
+        let mut transaction = self.pool.begin().await?;
+        sqlx::query(include_str!(
+            "../../queries/transfers/insert_recurring_for_month.sql"
+        ))
+        .execute(&mut *transaction)
+        .await?;
+        let transfers = sqlx::query_as(include_str!("../../queries/transfers/find_all.sql"))
+            .fetch_all(&mut *transaction)
+            .await?;
+        transaction.commit().await?;
+        Ok(transfers)
+    }
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<TransferRow>> {
         Ok(
             sqlx::query_as(include_str!("../../queries/transfers/find_by_id.sql"))
