@@ -93,6 +93,15 @@ const {
   closeForm,
   save,
 } = useTransactionEditor({ month: recordMonth, expenses, incomes, transfers });
+const {
+  transferFormOpen,
+  editingTransfer,
+  transferSaving,
+  transferInitialDate,
+  openNewTransfer,
+  closeTransferForm,
+  saveTransfer,
+} = useTransferEditor({ month: recordMonth, transfers });
 </script>
 
 <template>
@@ -109,6 +118,7 @@ const {
               :years="availableYears"
               @update:model-value="setYear"
             />
+            <TransferButton @click="openNewTransfer" />
             <RecordTransactionButton @click="openNew" />
             <UColorModeButton />
           </template>
@@ -155,6 +165,21 @@ const {
       @update:open="
         (value) => {
           if (!value) closeForm();
+        }
+      "
+    />
+
+    <TransactionsTransferFormModal
+      v-if="transferFormOpen"
+      v-model:open="transferFormOpen"
+      :payment-methods="paymentMethods"
+      :saving="transferSaving"
+      :initial-date="transferInitialDate"
+      :initial-transfer="editingTransfer"
+      :on-submit="saveTransfer"
+      @update:open="
+        (value) => {
+          if (!value) closeTransferForm();
         }
       "
     />

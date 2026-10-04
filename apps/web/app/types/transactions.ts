@@ -69,5 +69,4 @@ export interface ListResponse<T> {
 /** A validated transaction form submission, discriminated by the transaction kind. */
 export type TransactionSubmission =
   | { kind: "expense"; input: ExpenseInput }
-  | { kind: "income"; input: IncomeInput }
-  | { kind: "transfer"; input: TransferInput };
+  | { kind: "income"; input: IncomeInput };

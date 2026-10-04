@@ -109,10 +109,19 @@ test("年間集計から収支を記録するとグラフの集計に反映さ�
 
   await page.getByRole("button", { name: "記録する" }).click();
   await expect(page.getByRole("heading", { name: "収支を登録" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "振替" })).toHaveCount(0);
   await page.getByLabel("金額").fill("2000");
   await page.getByRole("button", { name: "登録する" }).click();
 
   await expect(page.getByText("支出を登録しました", { exact: true })).toBeVisible();
   expect(created).toMatchObject({ amount: "2000", category_id: "expense-category-1" });
   await expect(page.getByText(/10,000/).first()).toBeVisible();
+});
+
+test("年間集計から専用の振替モーダルを開ける", async ({ page }) => {
+  await mockAnnualApi(page);
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "振替" }).click();
+  await expect(page.getByRole("heading", { name: "振替を登録" })).toBeVisible();
 });

@@ -147,7 +147,6 @@ const {
   formOpen,
   editingExpense,
   editingIncome,
-  editingTransfer,
   recurringExpensePreset,
   recurringIncomePreset,
   exchangePreview,
@@ -156,7 +155,6 @@ const {
   openNew,
   editExpense,
   editIncome,
-  editTransfer,
   registerRecurringExpense,
   registerRecurringIncome,
   closeForm,
@@ -169,6 +167,16 @@ const {
   askDeleteTransfer,
   confirmDelete,
 } = useTransactionEditor({ month, expenses, incomes, transfers });
+const {
+  transferFormOpen,
+  editingTransfer,
+  transferSaving,
+  transferInitialDate,
+  openNewTransfer,
+  editTransfer,
+  closeTransferForm,
+  saveTransfer,
+} = useTransferEditor({ month, transfers });
 </script>
 
 <template>
@@ -181,6 +189,7 @@ const {
           </template>
           <template #right>
             <MonthNavigator :model-value="month" @update:model-value="setMonth" />
+            <TransferButton @click="openNewTransfer" />
             <RecordTransactionButton @click="openNew" />
             <UColorModeButton />
           </template>
@@ -240,7 +249,6 @@ const {
       :initial-date="initialDate"
       :initial-expense="editingExpense"
       :initial-income="editingIncome"
-      :initial-transfer="editingTransfer"
       :initial-recurring="recurringExpensePreset"
       :initial-recurring-income="recurringIncomePreset"
       :exchange-preview="exchangePreview"
@@ -248,6 +256,21 @@ const {
       @update:open="
         (value) => {
           if (!value) closeForm();
+        }
+      "
+    />
+
+    <TransactionsTransferFormModal
+      v-if="transferFormOpen"
+      v-model:open="transferFormOpen"
+      :payment-methods="paymentMethods"
+      :saving="transferSaving"
+      :initial-date="transferInitialDate"
+      :initial-transfer="editingTransfer"
+      :on-submit="saveTransfer"
+      @update:open="
+        (value) => {
+          if (!value) closeTransferForm();
         }
       "
     />

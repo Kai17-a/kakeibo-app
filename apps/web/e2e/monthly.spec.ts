@@ -88,6 +88,7 @@ test("収支を登録する", async ({ page }) => {
   await page.goto("/monthly");
   await page.getByRole("button", { name: "記録する" }).first().click();
   await expect(page.getByRole("heading", { name: "収支を登録" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "振替" })).toHaveCount(0);
   await page.getByLabel("金額").fill("1500");
   await page.getByLabel("カテゴリ").click();
   await page.getByRole("option", { name: "食費" }).click();
@@ -135,8 +136,8 @@ test("振替を登録・編集・削除し投資額と明細へ反映する", as
   await page.goto(`/monthly?month=${month}`);
   const investment = page.getByText("投資", { exact: true }).locator("..");
   await expect(investment.getByText(/[¥￥]0/, { exact: false })).toBeVisible();
-  await page.getByRole("button", { name: "記録する" }).first().click();
-  await page.getByRole("tab", { name: "振替" }).click();
+  await page.getByRole("button", { name: "振替" }).first().click();
+  await expect(page.getByRole("heading", { name: "振替を登録" })).toBeVisible();
   await page.getByLabel("金額").fill("30000");
   await page.getByLabel("移動元").click();
   await page.getByRole("option", { name: "銀行" }).click();
@@ -149,6 +150,10 @@ test("振替を登録・編集・削除し投資額と明細へ反映する", as
   await expect(page.getByText("銀行 → NISA", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: /積立の操作/ }).click();
   await page.getByRole("menuitem", { name: "編集" }).click();
+  await expect(page.getByRole("heading", { name: "振替を編集" })).toBeVisible();
+  await expect(page.getByLabel("移動元")).toContainText("銀行");
+  await expect(page.getByLabel("移動先")).toContainText("NISA");
+  await expect(page.getByLabel("メモ（任意）")).toHaveValue("積立");
   await page.getByLabel("金額").fill("40000");
   await page.getByRole("button", { name: "更新する" }).click();
   await expect(page.getByText("振替を更新しました", { exact: true })).toBeVisible();
@@ -163,15 +168,30 @@ test("振替を登録・編集・削除し投資額と明細へ反映する", as
 test("支払方法が2件未満なら振替を登録できない", async ({ page }) => {
   await mockMonthlyApi(page);
   await page.goto(`/monthly?month=${month}`);
-  await page.getByRole("button", { name: "記録する" }).first().click();
+  await page.getByRole("button", { name: "振替" }).first().click();
 
-  await expect(page.getByRole("tab", { name: "振替" })).toBeDisabled();
+  await expect(page.getByRole("heading", { name: "振替を登録" })).toBeVisible();
   await expect(
     page.getByText("支払方法を2件以上登録してください。", { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "支払方法を2件以上登録してください。" }),
   ).toHaveAttribute("href", "/settings/payment-methods");
+});
+
+test("幅375pxでもナビバーから振替を開けて横にはみ出さない", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await mockMonthlyApi(page);
+  await page.goto(`/monthly?month=${month}`);
+
+  await expect(page.getByRole("button", { name: "振替" }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "記録する" }).first()).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+
+  await page.getByRole("button", { name: "振替" }).first().click();
+  await expect(page.getByRole("heading", { name: "振替を登録" })).toBeVisible();
 });
 
 test("準固定費の今月分を登録する", async ({ page }) => {

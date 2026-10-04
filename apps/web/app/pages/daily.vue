@@ -71,14 +71,12 @@ const {
   formOpen,
   editingExpense,
   editingIncome,
-  editingTransfer,
   exchangePreview,
   saving,
   initialDate,
   openNew,
   editExpense,
   editIncome,
-  editTransfer,
   closeForm,
   save,
   deleteOpen,
@@ -89,6 +87,16 @@ const {
   askDeleteTransfer,
   confirmDelete,
 } = useTransactionEditor({ month, expenses, incomes, transfers });
+const {
+  transferFormOpen,
+  editingTransfer,
+  transferSaving,
+  transferInitialDate,
+  openNewTransfer,
+  editTransfer,
+  closeTransferForm,
+  saveTransfer,
+} = useTransferEditor({ month, transfers });
 </script>
 
 <template>
@@ -101,6 +109,7 @@ const {
           </template>
           <template #right>
             <MonthNavigator :model-value="month" @update:model-value="setMonth" />
+            <TransferButton @click="openNewTransfer" />
             <RecordTransactionButton @click="openNew" />
             <UColorModeButton />
           </template>
@@ -216,9 +225,18 @@ const {
                     </tr>
                   </tbody>
                 </table>
-                <p v-if="!monthTransfers.length" class="py-12 text-center text-sm text-muted">
-                  この月の振替明細はありません。
-                </p>
+                <div v-if="!monthTransfers.length" class="py-12 text-center text-sm text-muted">
+                  <p>この月の振替明細はありません。</p>
+                  <UButton
+                    icon="i-lucide-arrow-right-left"
+                    color="neutral"
+                    variant="outline"
+                    class="mx-auto mt-4 flex w-fit"
+                    @click="openNewTransfer"
+                  >
+                    振替を登録
+                  </UButton>
+                </div>
               </div>
             </div>
 
@@ -247,12 +265,26 @@ const {
       :initial-date="initialDate"
       :initial-expense="editingExpense"
       :initial-income="editingIncome"
-      :initial-transfer="editingTransfer"
       :exchange-preview="exchangePreview"
       :on-submit="save"
       @update:open="
         (value) => {
           if (!value) closeForm();
+        }
+      "
+    />
+
+    <TransactionsTransferFormModal
+      v-if="transferFormOpen"
+      v-model:open="transferFormOpen"
+      :payment-methods="paymentMethods"
+      :saving="transferSaving"
+      :initial-date="transferInitialDate"
+      :initial-transfer="editingTransfer"
+      :on-submit="saveTransfer"
+      @update:open="
+        (value) => {
+          if (!value) closeTransferForm();
         }
       "
     />

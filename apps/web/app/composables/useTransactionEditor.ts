@@ -39,7 +39,6 @@ export function useTransactionEditor({
   const formOpen = ref(false);
   const editingExpense = ref<Expense | null>(null);
   const editingIncome = ref<Income | null>(null);
-  const editingTransfer = ref<Transfer | null>(null);
   const recurringExpensePreset = ref<RecurringExpense | null>(null);
   const recurringIncomePreset = ref<RecurringIncome | null>(null);
   const exchangePreview = ref<ExchangeRatePreview | null>(null);
@@ -49,7 +48,6 @@ export function useTransactionEditor({
   function resetForm() {
     editingExpense.value = null;
     editingIncome.value = null;
-    editingTransfer.value = null;
     recurringExpensePreset.value = null;
     recurringIncomePreset.value = null;
     exchangePreview.value = null;
@@ -69,11 +67,6 @@ export function useTransactionEditor({
   function editIncome(item: Income) {
     resetForm();
     editingIncome.value = item;
-    formOpen.value = true;
-  }
-  function editTransfer(item: Transfer) {
-    resetForm();
-    editingTransfer.value = item;
     formOpen.value = true;
   }
 
@@ -119,19 +112,6 @@ export function useTransactionEditor({
       }
       expenses.value = [await transactionsApi.createExpense(submission.input), ...expenses.value];
       return "支出を登録しました";
-    }
-    if (submission.kind === "transfer") {
-      const editing = editingTransfer.value;
-      if (editing) {
-        const updated = await transactionsApi.updateTransfer(editing.id, submission.input);
-        transfers.value = transfers.value.map((item) => (item.id === updated.id ? updated : item));
-        return "振替を更新しました";
-      }
-      transfers.value = [
-        await transactionsApi.createTransfer(submission.input),
-        ...transfers.value,
-      ];
-      return "振替を登録しました";
     }
     const editing = editingIncome.value;
     if (editing) {
@@ -212,7 +192,6 @@ export function useTransactionEditor({
     formOpen,
     editingExpense,
     editingIncome,
-    editingTransfer,
     recurringExpensePreset,
     recurringIncomePreset,
     exchangePreview,
@@ -221,7 +200,6 @@ export function useTransactionEditor({
     openNew,
     editExpense,
     editIncome,
-    editTransfer,
     registerRecurringExpense,
     registerRecurringIncome,
     closeForm,
