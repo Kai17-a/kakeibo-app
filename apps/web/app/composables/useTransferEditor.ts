@@ -8,7 +8,7 @@ interface TransferEditorOptions {
 
 export function useTransferEditor({ month, transfers }: TransferEditorOptions) {
   const transactionsApi = useTransactionsApi();
-  const toast = useToast();
+  const toast = useAppToast();
   const transferFormOpen = ref(false);
   const editingTransfer = ref<Transfer | null>(null);
   const transferSaving = ref(false);

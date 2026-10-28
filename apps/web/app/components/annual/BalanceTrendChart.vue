@@ -28,7 +28,7 @@ function barStyle(balance: number, index: number, count: number) {
 </script>
 
 <template>
-  <UCard class="min-w-0">
+  <AppCard class="min-w-0">
     <template #header>
       <h2 class="text-lg font-semibold">資産残高推移</h2>
       <p class="text-sm text-muted">初期残高を設定した支払方法ごとの月末残高</p>
@@ -64,5 +64,5 @@ function barStyle(balance: number, index: number, count: number) {
     <p v-else class="py-24 text-center text-sm text-muted">
       初期残高が設定された支払方法はありません。
     </p>
-  </UCard>
+  </AppCard>
 </template>

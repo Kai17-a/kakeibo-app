@@ -18,7 +18,7 @@ const amountClass = { error: "text-error", warning: "text-warning", primary: "te
 </script>
 
 <template>
-  <UCard class="bg-default">
+  <AppCard class="bg-default">
     <template #header>
       <h2 class="text-lg font-semibold">予算</h2>
     </template>
@@ -32,7 +32,7 @@ const amountClass = { error: "text-error", warning: "text-warning", primary: "te
             }}）</span
           >
         </div>
-        <UProgress
+        <AppProgress
           class="mt-1"
           :model-value="item.achievementRate === null ? 0 : Math.min(100, item.achievementRate)"
           :color="statusColor(item)"
@@ -45,5 +45,5 @@ const amountClass = { error: "text-error", warning: "text-warning", primary: "te
         >
       </p>
     </div>
-  </UCard>
+  </AppCard>
 </template>

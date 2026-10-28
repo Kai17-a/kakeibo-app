@@ -13,7 +13,7 @@ const max = computed(() =>
 </script>
 
 <template>
-  <UCard class="min-w-0">
+  <AppCard class="min-w-0">
     <template #header>
       <h2 class="text-lg font-semibold">月別の収支推移</h2>
     </template>
@@ -44,5 +44,5 @@ const max = computed(() =>
       <span class="flex items-center gap-1.5"><span class="size-2.5 bg-primary" />収入</span>
       <span class="flex items-center gap-1.5"><span class="size-2.5 bg-error" />支出</span>
     </div>
-  </UCard>
+  </AppCard>
 </template>

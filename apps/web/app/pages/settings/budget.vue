@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TableColumn } from "@nuxt/ui";
+import type { TableColumn } from "~/types/ui";
 import type { Budget, Category } from "~/types/settings";
 import {
   availableBudgetCategories,
@@ -135,7 +135,7 @@ function save() {
       @add="openForm()"
     >
       <div class="min-w-0 overflow-hidden rounded-lg border border-default">
-        <UTable
+        <AppTable
           :data="items"
           :columns="columns"
           :aria-label="`${label}一覧`"
@@ -159,7 +159,7 @@ function save() {
               @delete="askDelete(row.original)"
             />
           </template>
-        </UTable>
+        </AppTable>
       </div>
     </SettingsCollectionState>
     <SettingsFormModal
@@ -174,16 +174,16 @@ function save() {
       :error="formError"
       @submit="save"
     >
-      <UFormField name="category_id" label="支出カテゴリ" required>
-        <USelect
+      <AppFormField name="category_id" label="支出カテゴリ" required>
+        <AppSelect
           v-model="state.category_id"
           :items="categoryOptions"
           placeholder="選択してください"
           class="w-full"
         />
-      </UFormField>
-      <UFormField name="amount" label="月額予算" required>
-        <UInput
+      </AppFormField>
+      <AppFormField name="amount" label="月額予算" required>
+        <AppInput
           :model-value="state.amount"
           type="number"
           :min="0"
@@ -191,7 +191,7 @@ function save() {
           class="w-full"
           @update:model-value="state.amount = String($event ?? '')"
         />
-      </UFormField>
+      </AppFormField>
     </SettingsFormModal>
     <SettingsDeleteDialog
       v-model:open="deleteOpen"

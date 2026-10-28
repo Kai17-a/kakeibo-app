@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TableColumn } from "@nuxt/ui";
+import type { TableColumn } from "~/types/ui";
 import type {
   ImportKind,
   ImportResult,
@@ -40,7 +40,7 @@ const pendingCsv = ref<string | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
 
 const { preview, run } = useImportApi();
-const toast = useToast();
+const toast = useAppToast();
 
 function recurringRow(row: Row) {
   return row as RecurringExpensePreviewRow;
@@ -221,7 +221,7 @@ async function importPreview() {
 <template>
   <div class="flex min-w-0 flex-col items-start gap-3 sm:max-w-md sm:items-end">
     <div class="flex min-w-0 flex-wrap items-center gap-2 sm:justify-end">
-      <UButton
+      <AppButton
         icon="i-lucide-upload"
         color="neutral"
         variant="outline"
@@ -231,7 +231,7 @@ async function importPreview() {
         @click="selectFile"
       >
         {{ previewing ? "確認中…" : "CSVを選択" }}
-      </UButton>
+      </AppButton>
       <input
         ref="fileInput"
         type="file"
@@ -240,7 +240,7 @@ async function importPreview() {
         :disabled="previewing || importing"
         @change="onFileChange"
       />
-      <UButton
+      <AppButton
         :to="sampleUrl"
         external
         download
@@ -249,12 +249,12 @@ async function importPreview() {
         :aria-label="`${label}データのテンプレートをダウンロード`"
       >
         テンプレート
-      </UButton>
+      </AppButton>
     </div>
 
-    <UAlert v-if="error && !hasPreview" class="w-full" color="error" :description="error" />
+    <AppAlert v-if="error && !hasPreview" class="w-full" color="error" :description="error" />
 
-    <UModal
+    <AppModal
       :open="hasPreview"
       :title="`${label}データのインポートプレビュー`"
       :description="`${rows.length}件をインポートします`"
@@ -270,7 +270,7 @@ async function importPreview() {
     >
       <template #body>
         <div class="flex min-h-0 min-w-0 flex-col gap-4">
-          <UAlert
+          <AppAlert
             v-if="error"
             class="shrink-0"
             color="error"
@@ -289,7 +289,7 @@ async function importPreview() {
             </span>
           </div>
           <div class="max-h-[28rem] min-h-0 min-w-0 overflow-auto rounded-md border border-default">
-            <UTable
+            <AppTable
               class="min-w-max"
               :ui="{ th: 'px-4 py-2', td: 'px-4 py-2' }"
               :data="rows"
@@ -315,13 +315,13 @@ async function importPreview() {
               <template #category-cell="{ row }">
                 <span>
                   {{ categoryOf(row.original).category }}
-                  <UBadge
+                  <AppBadge
                     v-if="categoryOf(row.original).category_is_new"
                     color="secondary"
                     variant="soft"
                   >
                     新規
-                  </UBadge>
+                  </AppBadge>
                 </span>
               </template>
               <template
@@ -330,13 +330,13 @@ async function importPreview() {
               >
                 <span>
                   {{ paymentMethodOf(row.original).payment_method }}
-                  <UBadge
+                  <AppBadge
                     v-if="paymentMethodOf(row.original).payment_method_is_new"
                     color="secondary"
                     variant="soft"
                   >
                     新規
-                  </UBadge>
+                  </AppBadge>
                 </span>
               </template>
               <template v-if="kind === 'recurring-expense'" #is_variable-cell="{ row }">
@@ -345,18 +345,18 @@ async function importPreview() {
               <template #description-cell="{ row }">
                 {{ row.original.description || "" }}
               </template>
-            </UTable>
+            </AppTable>
           </div>
         </div>
       </template>
       <template #footer>
-        <UButton color="neutral" variant="outline" :disabled="importing" @click="closePreview">
+        <AppButton color="neutral" variant="outline" :disabled="importing" @click="closePreview">
           キャンセル
-        </UButton>
-        <UButton :loading="importing" :disabled="importing" @click="importPreview">
+        </AppButton>
+        <AppButton :loading="importing" :disabled="importing" @click="importPreview">
           登録する
-        </UButton>
+        </AppButton>
       </template>
-    </UModal>
+    </AppModal>
   </div>
 </template>

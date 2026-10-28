@@ -11,7 +11,7 @@ const monthNumbers = Array.from({ length: 12 }, (_, index) => index + 1);
 </script>
 
 <template>
-  <UCard>
+  <AppCard>
     <template #header>
       <h2 class="text-lg font-semibold">カテゴリ別年間集計</h2>
       <p class="text-sm text-muted">未計上の固定定期支出を予測額として含みます。</p>
@@ -58,5 +58,5 @@ const monthNumbers = Array.from({ length: 12 }, (_, index) => index + 1);
         </tbody>
       </table>
     </div>
-  </UCard>
+  </AppCard>
 </template>

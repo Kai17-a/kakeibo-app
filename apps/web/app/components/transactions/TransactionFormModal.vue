@@ -171,7 +171,7 @@ async function submit(keepOpen: boolean) {
 </script>
 
 <template>
-  <UModal
+  <AppModal
     :open="open"
     :title="title"
     description="日付や金額など、明細の内容を入力してください。"
@@ -181,7 +181,7 @@ async function submit(keepOpen: boolean) {
     @update:open="(value) => emit('update:open', value)"
   >
     <template #body>
-      <UTabs
+      <AppTabs
         v-if="!editing && !preset"
         v-model="kind"
         :items="[
@@ -196,11 +196,11 @@ async function submit(keepOpen: boolean) {
         class="grid grid-cols-1 gap-5 sm:grid-cols-2"
         @submit.prevent="handleSubmit"
       >
-        <UFormField name="date" label="日付" required :error="dateError || undefined">
+        <AppFormField name="date" label="日付" required :error="dateError || undefined">
           <DatePicker v-model="state.date" required class="w-full" />
-        </UFormField>
-        <UFormField label="金額" required>
-          <UInput
+        </AppFormField>
+        <AppFormField label="金額" required>
+          <AppInput
             :model-value="state.amount"
             type="number"
             min="1"
@@ -214,12 +214,12 @@ async function submit(keepOpen: boolean) {
             {{ exchangePreview.exchange_rate }}（適用日: {{ exchangePreview.exchange_rate_date }}）
             = {{ formatCurrency(exchangePreview.converted_amount) }}
           </template>
-        </UFormField>
-        <UFormField label="カテゴリ">
-          <USelect v-model="state.categoryId" :items="categoryOptions" class="w-full" />
-        </UFormField>
-        <UFormField :label="`支払方法${kind === 'income' ? '（任意）' : ''}`">
-          <USelect
+        </AppFormField>
+        <AppFormField label="カテゴリ">
+          <AppSelect v-model="state.categoryId" :items="categoryOptions" class="w-full" />
+        </AppFormField>
+        <AppFormField :label="`支払方法${kind === 'income' ? '（任意）' : ''}`">
+          <AppSelect
             :model-value="state.paymentMethodId || NO_PAYMENT_METHOD_VALUE"
             :items="
               kind === 'income'
@@ -232,22 +232,22 @@ async function submit(keepOpen: boolean) {
                 $event == null || $event === NO_PAYMENT_METHOD_VALUE ? '' : String($event)
             "
           />
-        </UFormField>
-        <UFormField label="メモ（任意）" class="sm:col-span-2">
-          <UTextarea v-model="state.description" class="w-full" />
-        </UFormField>
+        </AppFormField>
+        <AppFormField label="メモ（任意）" class="sm:col-span-2">
+          <AppTextarea v-model="state.description" class="w-full" />
+        </AppFormField>
       </form>
     </template>
     <template #footer>
-      <UButton
+      <AppButton
         color="neutral"
         variant="outline"
         :disabled="saving"
         @click="emit('update:open', false)"
       >
         キャンセル
-      </UButton>
-      <UButton
+      </AppButton>
+      <AppButton
         v-if="!editing && !preset"
         type="submit"
         form="transaction-form"
@@ -258,10 +258,10 @@ async function submit(keepOpen: boolean) {
         :disabled="saving"
       >
         登録して続ける
-      </UButton>
-      <UButton type="submit" form="transaction-form" :loading="saving" :disabled="saving">
+      </AppButton>
+      <AppButton type="submit" form="transaction-form" :loading="saving" :disabled="saving">
         {{ editing ? "更新する" : "登録する" }}
-      </UButton>
+      </AppButton>
     </template>
-  </UModal>
+  </AppModal>
 </template>

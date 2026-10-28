@@ -20,12 +20,12 @@ const columns = [
 </script>
 
 <template>
-  <UCard>
+  <AppCard>
     <template #header>
       <h2 class="text-lg font-semibold">月ごとの収支</h2>
     </template>
     <div class="overflow-x-auto">
-      <UTable class="min-w-[36rem]" :data="months" :columns="columns">
+      <AppTable class="min-w-[36rem]" :data="months" :columns="columns">
         <template #month-cell="{ row }"> {{ row.original.month }}月 </template>
         <template #income-cell="{ row }">
           {{ formatCurrency(row.original.income) }}
@@ -46,7 +46,7 @@ const columns = [
             {{ formatSignedCurrency(row.original.balance) }}
           </span>
         </template>
-      </UTable>
+      </AppTable>
     </div>
-  </UCard>
+  </AppCard>
 </template>

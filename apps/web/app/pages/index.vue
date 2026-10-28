@@ -106,11 +106,11 @@ const {
 
 <template>
   <div class="flex min-w-0 flex-1">
-    <UDashboardPanel id="annual">
+    <AppDashboardPanel id="annual">
       <template #header>
-        <UDashboardNavbar title="年間集計">
+        <AppDashboardNavbar title="年間集計">
           <template #leading>
-            <UDashboardSidebarCollapse />
+            <AppDashboardSidebarCollapse />
           </template>
           <template #right>
             <YearNavigator
@@ -120,9 +120,9 @@ const {
             />
             <TransferButton @click="openNewTransfer" />
             <RecordTransactionButton @click="openNew" />
-            <UColorModeButton />
+            <AppColorModeButton />
           </template>
-        </UDashboardNavbar>
+        </AppDashboardNavbar>
       </template>
       <template #body>
         <DataLoadState :loading="loading" :error="loadError" @retry="load">
@@ -148,7 +148,7 @@ const {
           </div>
         </DataLoadState>
       </template>
-    </UDashboardPanel>
+    </AppDashboardPanel>
 
     <TransactionsTransactionFormModal
       v-if="formOpen"

@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import type { TableColumn } from "@nuxt/ui";
+import type { TableColumn } from "~/types/ui";
 import type { Category, CategoryKind } from "~/types/settings";
 import { categoryMove, groupCategories, validateNamed } from "~/utils/settings";
 
 const props = defineProps<{ kind: CategoryKind }>();
 const label = computed(() => (props.kind === "expense" ? "支出カテゴリ" : "収入カテゴリ"));
 const api = useSettingsApi().categories(props.kind);
-const toast = useToast();
+const toast = useAppToast();
 const reordering = ref(false);
 const orderError = ref("");
 const state = reactive({ name: "", description: "", parent_category_id: "none" });
@@ -129,7 +129,7 @@ function save() {
       @add="openForm()"
     >
       <div class="min-w-0 overflow-hidden rounded-lg border border-default">
-        <UTable
+        <AppTable
           :data="sortedItems"
           :columns="columns"
           :aria-label="`${label}一覧`"
@@ -162,7 +162,7 @@ function save() {
           </template>
           <template #actions-cell="{ row }">
             <div class="flex items-center justify-end gap-1">
-              <UButton
+              <AppButton
                 icon="i-lucide-arrow-up"
                 color="neutral"
                 variant="ghost"
@@ -171,7 +171,7 @@ function save() {
                 :disabled="reordering || !canMove(row.original, -1)"
                 @click="move(row.original, -1)"
               />
-              <UButton
+              <AppButton
                 icon="i-lucide-arrow-down"
                 color="neutral"
                 variant="ghost"
@@ -187,7 +187,7 @@ function save() {
               />
             </div>
           </template>
-        </UTable>
+        </AppTable>
       </div>
     </SettingsCollectionState>
     <SettingsFormModal
@@ -202,10 +202,10 @@ function save() {
       :error="formError"
       @submit="save"
     >
-      <UFormField name="name" label="カテゴリ名" required>
-        <UInput v-model="state.name" :maxlength="100" class="w-full" autofocus />
-      </UFormField>
-      <UFormField
+      <AppFormField name="name" label="カテゴリ名" required>
+        <AppInput v-model="state.name" :maxlength="100" class="w-full" autofocus />
+      </AppFormField>
+      <AppFormField
         name="parent_category_id"
         label="親カテゴリ（任意）"
         :description="
@@ -214,16 +214,16 @@ function save() {
             : undefined
         "
       >
-        <USelect
+        <AppSelect
           v-model="state.parent_category_id"
           :items="parentOptions"
           :disabled="editingHasChildren"
           class="w-full"
         />
-      </UFormField>
-      <UFormField name="description" label="説明（任意）">
-        <UTextarea v-model="state.description" :maxlength="500" class="w-full" />
-      </UFormField>
+      </AppFormField>
+      <AppFormField name="description" label="説明（任意）">
+        <AppTextarea v-model="state.description" :maxlength="500" class="w-full" />
+      </AppFormField>
     </SettingsFormModal>
     <SettingsDeleteDialog
       v-model:open="deleteOpen"

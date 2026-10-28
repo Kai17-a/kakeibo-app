@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TableColumn } from "@nuxt/ui";
+import type { TableColumn } from "~/types/ui";
 import type { PaymentMethod } from "~/types/settings";
 import { validateNamed, validAmount } from "~/utils/settings";
 import { formatSignedCurrency } from "~/utils/format";
@@ -121,7 +121,7 @@ function save() {
       @add="openForm()"
     >
       <div class="min-w-0 overflow-hidden rounded-lg border border-default">
-        <UTable
+        <AppTable
           :data="sortedItems"
           :columns="columns"
           :aria-label="`${label}一覧`"
@@ -168,7 +168,7 @@ function save() {
               @delete="askDelete(row.original)"
             />
           </template>
-        </UTable>
+        </AppTable>
       </div>
     </SettingsCollectionState>
     <SettingsFormModal
@@ -183,12 +183,12 @@ function save() {
       :error="formError"
       @submit="save"
     >
-      <UFormField
+      <AppFormField
         name="initial_balance"
         label="初期残高（任意）"
         description="残高管理を行う場合の開始時点の金額を入力してください。"
       >
-        <UInput
+        <AppInput
           :model-value="state.initial_balance"
           type="number"
           :min="0"
@@ -196,20 +196,20 @@ function save() {
           class="w-full"
           @update:model-value="state.initial_balance = String($event ?? '')"
         />
-      </UFormField>
-      <UFormField name="name" label="支払方法名" required>
-        <UInput v-model="state.name" :maxlength="100" class="w-full" autofocus />
-      </UFormField>
-      <UFormField name="is_investment">
-        <UCheckbox
+      </AppFormField>
+      <AppFormField name="name" label="支払方法名" required>
+        <AppInput v-model="state.name" :maxlength="100" class="w-full" autofocus />
+      </AppFormField>
+      <AppFormField name="is_investment">
+        <AppCheckbox
           v-model="state.is_investment"
           label="投資口座として扱う"
           description="この口座への振替を投資額として集計します。変更すると過去の集計にも反映されます。"
         />
-      </UFormField>
-      <UFormField name="description" label="説明（任意）">
-        <UTextarea v-model="state.description" :maxlength="500" class="w-full" />
-      </UFormField>
+      </AppFormField>
+      <AppFormField name="description" label="説明（任意）">
+        <AppTextarea v-model="state.description" :maxlength="500" class="w-full" />
+      </AppFormField>
     </SettingsFormModal>
     <SettingsDeleteDialog
       v-model:open="deleteOpen"

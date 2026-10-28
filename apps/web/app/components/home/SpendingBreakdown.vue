@@ -10,7 +10,7 @@ defineProps<{
 </script>
 
 <template>
-  <UCard class="bg-default">
+  <AppCard class="bg-default">
     <template #header>
       <h2 class="text-lg font-semibold">支出の内訳</h2>
     </template>
@@ -25,9 +25,9 @@ defineProps<{
             ></span
           >
         </div>
-        <UProgress class="mt-1" :model-value="total ? (category.total / total) * 100 : 0" />
+        <AppProgress class="mt-1" :model-value="total ? (category.total / total) * 100 : 0" />
       </div>
       <p v-if="!spending.length" class="text-sm text-muted">この月の支出はまだありません。</p>
     </div>
-  </UCard>
+  </AppCard>
 </template>

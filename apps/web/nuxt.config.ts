@@ -1,6 +1,6 @@
-// https://nuxt.com/docs/api/configuration/nuxt-config
+import tailwindcss from "@tailwindcss/vite";
 export default defineNuxtConfig({
-  modules: ["@nuxt/ui"],
+  vite: { plugins: [tailwindcss()] },
 
   // Served as a static SPA bundle by the Rust API (apps/api); all data is
   // fetched client-side, so no Node/Nitro server runtime is needed in production.
@@ -11,9 +11,6 @@ export default defineNuxtConfig({
   },
 
   css: ["~/assets/css/main.css"],
-
-  // Fonts are bundled locally via @fontsource; no remote font downloads.
-  ui: { fonts: false },
 
   compatibilityDate: "2026-06-30",
 

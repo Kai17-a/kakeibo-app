@@ -101,24 +101,24 @@ const {
 
 <template>
   <div class="flex min-w-0 flex-1">
-    <UDashboardPanel id="daily">
+    <AppDashboardPanel id="daily">
       <template #header>
-        <UDashboardNavbar title="日別集計">
+        <AppDashboardNavbar title="日別集計">
           <template #leading>
-            <UDashboardSidebarCollapse />
+            <AppDashboardSidebarCollapse />
           </template>
           <template #right>
             <MonthNavigator :model-value="month" @update:model-value="setMonth" />
             <TransferButton @click="openNewTransfer" />
             <RecordTransactionButton @click="openNew" />
-            <UColorModeButton />
+            <AppColorModeButton />
           </template>
-        </UDashboardNavbar>
+        </AppDashboardNavbar>
       </template>
       <template #body>
         <DataLoadState :loading="loading" :error="loadError" @retry="load">
-          <UCard class="shrink-0">
-            <UTabs
+          <AppCard class="shrink-0">
+            <AppTabs
               v-model="tab"
               orientation="horizontal"
               variant="pill"
@@ -227,7 +227,7 @@ const {
                 </table>
                 <div v-if="!monthTransfers.length" class="py-12 text-center text-sm text-muted">
                   <p>この月の振替明細はありません。</p>
-                  <UButton
+                  <AppButton
                     icon="i-lucide-arrow-right-left"
                     color="neutral"
                     variant="outline"
@@ -235,7 +235,7 @@ const {
                     @click="openNewTransfer"
                   >
                     振替を登録
-                  </UButton>
+                  </AppButton>
                 </div>
               </div>
             </div>
@@ -250,10 +250,10 @@ const {
               :income-categories="incomeCategories"
               :payment-methods="paymentMethods"
             />
-          </UCard>
+          </AppCard>
         </DataLoadState>
       </template>
-    </UDashboardPanel>
+    </AppDashboardPanel>
 
     <TransactionsTransactionFormModal
       v-if="formOpen"

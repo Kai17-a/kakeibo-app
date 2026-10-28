@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TableColumn } from "@nuxt/ui";
+import type { TableColumn } from "~/types/ui";
 import type { Category, PaymentMethod, RecurringExpense } from "~/types/settings";
 import { formatYen } from "~/utils/settings";
 import {
@@ -131,7 +131,7 @@ function openForm(item?: RecurringExpense) {
   Object.assign(state, recurringExpenseForm(item));
   openCrudForm(item);
 }
-const toast = useToast();
+const toast = useAppToast();
 function save() {
   return saveItem(recurringExpenseInput(state));
 }
@@ -189,7 +189,7 @@ async function backfill(item: RecurringExpense) {
       @add="openForm()"
     >
       <div class="min-w-0 overflow-hidden rounded-lg border border-default">
-        <UTable
+        <AppTable
           :data="sortedItems"
           :columns="columns"
           :aria-label="`${label}一覧`"
@@ -207,9 +207,9 @@ async function backfill(item: RecurringExpense) {
                 <span class="font-medium break-words whitespace-normal text-default">{{
                   row.original.name
                 }}</span>
-                <UBadge v-if="row.original.is_variable" color="neutral" variant="soft">
+                <AppBadge v-if="row.original.is_variable" color="neutral" variant="soft">
                   準固定費
-                </UBadge>
+                </AppBadge>
               </div>
               <p
                 v-if="row.original.description"
@@ -237,9 +237,9 @@ async function backfill(item: RecurringExpense) {
             </span>
           </template>
           <template #is_active-cell="{ row }">
-            <UBadge :color="row.original.is_active ? 'success' : 'neutral'" variant="soft">
+            <AppBadge :color="row.original.is_active ? 'success' : 'neutral'" variant="soft">
               {{ row.original.is_active ? "有効" : "無効" }}
-            </UBadge>
+            </AppBadge>
           </template>
           <template #actions-cell="{ row }">
             <RowActionsMenu
@@ -248,7 +248,7 @@ async function backfill(item: RecurringExpense) {
               @delete="askDelete(row.original)"
             />
           </template>
-        </UTable>
+        </AppTable>
       </div>
       <div class="flex flex-col gap-3">
         <template v-for="item in sortedItems" :key="item.id">
@@ -257,10 +257,10 @@ async function backfill(item: RecurringExpense) {
             class="flex flex-wrap items-center gap-3 rounded-md bg-elevated/50 px-4 py-3 text-sm"
           >
             <span class="font-medium">{{ item.name }}</span>
-            <UBadge color="neutral" variant="soft">
+            <AppBadge color="neutral" variant="soft">
               未計上 {{ pendingMonths[item.id]?.length }}件
-            </UBadge>
-            <UButton
+            </AppBadge>
+            <AppButton
               v-if="!item.is_variable"
               color="neutral"
               variant="outline"
@@ -270,7 +270,7 @@ async function backfill(item: RecurringExpense) {
               @click="backfill(item)"
             >
               まとめて計上する
-            </UButton>
+            </AppButton>
             <details v-else class="w-full">
               <summary class="cursor-pointer text-muted">過去月を登録</summary>
               <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1">
@@ -302,19 +302,19 @@ async function backfill(item: RecurringExpense) {
       wide
       @submit="save"
     >
-      <UAlert
+      <AppAlert
         v-if="!categories.length || !paymentMethods.length"
         color="warning"
         title="カテゴリ・支払方法が不足しています"
         description="設定の「支出カテゴリ」「支払方法」で登録してから追加してください。"
       />
-      <UFormField name="name" label="名称" required>
-        <UInput v-model="state.name" class="w-full" />
-      </UFormField>
-      <UFormField name="usdBased">
-        <UCheckbox v-model="state.usdBased" label="外貨建て（USD）にする" />
-      </UFormField>
-      <UFormField
+      <AppFormField name="name" label="名称" required>
+        <AppInput v-model="state.name" class="w-full" />
+      </AppFormField>
+      <AppFormField name="usdBased">
+        <AppCheckbox v-model="state.usdBased" label="外貨建て（USD）にする" />
+      </AppFormField>
+      <AppFormField
         v-if="!state.usdBased"
         name="amount"
         :label="state.is_variable ? '金額（目安・任意）' : '金額'"
@@ -323,7 +323,7 @@ async function backfill(item: RecurringExpense) {
           state.is_variable ? '空欄の場合は「今月分を登録」で毎月入力します。' : undefined
         "
       >
-        <UInput
+        <AppInput
           :model-value="state.amount"
           type="number"
           :min="1"
@@ -331,15 +331,15 @@ async function backfill(item: RecurringExpense) {
           class="w-full"
           @update:model-value="state.amount = String($event ?? '')"
         />
-      </UFormField>
-      <UFormField
+      </AppFormField>
+      <AppFormField
         v-else
         name="foreignAmount"
         label="毎月のUSD金額"
         description="実際の引き落とし額は毎月の為替レートで自動計算されます。"
         required
       >
-        <UInput
+        <AppInput
           :model-value="state.foreignAmount"
           type="number"
           :min="0.01"
@@ -347,9 +347,9 @@ async function backfill(item: RecurringExpense) {
           class="w-full"
           @update:model-value="state.foreignAmount = String($event ?? '')"
         />
-      </UFormField>
-      <UFormField name="payment_day" label="毎月の支払日" required>
-        <UInput
+      </AppFormField>
+      <AppFormField name="payment_day" label="毎月の支払日" required>
+        <AppInput
           :model-value="state.payment_day"
           type="number"
           :min="1"
@@ -359,54 +359,54 @@ async function backfill(item: RecurringExpense) {
           class="w-full"
           @update:model-value="updateRecurringPaymentDay(state, $event)"
         />
-      </UFormField>
-      <UFormField name="is_month_end">
-        <UCheckbox
+      </AppFormField>
+      <AppFormField name="is_month_end">
+        <AppCheckbox
           :model-value="state.is_month_end"
           label="月末（その月の最終日）にする"
           @update:model-value="setRecurringMonthEnd(state, $event === true)"
         />
-      </UFormField>
-      <UFormField name="category_id" label="カテゴリ" required>
-        <USelect
+      </AppFormField>
+      <AppFormField name="category_id" label="カテゴリ" required>
+        <AppSelect
           v-model="state.category_id"
           :items="categoryOptions"
           placeholder="選択してください"
           class="w-full"
         />
-      </UFormField>
-      <UFormField name="payment_method_id" label="支払方法" required>
-        <USelect
+      </AppFormField>
+      <AppFormField name="payment_method_id" label="支払方法" required>
+        <AppSelect
           v-model="state.payment_method_id"
           :items="paymentMethodOptions"
           placeholder="選択してください"
           class="w-full"
         />
-      </UFormField>
-      <UFormField name="start_date" label="開始日" required>
+      </AppFormField>
+      <AppFormField name="start_date" label="開始日" required>
         <DatePicker v-model="state.start_date" required class="w-full" />
-      </UFormField>
-      <UFormField name="end_date" label="終了日（任意）">
+      </AppFormField>
+      <AppFormField name="end_date" label="終了日（任意）">
         <DatePicker v-model="state.end_date" :min="state.start_date" clearable class="w-full" />
-      </UFormField>
-      <UFormField name="description" label="備考（任意）">
-        <UTextarea v-model="state.description" class="w-full" />
-      </UFormField>
-      <UFormField name="is_variable">
-        <UCheckbox v-model="state.is_variable" label="金額が月ごとに変動する（準固定費）" />
-      </UFormField>
-      <UFormField v-if="editingId" name="sync_future_transactions">
-        <UCheckbox
+      </AppFormField>
+      <AppFormField name="description" label="備考（任意）">
+        <AppTextarea v-model="state.description" class="w-full" />
+      </AppFormField>
+      <AppFormField name="is_variable">
+        <AppCheckbox v-model="state.is_variable" label="金額が月ごとに変動する（準固定費）" />
+      </AppFormField>
+      <AppFormField v-if="editingId" name="sync_future_transactions">
+        <AppCheckbox
           v-model="state.sync_future_transactions"
           label="今月以降に生成済みの明細へ金額・カテゴリ・支払方法・備考を反映する"
         />
-      </UFormField>
-      <UFormField name="is_active">
-        <UCheckbox
+      </AppFormField>
+      <AppFormField name="is_active">
+        <AppCheckbox
           v-model="state.is_active"
           :label="editingId ? '有効にする' : '登録後すぐに有効にする'"
         />
-      </UFormField>
+      </AppFormField>
     </SettingsFormModal>
     <SettingsDeleteDialog
       v-model:open="deleteOpen"

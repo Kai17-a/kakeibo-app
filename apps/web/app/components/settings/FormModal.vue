@@ -23,7 +23,7 @@ const emit = defineEmits<{ submit: [] }>();
 </script>
 
 <template>
-  <UModal
+  <AppModal
     v-model:open="open"
     :title="`${label}を${editing ? '編集' : '追加'}`"
     :description="description"
@@ -32,7 +32,7 @@ const emit = defineEmits<{ submit: [] }>();
     :ui="wide ? { footer: 'justify-end', content: 'max-w-2xl' } : { footer: 'justify-end' }"
   >
     <template #body>
-      <UForm
+      <AppForm
         :id="formId"
         :state="state"
         :validate="validate"
@@ -40,17 +40,17 @@ const emit = defineEmits<{ submit: [] }>();
         class="space-y-5"
         @submit="emit('submit')"
       >
-        <UAlert v-if="error" color="error" title="保存できませんでした" :description="error" />
+        <AppAlert v-if="error" color="error" title="保存できませんでした" :description="error" />
         <slot />
-      </UForm>
+      </AppForm>
     </template>
     <template #footer>
-      <UButton color="neutral" variant="outline" :disabled="saving" @click="open = false">
+      <AppButton color="neutral" variant="outline" :disabled="saving" @click="open = false">
         キャンセル
-      </UButton>
-      <UButton type="submit" :form="formId" :loading="saving" :disabled="saving">
+      </AppButton>
+      <AppButton type="submit" :form="formId" :loading="saving" :disabled="saving">
         {{ editing ? "更新" : "追加" }}
-      </UButton>
+      </AppButton>
     </template>
-  </UModal>
+  </AppModal>
 </template>

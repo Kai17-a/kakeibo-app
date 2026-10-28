@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TableColumn } from "@nuxt/ui";
+import type { TableColumn } from "~/types/ui";
 import type { PaymentMethod, RecurringTransfer } from "~/types/settings";
 import { formatYen } from "~/utils/settings";
 import {
@@ -99,7 +99,7 @@ function save() {
       :add-disabled="loading || !!loadError || paymentMethods.length < 2"
       @add="openForm()"
     />
-    <UAlert
+    <AppAlert
       v-if="!loading && !loadError && paymentMethods.length < 2"
       color="warning"
       title="支払方法が2件以上必要です"
@@ -117,7 +117,7 @@ function save() {
       @add="openForm()"
     >
       <div class="min-w-0 overflow-hidden rounded-lg border border-default">
-        <UTable
+        <AppTable
           :data="sortedItems"
           :columns="columns"
           :aria-label="`${label}一覧`"
@@ -149,9 +149,9 @@ function save() {
           </template>
           <template #amount-cell="{ row }">{{ formatYen(row.original.amount) }}</template>
           <template #is_active-cell="{ row }"
-            ><UBadge :color="row.original.is_active ? 'success' : 'neutral'" variant="soft">{{
+            ><AppBadge :color="row.original.is_active ? 'success' : 'neutral'" variant="soft">{{
               row.original.is_active ? "有効" : "無効"
-            }}</UBadge></template
+            }}</AppBadge></template
           >
           <template #actions-cell="{ row }"
             ><RowActionsMenu
@@ -159,7 +159,7 @@ function save() {
               @edit="openForm(row.original)"
               @delete="askDelete(row.original)"
           /></template>
-        </UTable>
+        </AppTable>
       </div>
     </SettingsCollectionState>
     <SettingsFormModal
@@ -174,20 +174,20 @@ function save() {
       :error="formError"
       @submit="save"
     >
-      <UFormField name="name" label="名称" required
-        ><UInput v-model="state.name" class="w-full" autofocus
-      /></UFormField>
-      <UFormField name="amount" label="金額" required
-        ><UInput
+      <AppFormField name="name" label="名称" required
+        ><AppInput v-model="state.name" class="w-full" autofocus
+      /></AppFormField>
+      <AppFormField name="amount" label="金額" required
+        ><AppInput
           :model-value="state.amount"
           type="number"
           :min="1"
           :step="1"
           class="w-full"
           @update:model-value="state.amount = String($event ?? '')"
-      /></UFormField>
-      <UFormField name="payment_day" label="毎月の振替日" required
-        ><UInput
+      /></AppFormField>
+      <AppFormField name="payment_day" label="毎月の振替日" required
+        ><AppInput
           :model-value="state.payment_day"
           type="number"
           :min="1"
@@ -196,39 +196,39 @@ function save() {
           :disabled="state.is_month_end"
           class="w-full"
           @update:model-value="updateRecurringPaymentDay(state, $event)"
-      /></UFormField>
-      <UFormField name="is_month_end"
-        ><UCheckbox
+      /></AppFormField>
+      <AppFormField name="is_month_end"
+        ><AppCheckbox
           :model-value="state.is_month_end"
           label="月末（その月の最終日）にする"
           @update:model-value="setRecurringMonthEnd(state, $event === true)"
-      /></UFormField>
-      <UFormField name="from_payment_method_id" label="移動元" required
-        ><USelect
+      /></AppFormField>
+      <AppFormField name="from_payment_method_id" label="移動元" required
+        ><AppSelect
           v-model="state.from_payment_method_id"
           :items="paymentOptions"
           placeholder="選択してください"
           class="w-full"
-      /></UFormField>
-      <UFormField name="to_payment_method_id" label="移動先" required
-        ><USelect
+      /></AppFormField>
+      <AppFormField name="to_payment_method_id" label="移動先" required
+        ><AppSelect
           v-model="state.to_payment_method_id"
           :items="paymentOptions"
           placeholder="選択してください"
           class="w-full"
-      /></UFormField>
-      <UFormField name="start_date" label="開始日" required
+      /></AppFormField>
+      <AppFormField name="start_date" label="開始日" required
         ><DatePicker v-model="state.start_date" required class="w-full"
-      /></UFormField>
-      <UFormField name="end_date" label="終了日（任意）"
+      /></AppFormField>
+      <AppFormField name="end_date" label="終了日（任意）"
         ><DatePicker v-model="state.end_date" :min="state.start_date" clearable class="w-full"
-      /></UFormField>
-      <UFormField name="description" label="備考（任意）"
-        ><UTextarea v-model="state.description" class="w-full"
-      /></UFormField>
-      <UFormField name="is_active"
-        ><UCheckbox v-model="state.is_active" label="有効にする"
-      /></UFormField>
+      /></AppFormField>
+      <AppFormField name="description" label="備考（任意）"
+        ><AppTextarea v-model="state.description" class="w-full"
+      /></AppFormField>
+      <AppFormField name="is_active"
+        ><AppCheckbox v-model="state.is_active" label="有効にする"
+      /></AppFormField>
     </SettingsFormModal>
     <SettingsDeleteDialog
       v-model:open="deleteOpen"

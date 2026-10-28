@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { ja } from "@nuxt/ui/locale";
-
 useHead({
   htmlAttrs: { lang: "ja" },
   titleTemplate: (title) => (title && title !== "Kakeibo" ? `${title} | Kakeibo` : "Kakeibo"),
@@ -18,10 +16,11 @@ useSeoMeta({
 </script>
 
 <template>
-  <UApp :locale="ja">
+  <div>
     <NuxtLoadingIndicator />
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
-  </UApp>
+    <AppToasts />
+  </div>
 </template>

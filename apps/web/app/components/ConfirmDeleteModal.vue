@@ -15,7 +15,7 @@ const emit = defineEmits<{ confirm: [] }>();
 </script>
 
 <template>
-  <UModal
+  <AppModal
     v-model:open="open"
     :title="title"
     :description="description"
@@ -27,12 +27,12 @@ const emit = defineEmits<{ confirm: [] }>();
       <slot name="body" />
     </template>
     <template #footer>
-      <UButton color="neutral" variant="outline" :disabled="busy" @click="open = false">
+      <AppButton color="neutral" variant="outline" :disabled="busy" @click="open = false">
         キャンセル
-      </UButton>
-      <UButton color="error" :loading="busy" :disabled="busy" @click="emit('confirm')">
+      </AppButton>
+      <AppButton color="error" :loading="busy" :disabled="busy" @click="emit('confirm')">
         削除
-      </UButton>
+      </AppButton>
     </template>
-  </UModal>
+  </AppModal>
 </template>

@@ -10,7 +10,7 @@ const emit = defineEmits<{ retry: [] }>();
 
 <!-- Renders no wrapper element, so the default slot keeps its place in the parent's layout. -->
 <template>
-  <UAlert
+  <AppAlert
     v-if="error"
     color="error"
     variant="subtle"
@@ -22,8 +22,8 @@ const emit = defineEmits<{ retry: [] }>();
     class="mb-6 shrink-0"
   />
   <div v-if="loading" class="space-y-4">
-    <USkeleton class="h-28 w-full" />
-    <USkeleton class="h-28 w-full" />
+    <AppSkeleton class="h-28 w-full" />
+    <AppSkeleton class="h-28 w-full" />
   </div>
   <slot v-else />
 </template>

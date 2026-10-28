@@ -33,9 +33,9 @@ const balance = computed(() => props.income - props.expense);
       >
         {{ formatSignedCurrency(income, "positive") }}
       </p>
-      <UBadge v-if="forecast.income" class="mt-2" color="neutral" variant="soft">
+      <AppBadge v-if="forecast.income" class="mt-2" color="neutral" variant="soft">
         うち予定 {{ formatCurrency(forecast.income) }}
-      </UBadge>
+      </AppBadge>
     </div>
     <div class="border-l border-default p-3 sm:p-6">
       <p class="text-sm text-muted">投資</p>
@@ -49,9 +49,9 @@ const balance = computed(() => props.income - props.expense);
       <p class="mt-1 text-base font-bold whitespace-nowrap tabular-nums sm:text-2xl">
         {{ formatSignedCurrency(expense, "negative") }}
       </p>
-      <UBadge v-if="forecast.expense" class="mt-2" color="neutral" variant="soft">
+      <AppBadge v-if="forecast.expense" class="mt-2" color="neutral" variant="soft">
         うち予定 {{ formatCurrency(forecast.expense) }}
-      </UBadge>
+      </AppBadge>
     </div>
     <div class="col-span-2 border-t border-default p-3 sm:col-span-1 sm:border-t-0 sm:p-6">
       <p class="text-sm text-muted">収支</p>
@@ -63,7 +63,7 @@ const balance = computed(() => props.income - props.expense);
       >
         {{ formatSignedCurrency(balance) }}
       </p>
-      <UProgress
+      <AppProgress
         v-if="budgetTotal"
         class="mt-2"
         :model-value="Math.min(100, budgetRate)"

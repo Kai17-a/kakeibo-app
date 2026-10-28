@@ -23,10 +23,10 @@ const emit = defineEmits<{ retry: []; add: [] }>();
 <!-- Shows loading, error or empty states, and the default slot once there are items. -->
 <template>
   <div v-if="loading" role="status" :aria-label="`${label}を読み込み中`" class="space-y-3">
-    <USkeleton v-for="i in 3" :key="i" :class="['w-full', skeletonClass]" />
+    <AppSkeleton v-for="i in 3" :key="i" :class="['w-full', skeletonClass]" />
     <span class="sr-only">読み込み中…</span>
   </div>
-  <UAlert
+  <AppAlert
     v-else-if="error"
     color="error"
     variant="subtle"
@@ -36,12 +36,12 @@ const emit = defineEmits<{ retry: []; add: [] }>();
       { label: '再試行', color: 'error', variant: 'outline', onClick: () => emit('retry') },
     ]"
   />
-  <UCard v-else-if="empty" class="text-center">
+  <AppCard v-else-if="empty" class="text-center">
     <div class="space-y-3 py-10">
-      <UIcon :name="emptyIcon" class="size-8 text-muted" />
+      <AppIcon :name="emptyIcon" class="size-8 text-muted" />
       <h3 class="font-semibold">{{ label }}がありません</h3>
       <p class="text-sm text-muted">{{ emptyDescription }}</p>
-      <UButton
+      <AppButton
         color="neutral"
         variant="outline"
         icon="i-lucide-plus"
@@ -49,8 +49,8 @@ const emit = defineEmits<{ retry: []; add: [] }>();
         @click="emit('add')"
       >
         {{ addLabel }}
-      </UButton>
+      </AppButton>
     </div>
-  </UCard>
+  </AppCard>
   <slot v-else />
 </template>

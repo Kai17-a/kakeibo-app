@@ -28,7 +28,7 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
 </script>
 
 <template>
-  <UCard v-if="hasAny" class="bg-default">
+  <AppCard v-if="hasAny" class="bg-default">
     <template #header>
       <h2 class="text-lg font-semibold">定期の収支</h2>
     </template>
@@ -85,7 +85,7 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
             <b class="block">{{ formatCurrency(postedExpenseAmounts.get(item.id) ?? 0) }}</b>
             <small class="text-muted">登録済み</small>
           </span>
-          <UButton
+          <AppButton
             v-else
             color="neutral"
             variant="outline"
@@ -94,7 +94,7 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
             @click="emit('registerExpense', item)"
           >
             今月分を登録
-          </UButton>
+          </AppButton>
         </li>
       </ul>
     </template>
@@ -140,7 +140,7 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
             <b class="block">{{ formatCurrency(postedIncomeAmounts.get(item.id) ?? 0) }}</b>
             <small class="text-muted">登録済み</small>
           </span>
-          <UButton
+          <AppButton
             v-else
             color="neutral"
             variant="outline"
@@ -149,12 +149,12 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
             @click="emit('registerIncome', item)"
           >
             今月分を登録
-          </UButton>
+          </AppButton>
         </li>
       </ul>
     </template>
-  </UCard>
-  <UCard v-else class="bg-default">
+  </AppCard>
+  <AppCard v-else class="bg-default">
     <template #header>
       <h2 class="text-lg font-semibold">定期の収支</h2>
     </template>
@@ -164,5 +164,5 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
         定期の収支を設定
       </NuxtLink>
     </p>
-  </UCard>
+  </AppCard>
 </template>

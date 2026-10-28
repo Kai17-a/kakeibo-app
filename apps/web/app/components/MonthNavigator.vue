@@ -6,8 +6,8 @@ const month = defineModel<string>({ required: true });
 </script>
 
 <template>
-  <UFieldGroup class="shrink-0">
-    <UButton
+  <AppFieldGroup class="shrink-0">
+    <AppButton
       icon="i-lucide-chevron-left"
       color="neutral"
       variant="outline"
@@ -15,12 +15,12 @@ const month = defineModel<string>({ required: true });
       @click="month = shiftMonth(month, -1)"
     />
     <MonthPicker v-model="month" class="w-24 sm:w-40" />
-    <UButton
+    <AppButton
       icon="i-lucide-chevron-right"
       color="neutral"
       variant="outline"
       aria-label="翌月"
       @click="month = shiftMonth(month, 1)"
     />
-  </UFieldGroup>
+  </AppFieldGroup>
 </template>

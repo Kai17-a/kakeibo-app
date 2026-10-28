@@ -1,10 +1,50 @@
 <script setup lang="ts">
-import type { NavigationMenuItem } from "@nuxt/ui";
+import type { NavigationMenuItem } from "~/types/ui";
 import { settingsNavigation } from "~/utils/settings-navigation";
 import { isValidMonth, isValidYear } from "~/utils/format";
 
-const open = ref(false);
+const open = useState("sidebar-open", () => false);
+const searchOpen = ref(false);
+const keyword = ref("");
+const searchResults = computed(() =>
+  groups.value.flatMap((group) => group.items).filter((item) => item.label.includes(keyword.value)),
+);
+function shortcut(event: KeyboardEvent) {
+  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+    event.preventDefault();
+    searchOpen.value = !searchOpen.value;
+  }
+}
+onMounted(() => document.addEventListener("keydown", shortcut));
+onBeforeUnmount(() => document.removeEventListener("keydown", shortcut));
 const route = useRoute();
+const sidebar = ref<HTMLElement>();
+let sidebarTrigger: HTMLElement | null = null;
+watch(open, async (value) => {
+  if (!window.matchMedia("(max-width: 1023px)").matches) return;
+  if (value) {
+    sidebarTrigger = document.activeElement as HTMLElement;
+    await nextTick();
+    sidebar.value?.querySelector<HTMLElement>("a, button")?.focus();
+  } else sidebarTrigger?.focus();
+});
+function sidebarKeydown(event: KeyboardEvent) {
+  if (event.key === "Escape") {
+    closeSidebar();
+    return;
+  }
+  if (event.key !== "Tab" || !window.matchMedia("(max-width: 1023px)").matches) return;
+  const targets = sidebar.value?.querySelectorAll<HTMLElement>("a[href], button:not(:disabled)");
+  const first = targets?.[0];
+  const last = targets?.[targets.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last?.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first?.focus();
+  }
+}
 const closeSidebar = () => {
   open.value = false;
 };
@@ -65,38 +105,65 @@ const groups = computed(() => [
 </script>
 
 <template>
-  <UDashboardGroup unit="rem">
-    <UDashboardSidebar
-      id="default"
-      v-model:open="open"
-      collapsible
-      resizable
-      class="bg-elevated/25"
+  <div class="app-shell-layout" :class="{ 'sidebar-open': open }">
+    <button
+      v-if="open"
+      type="button"
+      class="app-sidebar-backdrop"
+      aria-label="サイドバーを閉じる"
+      @click="closeSidebar"
+    />
+    <aside
+      id="app-sidebar"
+      ref="sidebar"
+      class="app-sidebar-local"
+      aria-label="メニュー"
+      @keydown="sidebarKeydown"
     >
-      <template #header="{ collapsed }">
-        <NuxtLink
-          to="/"
-          class="flex items-center gap-2 rounded-md focus-visible:outline-2"
-          aria-label="Kakeibo ホーム"
-          @click="closeSidebar"
-        >
-          <AppLogo class="size-8 shrink-0" />
-          <span v-if="!collapsed" class="font-serif text-xl font-bold">Kakeibo</span>
-        </NuxtLink>
-      </template>
-      <template #default="{ collapsed }">
-        <UDashboardSearchButton :collapsed="collapsed" class="bg-transparent ring-default" />
-        <UNavigationMenu
-          :collapsed="collapsed"
-          :items="links[0]"
-          orientation="vertical"
-          aria-label="メインナビゲーション"
-          tooltip
-          popover
-        />
-      </template>
-    </UDashboardSidebar>
-    <UDashboardSearch :groups="groups" />
+      <NuxtLink
+        to="/"
+        class="flex items-center gap-2 font-serif text-xl font-bold"
+        aria-label="Kakeibo ホーム"
+        @click="closeSidebar"
+        ><AppLogo class="size-8 shrink-0" />Kakeibo</NuxtLink
+      >
+      <AppButton color="neutral" variant="outline" class="w-full" @click="searchOpen = true"
+        >ページを検索 <kbd>⌘/Ctrl K</kbd></AppButton
+      >
+      <AppNavigationMenu
+        :items="links[0] || []"
+        orientation="vertical"
+        aria-label="メインナビゲーション"
+      />
+    </aside>
     <slot />
-  </UDashboardGroup>
+    <AppModal
+      v-model:open="searchOpen"
+      title="ページへ移動"
+      description="ページ名を検索してください。"
+    >
+      <template #body
+        ><input
+          v-model="keyword"
+          class="form-control"
+          type="search"
+          autofocus
+          aria-label="ページ名"
+        />
+        <nav class="app-navigation-vertical mt-4">
+          <NuxtLink
+            v-for="(item, index) in searchResults"
+            :key="index"
+            :to="item.to || '/'"
+            @click="
+              searchOpen = false;
+              closeSidebar();
+            "
+            >{{ item.label }}</NuxtLink
+          >
+          <p v-if="!searchResults.length">該当するページはありません</p>
+        </nav></template
+      >
+    </AppModal>
+  </div>
 </template>
