@@ -127,7 +127,7 @@ function save() {
     <SettingsListHeader
       heading-id="recurring-income-heading"
       :title="label"
-      description="毎月発生する固定収入・準固定収入（金額変動）の入金予定を管理します。"
+      description="毎月発生する固定収入・準固定収入（金額変動）の入金予定を管理します"
       :count="loading || loadError ? null : items.length"
       :add-disabled="loading || !!loadError"
       @add="openForm()"
@@ -139,7 +139,7 @@ function save() {
       :error="loadError"
       :empty="!items.length"
       empty-icon="i-lucide-repeat"
-      empty-description="毎月の定期収入を登録すると、ここに一覧が表示されます。"
+      empty-description="毎月の定期収入を登録すると、ここに一覧が表示されます"
       add-label="定期収入を追加"
       @retry="load"
       @add="openForm()"
@@ -207,7 +207,7 @@ function save() {
       v-model:open="formOpen"
       :label="label"
       :editing="!!editingId"
-      description="毎月の収入額、入金日、適用期間を設定します。"
+      description="毎月の収入額、入金日、適用期間を設定します"
       form-id="recurring-income-form"
       :state="state"
       :validate="validate"
@@ -219,7 +219,7 @@ function save() {
         v-if="!categories.length"
         color="warning"
         title="収入カテゴリがありません"
-        description="設定の「収入カテゴリ」でカテゴリを登録してから追加してください。"
+        description="設定の「収入カテゴリ」でカテゴリを登録してから追加してください"
       />
       <AppFormField name="name" label="名称" required>
         <AppInput v-model="state.name" class="w-full" autofocus />
@@ -229,7 +229,7 @@ function save() {
         :label="state.is_variable ? '金額（目安・任意）' : '金額'"
         :required="!state.is_variable"
         :description="
-          state.is_variable ? '空欄の場合は「今月分を登録」で毎月入力します。' : undefined
+          state.is_variable ? '空欄の場合は「今月分を登録」で毎月入力します' : undefined
         "
       >
         <AppInput

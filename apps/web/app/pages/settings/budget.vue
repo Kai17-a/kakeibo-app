@@ -45,7 +45,7 @@ const {
   create: api.create,
   update: api.update,
   remove: api.remove,
-  removeErrorMessage: () => "予算を削除できませんでした。",
+  removeErrorMessage: () => "予算を削除できませんでした",
 });
 
 /** Expense categories without a budget yet; a category has at most one budget. */
@@ -94,9 +94,9 @@ function categoryName(id: string) {
 function validate() {
   const errors: { name: string; message: string }[] = [];
   if (!budgetCategories.value.some((item) => item.id === state.category_id))
-    errors.push({ name: "category_id", message: "支出カテゴリを選択してください。" });
+    errors.push({ name: "category_id", message: "支出カテゴリを選択してください" });
   if (!validAmount(state.amount))
-    errors.push({ name: "amount", message: "月額予算を0以上の整数で入力してください。" });
+    errors.push({ name: "amount", message: "月額予算を0以上の整数で入力してください" });
   return errors;
 }
 function openForm(item?: Budget) {
@@ -114,7 +114,7 @@ function save() {
     <SettingsListHeader
       heading-id="budget-heading"
       :title="label"
-      description="支出カテゴリごとに毎月適用する予算を管理します。"
+      description="支出カテゴリごとに毎月適用する予算を管理します"
       :count="loading || loadError ? null : items.length"
       :add-disabled="loading || !!loadError || !unassignedCategories.length"
       @add="openForm()"
@@ -128,7 +128,7 @@ function save() {
       :error="loadError"
       :empty="!items.length"
       empty-icon="i-lucide-chart-pie"
-      empty-description="カテゴリごとの月額予算を設定すると、ここに一覧が表示されます。"
+      empty-description="カテゴリごとの月額予算を設定すると、ここに一覧が表示されます"
       add-label="予算を追加"
       :add-disabled="!unassignedCategories.length"
       @retry="load"
@@ -166,7 +166,7 @@ function save() {
       v-model:open="formOpen"
       :label="label"
       :editing="!!editingId"
-      description="支出カテゴリと毎月の予算額を設定します。"
+      description="支出カテゴリと毎月の予算額を設定します"
       form-id="budget-form"
       :state="state"
       :validate="validate"

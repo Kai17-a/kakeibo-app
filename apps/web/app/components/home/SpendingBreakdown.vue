@@ -27,7 +27,7 @@ defineProps<{
         </div>
         <AppProgress class="mt-1" :model-value="total ? (category.total / total) * 100 : 0" />
       </div>
-      <p v-if="!spending.length" class="text-sm text-muted">この月の支出はまだありません。</p>
+      <p v-if="!spending.length" class="text-sm text-muted">この月の支出はまだありません</p>
     </div>
   </AppCard>
 </template>

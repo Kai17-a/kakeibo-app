@@ -40,7 +40,7 @@ const legend = computed(() => props.months[0]?.values ?? []);
               :title="`${value.name}: ${formatCurrency(value.total)}`"
             />
           </div>
-          <span class="mt-2 block text-center text-[10px] whitespace-nowrap sm:text-xs"
+          <span class="mt-2 block text-center text-[11px] whitespace-nowrap sm:text-xs"
             >{{ item.month }}月</span
           >
         </div>

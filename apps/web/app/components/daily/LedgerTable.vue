@@ -38,31 +38,15 @@ function paymentName(item: T) {
     <table class="w-full min-w-[800px] text-sm">
       <thead class="sticky top-0 bg-default">
         <tr class="border-b border-default">
-          <th
-            class="w-32 px-3 py-2 text-left text-xs font-medium tracking-wider whitespace-nowrap text-muted uppercase"
-          >
+          <th class="w-32 px-3 py-2 text-left text-xs font-medium whitespace-nowrap text-muted">
             日付
           </th>
-          <th
-            class="min-w-28 px-3 py-2 text-left text-xs font-medium tracking-wider text-muted uppercase"
-          >
-            摘要
-          </th>
-          <th
-            class="min-w-28 px-3 py-2 text-left text-xs font-medium tracking-wider text-muted uppercase"
-          >
-            支払方法
-          </th>
-          <th
-            class="w-32 px-3 py-2 text-right text-xs font-medium tracking-wider whitespace-nowrap text-muted uppercase"
-          >
+          <th class="min-w-28 px-3 py-2 text-left text-xs font-medium text-muted">摘要</th>
+          <th class="min-w-28 px-3 py-2 text-left text-xs font-medium text-muted">支払方法</th>
+          <th class="w-32 px-3 py-2 text-right text-xs font-medium whitespace-nowrap text-muted">
             金額
           </th>
-          <th
-            class="min-w-40 px-3 py-2 text-left text-xs font-medium tracking-wider text-muted uppercase"
-          >
-            備考
-          </th>
+          <th class="min-w-40 px-3 py-2 text-left text-xs font-medium text-muted">備考</th>
           <th class="w-36 px-3 py-2 text-right">
             <span class="sr-only">操作</span>
           </th>

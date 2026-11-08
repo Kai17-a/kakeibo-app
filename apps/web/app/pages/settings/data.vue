@@ -89,7 +89,7 @@ onMounted(() => {
     <div class="space-y-1">
       <h2 id="data-heading" class="text-highlighted text-xl font-semibold">データ管理</h2>
       <p class="text-sm text-muted">
-        家計簿データの書き出し、バックアップ、CSVからの取り込みを行います。
+        家計簿データの書き出し、バックアップ、CSVからの取り込みを行います
       </p>
     </div>
 
@@ -97,7 +97,7 @@ onMounted(() => {
       <template #header>
         <h3 class="text-lg font-semibold">データのダウンロード</h3>
         <p class="mt-2 text-sm text-muted">
-          用途に合わせてCSVファイルまたはデータベース全体をダウンロードできます。
+          用途に合わせてCSVファイルまたはデータベース全体をダウンロードできます
         </p>
       </template>
 
@@ -135,7 +135,7 @@ onMounted(() => {
       <template #header>
         <h3 class="text-lg font-semibold">データのインポート</h3>
         <p class="mt-2 text-sm text-muted">
-          CSVは明細を追加し、フルバックアップは現在の全データを置き換えます。
+          CSVは明細を追加し、フルバックアップは現在の全データを置き換えます
         </p>
       </template>
 

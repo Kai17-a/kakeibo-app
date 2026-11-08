@@ -140,7 +140,7 @@ const groups = computed(() => [
     <AppModal
       v-model:open="searchOpen"
       title="ページへ移動"
-      description="ページ名を検索してください。"
+      description="ページ名を検索してください"
     >
       <template #body
         ><input

@@ -91,7 +91,7 @@ function reload() {
     <AppModal
       :open="open"
       title="フルバックアップから復元"
-      description="現在の家計簿データをバックアップの内容で置き換えます。"
+      description="現在の家計簿データをバックアップの内容で置き換えます"
       :dismissible="!restoring"
       :close="!restoring"
       :ui="{ footer: 'flex-wrap justify-end gap-2' }"
@@ -113,7 +113,7 @@ function reload() {
           </dl>
           <p class="text-sm text-muted">
             復元を始める直前に、現在のデータの退避コピーをサーバーの .restore-backups
-            フォルダへ自動作成します（新しい5世代を保持）。
+            フォルダへ自動作成します（新しい5世代を保持）
           </p>
           <AppAlert v-if="error" color="error" title="復元できませんでした" :description="error" />
           <AppAlert
