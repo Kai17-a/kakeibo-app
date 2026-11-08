@@ -12,7 +12,7 @@ const links = [settingsNavigation];
           <UDashboardSidebarCollapse />
         </template>
         <template #right>
-          <UColorModeButton />
+          <UColorModeButton class="hidden sm:inline-flex" />
         </template>
       </UDashboardNavbar>
       <UDashboardToolbar>

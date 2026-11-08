@@ -191,7 +191,7 @@ const {
             <MonthNavigator :model-value="month" @update:model-value="setMonth" />
             <TransferButton @click="openNewTransfer" />
             <RecordTransactionButton @click="openNew" />
-            <UColorModeButton />
+            <UColorModeButton class="hidden sm:inline-flex" />
           </template>
         </UDashboardNavbar>
       </template>

@@ -120,7 +120,7 @@ const {
             />
             <TransferButton @click="openNewTransfer" />
             <RecordTransactionButton @click="openNew" />
-            <UColorModeButton />
+            <UColorModeButton class="hidden sm:inline-flex" />
           </template>
         </UDashboardNavbar>
       </template>
