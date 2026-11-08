@@ -43,6 +43,7 @@ const label = computed(() => {
       color="neutral"
       variant="outline"
       icon="i-lucide-calendar"
+      :ui="{ leadingIcon: 'hidden sm:inline-flex' }"
       :disabled="disabled"
       :aria-label="`${ariaLabel}: ${label}`"
       class="w-full justify-start font-normal"
