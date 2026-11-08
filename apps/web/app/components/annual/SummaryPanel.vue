@@ -13,7 +13,7 @@ const balance = computed(() => props.income - props.expense);
 
 <template>
   <section
-    class="grid grid-cols-2 overflow-hidden rounded-lg border border-default bg-elevated sm:grid-cols-4 sm:divide-x sm:divide-default"
+    class="grid grid-cols-2 overflow-hidden rounded-lg border border-default bg-default sm:grid-cols-4"
     aria-label="年間収支概要"
   >
     <div class="p-3 sm:p-6">
@@ -37,14 +37,14 @@ const balance = computed(() => props.income - props.expense);
         月平均 {{ formatCurrency(investment / 12) }}
       </p>
     </div>
-    <div class="border-l border-default p-3 sm:border-t-0 sm:p-6">
+    <div class="border-t border-default p-3 sm:border-t-0 sm:border-l sm:p-6">
       <p class="text-sm text-muted">年間支出</p>
       <p class="mt-1 text-base font-bold whitespace-nowrap tabular-nums sm:text-2xl">
         {{ formatSignedCurrency(expense, "negative") }}
       </p>
       <p class="mt-2 text-sm text-muted tabular-nums">月平均 {{ formatCurrency(expense / 12) }}</p>
     </div>
-    <div class="col-span-2 border-t border-default p-3 sm:col-span-1 sm:border-t-0 sm:p-6">
+    <div class="border-t border-l border-default p-3 sm:border-t-0 sm:p-6">
       <p class="text-sm text-muted">年間収支</p>
       <p
         :class="[
