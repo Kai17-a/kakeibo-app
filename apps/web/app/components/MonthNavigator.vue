@@ -14,7 +14,7 @@ const month = defineModel<string>({ required: true });
       aria-label="前月"
       @click="month = shiftMonth(month, -1)"
     />
-    <MonthPicker v-model="month" class="w-24 sm:w-40" />
+    <MonthPicker v-model="month" class="w-32 sm:w-40" />
     <AppButton
       icon="i-lucide-chevron-right"
       color="neutral"
