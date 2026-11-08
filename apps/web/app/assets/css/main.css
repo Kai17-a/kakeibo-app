@@ -245,6 +245,9 @@
     padding: 0.5rem;
     min-width: 10rem;
   }
+  .app-row-menu:not(:popover-open) {
+    display: none;
+  }
   .app-row-menu:popover-open {
     display: flex;
     flex-direction: column;
