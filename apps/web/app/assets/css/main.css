@@ -4,7 +4,7 @@
 @import "@fontsource-variable/playfair-display";
 
 @theme {
-  --font-sans: "Lora", sans-serif;
+  --font-sans: "Noto Sans Variable", sans-serif;
 }
 
 @theme static {
