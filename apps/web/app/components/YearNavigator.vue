@@ -11,6 +11,7 @@ const year = defineModel<string>({ required: true });
 <template>
   <UFieldGroup>
     <UButton
+      class="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0"
       icon="i-lucide-chevron-left"
       color="neutral"
       variant="outline"
@@ -21,10 +22,11 @@ const year = defineModel<string>({ required: true });
       :model-value="year"
       :items="years.map((item) => ({ label: `${item}年`, value: item }))"
       aria-label="対象年"
-      class="w-28"
+      class="min-h-[44px] w-28 sm:min-h-0"
       @update:model-value="(value) => (year = String(value))"
     />
     <UButton
+      class="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0"
       icon="i-lucide-chevron-right"
       color="neutral"
       variant="outline"

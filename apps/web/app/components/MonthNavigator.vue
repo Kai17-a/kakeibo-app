@@ -8,6 +8,7 @@ const month = defineModel<string>({ required: true });
 <template>
   <UFieldGroup class="shrink-0">
     <UButton
+      class="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0"
       icon="i-lucide-chevron-left"
       color="neutral"
       variant="outline"
@@ -16,6 +17,7 @@ const month = defineModel<string>({ required: true });
     />
     <MonthPicker v-model="month" class="w-24 sm:w-40" />
     <UButton
+      class="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0"
       icon="i-lucide-chevron-right"
       color="neutral"
       variant="outline"

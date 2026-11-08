@@ -21,7 +21,7 @@ const legend = computed(() => props.months[0]?.values ?? []);
       <p class="text-sm text-muted">月ごとの支出構成</p>
     </template>
     <template v-if="legend.length">
-      <div class="flex h-72 items-end gap-1 border-b border-default sm:gap-2">
+      <div aria-hidden="true" class="flex h-72 items-end gap-1 border-b border-default sm:gap-2">
         <div
           v-for="item in months"
           :key="item.month"
@@ -55,6 +55,41 @@ const legend = computed(() => props.months[0]?.values ?? []);
           {{ category.name }}
         </span>
       </div>
+      <details class="mt-4">
+        <summary class="min-h-[44px] cursor-pointer py-3 text-sm text-primary">
+          月別の金額を表で見る
+        </summary>
+        <div class="overflow-x-auto">
+          <table class="w-full text-right text-sm tabular-nums">
+            <caption class="sr-only">
+              カテゴリ別月次推移の金額
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col" class="p-2 text-left">月</th>
+                <th
+                  v-for="category in legend"
+                  :key="category.id"
+                  scope="col"
+                  class="p-2 whitespace-nowrap"
+                >
+                  {{ category.name }}
+                </th>
+                <th scope="col" class="p-2">合計</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in months" :key="item.month" class="border-t border-default">
+                <th scope="row" class="p-2 text-left whitespace-nowrap">{{ item.month }}月</th>
+                <td v-for="value in item.values" :key="value.id" class="p-2">
+                  {{ formatCurrency(value.total) }}
+                </td>
+                <td class="p-2 font-semibold">{{ formatCurrency(item.total) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
     </template>
     <p v-else class="py-24 text-center text-sm text-muted">この年の支出はありません。</p>
   </UCard>

@@ -38,6 +38,18 @@ watch(
   },
 );
 
+const cleanState = ref(JSON.stringify(state));
+function requestClose(open: boolean) {
+  if (props.saving) return;
+  if (
+    !open &&
+    JSON.stringify(state) !== cleanState.value &&
+    !window.confirm("入力内容を破棄して閉じますか？")
+  )
+    return;
+  emit("update:open", open);
+}
+
 async function handleSubmit(event: SubmitEvent) {
   dateError.value = dateStringToCalendarDate(state.date) ? "" : "日付を選択してください";
   fromPaymentMethodError.value = state.fromPaymentMethodId ? "" : "移動元を選択してください";
@@ -65,6 +77,7 @@ async function handleSubmit(event: SubmitEvent) {
   if (saved && keepOpen) {
     state.amount = "";
     state.description = "";
+    cleanState.value = JSON.stringify(state);
   }
 }
 </script>
@@ -77,7 +90,7 @@ async function handleSubmit(event: SubmitEvent) {
     :dismissible="!saving"
     :close="!saving"
     :ui="{ content: 'max-w-xl', body: 'sm:p-6', footer: 'flex-wrap justify-end gap-2' }"
-    @update:open="(value) => emit('update:open', value)"
+    @update:open="requestClose"
   >
     <template #body>
       <p v-if="unavailable" class="mb-5 text-sm text-muted">
@@ -133,12 +146,7 @@ async function handleSubmit(event: SubmitEvent) {
       </form>
     </template>
     <template #footer>
-      <UButton
-        color="neutral"
-        variant="outline"
-        :disabled="saving"
-        @click="emit('update:open', false)"
-      >
+      <UButton color="neutral" variant="outline" :disabled="saving" @click="requestClose(false)">
         キャンセル
       </UButton>
       <UButton

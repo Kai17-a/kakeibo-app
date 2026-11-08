@@ -80,7 +80,9 @@ const state = reactive({
 const categories = computed(() =>
   kind.value === "expense" ? props.expenseCategories : props.incomeCategories,
 );
-const NO_PAYMENT_METHOD_VALUE = "__NONE__";
+const unavailable = computed(
+  () => !categories.value.length || (kind.value === "expense" && !props.paymentMethods.length),
+);
 const categoryOptions = computed(() =>
   groupCategories(categories.value).map((category) => ({
     label: category.parent_category_id === null ? category.name : `  ${category.name}`,
@@ -118,6 +120,18 @@ watch(
   },
 );
 
+const cleanState = ref(JSON.stringify({ ...state, kind: kind.value }));
+function requestClose(open: boolean) {
+  if (props.saving) return;
+  if (
+    !open &&
+    JSON.stringify({ ...state, kind: kind.value }) !== cleanState.value &&
+    !window.confirm("入力内容を破棄して閉じますか？")
+  )
+    return;
+  emit("update:open", open);
+}
+
 async function handleSubmit(event: SubmitEvent) {
   if (!dateStringToCalendarDate(state.date)) {
     dateError.value = "日付を選択してください";
@@ -128,6 +142,7 @@ async function handleSubmit(event: SubmitEvent) {
 }
 
 async function submit(keepOpen: boolean) {
+  if (unavailable.value) return;
   const submission: TransactionSubmission =
     kind.value === "expense"
       ? {
@@ -166,6 +181,7 @@ async function submit(keepOpen: boolean) {
   if (saved && keepOpen) {
     state.amount = "";
     state.description = "";
+    cleanState.value = JSON.stringify({ ...state, kind: kind.value });
   }
 }
 </script>
@@ -178,9 +194,13 @@ async function submit(keepOpen: boolean) {
     :dismissible="!saving"
     :close="!saving"
     :ui="{ content: 'max-w-xl', body: 'sm:p-6', footer: 'flex-wrap justify-end gap-2' }"
-    @update:open="(value) => emit('update:open', value)"
+    @update:open="requestClose"
   >
     <template #body>
+      <p v-if="unavailable" role="status" class="mb-4 text-sm">
+        登録にはカテゴリと、支出の場合は支払方法が必要です。
+        <NuxtLink to="/settings" class="text-primary underline">設定で登録してください</NuxtLink>
+      </p>
       <UTabs
         v-if="!editing && !preset"
         v-model="kind"
@@ -220,16 +240,16 @@ async function submit(keepOpen: boolean) {
         </UFormField>
         <UFormField :label="`支払方法${kind === 'income' ? '（任意）' : ''}`">
           <USelect
-            :model-value="state.paymentMethodId || NO_PAYMENT_METHOD_VALUE"
+            :model-value="state.paymentMethodId || (kind === 'income' ? '__NONE__' : undefined)"
             :items="
               kind === 'income'
-                ? [{ label: '未選択', value: NO_PAYMENT_METHOD_VALUE }, ...paymentMethodOptions]
+                ? [{ label: '未選択', value: '__NONE__' }, ...paymentMethodOptions]
                 : paymentMethodOptions
             "
+            placeholder="未選択"
             class="w-full"
             @update:model-value="
-              state.paymentMethodId =
-                $event == null || $event === NO_PAYMENT_METHOD_VALUE ? '' : String($event)
+              state.paymentMethodId = $event == null || $event === '__NONE__' ? '' : String($event)
             "
           />
         </UFormField>
@@ -239,12 +259,7 @@ async function submit(keepOpen: boolean) {
       </form>
     </template>
     <template #footer>
-      <UButton
-        color="neutral"
-        variant="outline"
-        :disabled="saving"
-        @click="emit('update:open', false)"
-      >
+      <UButton color="neutral" variant="outline" :disabled="saving" @click="requestClose(false)">
         キャンセル
       </UButton>
       <UButton
@@ -255,11 +270,16 @@ async function submit(keepOpen: boolean) {
         color="neutral"
         variant="outline"
         :loading="saving"
-        :disabled="saving"
+        :disabled="saving || unavailable"
       >
         登録して続ける
       </UButton>
-      <UButton type="submit" form="transaction-form" :loading="saving" :disabled="saving">
+      <UButton
+        type="submit"
+        form="transaction-form"
+        :loading="saving"
+        :disabled="saving || unavailable"
+      >
         {{ editing ? "更新する" : "登録する" }}
       </UButton>
     </template>

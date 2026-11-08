@@ -25,5 +25,5 @@ const emit = defineEmits<{ retry: [] }>();
     <USkeleton class="h-28 w-full" />
     <USkeleton class="h-28 w-full" />
   </div>
-  <slot v-else />
+  <slot v-else-if="!error" />
 </template>
