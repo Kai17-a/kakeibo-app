@@ -39,9 +39,9 @@ watch(
 );
 
 async function handleSubmit(event: SubmitEvent) {
-  dateError.value = dateStringToCalendarDate(state.date) ? "" : "日付を選択してください。";
-  fromPaymentMethodError.value = state.fromPaymentMethodId ? "" : "移動元を選択してください。";
-  toPaymentMethodError.value = state.toPaymentMethodId ? "" : "移動先を選択してください。";
+  dateError.value = dateStringToCalendarDate(state.date) ? "" : "日付を選択してください";
+  fromPaymentMethodError.value = state.fromPaymentMethodId ? "" : "移動元を選択してください";
+  toPaymentMethodError.value = state.toPaymentMethodId ? "" : "移動先を選択してください";
   if (
     dateError.value ||
     unavailable.value ||
@@ -73,7 +73,7 @@ async function handleSubmit(event: SubmitEvent) {
   <UModal
     :open="open"
     :title="editing ? '振替を編集' : '振替を登録'"
-    description="口座間の資金移動を入力してください。"
+    description="口座間の資金移動を入力してください"
     :dismissible="!saving"
     :close="!saving"
     :ui="{ content: 'max-w-xl', body: 'sm:p-6', footer: 'flex-wrap justify-end gap-2' }"
@@ -121,7 +121,7 @@ async function handleSubmit(event: SubmitEvent) {
           :error="
             toPaymentMethodError ||
             (state.fromPaymentMethodId === state.toPaymentMethodId
-              ? '移動元と異なる支払方法を選択してください。'
+              ? '移動元と異なる支払方法を選択してください'
               : undefined)
           "
         >

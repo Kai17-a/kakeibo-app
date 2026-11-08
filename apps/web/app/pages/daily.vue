@@ -153,7 +153,7 @@ const {
                 :items="ledger"
                 :empty-text="
                   monthExpenses.length
-                    ? '条件に一致する明細がありません。'
+                    ? '条件に一致する明細がありません'
                     : 'この月の支出明細はありません。'
                 "
                 :category-names="categoryNames"
@@ -177,7 +177,7 @@ const {
                 :items="incomeLedger"
                 :empty-text="
                   monthIncomes.length
-                    ? '条件に一致する明細がありません。'
+                    ? '条件に一致する明細がありません'
                     : 'この月の収入明細はありません。'
                 "
                 :category-names="incomeCategoryNames"

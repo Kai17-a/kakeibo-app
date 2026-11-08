@@ -120,7 +120,7 @@ watch(
 
 async function handleSubmit(event: SubmitEvent) {
   if (!dateStringToCalendarDate(state.date)) {
-    dateError.value = "日付を選択してください。";
+    dateError.value = "日付を選択してください";
     return;
   }
   const keepOpen = (event.submitter as HTMLButtonElement | null)?.value === "continue";
@@ -174,7 +174,7 @@ async function submit(keepOpen: boolean) {
   <UModal
     :open="open"
     :title="title"
-    description="日付や金額など、明細の内容を入力してください。"
+    description="日付や金額など、明細の内容を入力してください"
     :dismissible="!saving"
     :close="!saving"
     :ui="{ content: 'max-w-xl', body: 'sm:p-6', footer: 'flex-wrap justify-end gap-2' }"

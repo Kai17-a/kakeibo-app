@@ -49,7 +49,7 @@ function barStyle(balance: number, index: number, count: number) {
               :title="`${value.name}: ${formatCurrency(value.balance)}`"
             />
           </div>
-          <span class="mt-2 block text-center text-[10px] whitespace-nowrap sm:text-xs"
+          <span class="mt-2 block text-center text-[11px] whitespace-nowrap sm:text-xs"
             >{{ item.month }}月</span
           >
         </div>

@@ -14,7 +14,7 @@ const columns = [
   {
     accessorKey: "balance",
     header: "収支",
-    meta: { class: { th: "text-right", td: "text-right font-bold tabular-nums" } },
+    meta: { class: { th: "text-right", td: "text-right font-medium tabular-nums" } },
   },
 ];
 </script>

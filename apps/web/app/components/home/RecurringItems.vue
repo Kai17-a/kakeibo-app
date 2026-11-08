@@ -58,9 +58,7 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
       </li>
     </ul>
     <template v-if="variableExpenses.length">
-      <h3 class="mt-4 text-xs font-semibold tracking-widest text-muted uppercase">
-        準固定費（金額変動）
-      </h3>
+      <h3 class="mt-4 text-xs font-medium text-muted">準固定費（金額変動）</h3>
       <ul class="mt-2 divide-y divide-default">
         <li
           v-for="item in variableExpenses"
@@ -118,9 +116,7 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
       </li>
     </ul>
     <template v-if="variableIncomes.length">
-      <h3 class="mt-4 text-xs font-semibold tracking-widest text-muted uppercase">
-        準固定収入（金額変動）
-      </h3>
+      <h3 class="mt-4 text-xs font-medium text-muted">準固定収入（金額変動）</h3>
       <ul class="mt-2 divide-y divide-default">
         <li
           v-for="item in variableIncomes"
@@ -159,7 +155,7 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
       <h2 class="text-lg font-semibold">定期の収支</h2>
     </template>
     <p class="mt-2 text-sm text-muted">
-      定期的な収支はまだ設定されていません。
+      定期的な収支はまだ設定されていません
       <NuxtLink to="/settings/recurring-expenses" class="font-medium text-primary hover:underline">
         定期の収支を設定
       </NuxtLink>

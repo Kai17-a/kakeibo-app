@@ -111,7 +111,7 @@ function save() {
     <SettingsListHeader
       heading-id="category-heading"
       :title="label"
-      description="収支の登録時に選択するカテゴリと表示順を管理します。"
+      description="収支の登録時に選択するカテゴリと表示順を管理します"
       :count="loading || loadError ? null : items.length"
       :add-disabled="loading || !!loadError || reordering"
       @add="openForm()"
@@ -123,7 +123,7 @@ function save() {
       :error="loadError"
       :empty="!items.length"
       empty-icon="i-lucide-tags"
-      empty-description="収支を整理するカテゴリを登録すると、ここに一覧が表示されます。"
+      empty-description="収支を整理するカテゴリを登録すると、ここに一覧が表示されます"
       add-label="カテゴリを追加"
       @retry="load"
       @add="openForm()"
@@ -194,7 +194,7 @@ function save() {
       v-model:open="formOpen"
       :label="label"
       :editing="!!editingId"
-      description="カテゴリ名、親カテゴリ、説明を設定します。"
+      description="カテゴリ名、親カテゴリ、説明を設定します"
       form-id="category-form"
       :state="state"
       :validate="validate"
@@ -210,7 +210,7 @@ function save() {
         label="親カテゴリ（任意）"
         :description="
           editingHasChildren
-            ? '子カテゴリが存在するため、このカテゴリには親を設定できません。'
+            ? '子カテゴリが存在するため、このカテゴリには親を設定できません'
             : undefined
         "
       >

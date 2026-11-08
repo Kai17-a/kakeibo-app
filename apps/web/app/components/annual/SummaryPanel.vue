@@ -20,7 +20,7 @@ const balance = computed(() => props.income - props.expense);
       <p class="text-sm text-muted">年間収入</p>
       <p
         :class="[
-          'mt-1 text-base font-bold whitespace-nowrap tabular-nums sm:text-2xl',
+          'mt-1 text-base font-semibold whitespace-nowrap tabular-nums sm:text-2xl',
           income > 0 ? 'text-primary' : 'text-default',
         ]"
       >
@@ -30,7 +30,7 @@ const balance = computed(() => props.income - props.expense);
     </div>
     <div class="border-l border-default p-3 sm:p-6">
       <p class="text-sm text-muted">年間投資</p>
-      <p class="mt-1 text-base font-bold whitespace-nowrap tabular-nums sm:text-2xl">
+      <p class="mt-1 text-base font-semibold whitespace-nowrap tabular-nums sm:text-2xl">
         {{ formatSignedCurrency(investment) }}
       </p>
       <p class="mt-2 text-sm text-muted tabular-nums">
@@ -39,7 +39,7 @@ const balance = computed(() => props.income - props.expense);
     </div>
     <div class="border-t border-default p-3 sm:border-t-0 sm:border-l sm:p-6">
       <p class="text-sm text-muted">年間支出</p>
-      <p class="mt-1 text-base font-bold whitespace-nowrap tabular-nums sm:text-2xl">
+      <p class="mt-1 text-base font-semibold whitespace-nowrap tabular-nums sm:text-2xl">
         {{ formatSignedCurrency(expense, "negative") }}
       </p>
       <p class="mt-2 text-sm text-muted tabular-nums">月平均 {{ formatCurrency(expense / 12) }}</p>
@@ -48,7 +48,7 @@ const balance = computed(() => props.income - props.expense);
       <p class="text-sm text-muted">年間収支</p>
       <p
         :class="[
-          'mt-1 text-base font-bold whitespace-nowrap tabular-nums sm:text-2xl',
+          'mt-1 text-base font-semibold whitespace-nowrap tabular-nums sm:text-2xl',
           balance < 0 ? 'text-error' : balance > 0 ? 'text-primary' : 'text-default',
         ]"
       >

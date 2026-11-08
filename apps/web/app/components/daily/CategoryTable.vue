@@ -30,19 +30,19 @@ const columnTotal = (categoryId: string) =>
         <thead class="bg-elevated">
           <tr>
             <th
-              class="sticky left-0 w-32 min-w-32 bg-elevated px-3 py-2 text-left text-xs font-medium tracking-wider whitespace-nowrap text-muted uppercase"
+              class="sticky left-0 w-32 min-w-32 bg-elevated px-3 py-2 text-left text-xs font-medium whitespace-nowrap text-muted"
             >
               日付
             </th>
             <th
               v-for="category in columns"
               :key="category.id"
-              class="min-w-24 px-3 py-2 text-right text-xs font-medium tracking-wider text-muted uppercase"
+              class="min-w-24 px-3 py-2 text-right text-xs font-medium text-muted"
             >
               {{ category.name }}
             </th>
             <th
-              class="sticky right-0 bg-elevated px-3 py-2 text-right text-xs font-medium tracking-wider text-muted uppercase"
+              class="sticky right-0 bg-elevated px-3 py-2 text-right text-xs font-medium text-muted"
             >
               合計
             </th>
@@ -62,7 +62,7 @@ const columnTotal = (categoryId: string) =>
             >
               {{ day.values.get(category.id) ? formatCurrency(day.values.get(category.id)!) : "" }}
             </td>
-            <td class="sticky right-0 bg-elevated px-3 py-2 text-right font-bold tabular-nums">
+            <td class="sticky right-0 bg-elevated px-3 py-2 text-right font-medium tabular-nums">
               {{ day.total ? formatCurrency(day.total) : "" }}
             </td>
           </tr>
@@ -77,17 +77,17 @@ const columnTotal = (categoryId: string) =>
             <td
               v-for="category in columns"
               :key="category.id"
-              class="px-3 py-3 text-right font-bold tabular-nums"
+              class="px-3 py-3 text-right font-medium tabular-nums"
             >
               {{ formatCurrency(columnTotal(category.id)) }}
             </td>
-            <td class="sticky right-0 bg-elevated px-3 py-3 text-right font-bold tabular-nums">
+            <td class="sticky right-0 bg-elevated px-3 py-3 text-right font-medium tabular-nums">
               {{ formatCurrency(sumAmounts(expenses)) }}
             </td>
           </tr>
         </tfoot>
       </table>
     </div>
-    <p v-else class="py-10 text-center text-sm text-muted">この月の支出はまだありません。</p>
+    <p v-else class="py-10 text-center text-sm text-muted">この月の支出はまだありません</p>
   </div>
 </template>

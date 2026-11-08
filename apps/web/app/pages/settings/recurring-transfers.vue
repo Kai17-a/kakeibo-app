@@ -94,7 +94,7 @@ function save() {
     <SettingsListHeader
       heading-id="recurring-transfer-heading"
       :title="label"
-      description="毎月決まった金額を支払方法間で移動する予定を管理します。"
+      description="毎月決まった金額を支払方法間で移動する予定を管理します"
       :count="loading || loadError ? null : items.length"
       :add-disabled="loading || !!loadError || paymentMethods.length < 2"
       @add="openForm()"
@@ -103,7 +103,7 @@ function save() {
       v-if="!loading && !loadError && paymentMethods.length < 2"
       color="warning"
       title="支払方法が2件以上必要です"
-      description="設定の「支払方法」で移動元と移動先を登録してから定期振替を追加してください。"
+      description="設定の「支払方法」で移動元と移動先を登録してから定期振替を追加してください"
     />
     <SettingsCollectionState
       :label="label"
@@ -111,7 +111,7 @@ function save() {
       :error="loadError"
       :empty="!items.length"
       empty-icon="i-lucide-repeat-2"
-      empty-description="毎月の定期振替を登録すると、ここに一覧が表示されます。"
+      empty-description="毎月の定期振替を登録すると、ここに一覧が表示されます"
       add-label="定期振替を追加"
       @retry="load"
       @add="openForm()"
@@ -166,7 +166,7 @@ function save() {
       v-model:open="formOpen"
       :label="label"
       :editing="!!editingId"
-      description="毎月の振替額、振替日、適用期間を設定します。"
+      description="毎月の振替額、振替日、適用期間を設定します"
       form-id="recurring-transfer-form"
       :state="state"
       :validate="() => validateRecurringTransfer(state, paymentMethods)"

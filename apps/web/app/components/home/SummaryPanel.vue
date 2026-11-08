@@ -27,7 +27,7 @@ const balance = computed(() => props.income - props.expense);
       <p class="text-sm text-muted">収入</p>
       <p
         :class="[
-          'mt-1 text-base font-bold whitespace-nowrap tabular-nums sm:text-2xl',
+          'mt-1 text-base font-semibold whitespace-nowrap tabular-nums sm:text-2xl',
           income > 0 ? 'text-primary' : 'text-default',
         ]"
       >
@@ -39,14 +39,14 @@ const balance = computed(() => props.income - props.expense);
     </div>
     <div class="border-l border-default p-3 sm:p-6">
       <p class="text-sm text-muted">投資</p>
-      <p class="mt-1 text-base font-bold whitespace-nowrap tabular-nums sm:text-2xl">
+      <p class="mt-1 text-base font-semibold whitespace-nowrap tabular-nums sm:text-2xl">
         {{ formatSignedCurrency(investment) }}
       </p>
       <p class="mt-2 text-xs text-muted">投資口座への純移動額</p>
     </div>
     <div class="border-t border-default p-3 sm:border-t-0 sm:border-l sm:p-6">
       <p class="text-sm text-muted">支出</p>
-      <p class="mt-1 text-base font-bold whitespace-nowrap tabular-nums sm:text-2xl">
+      <p class="mt-1 text-base font-semibold whitespace-nowrap tabular-nums sm:text-2xl">
         {{ formatSignedCurrency(expense, "negative") }}
       </p>
       <UBadge v-if="forecast.expense" class="mt-2" color="neutral" variant="soft">
@@ -57,7 +57,7 @@ const balance = computed(() => props.income - props.expense);
       <p class="text-sm text-muted">収支</p>
       <p
         :class="[
-          'mt-1 text-lg font-bold whitespace-nowrap tabular-nums sm:text-2xl',
+          'mt-1 text-lg font-semibold whitespace-nowrap tabular-nums sm:text-2xl',
           balance < 0 ? 'text-error' : balance > 0 ? 'text-primary' : 'text-default',
         ]"
       >

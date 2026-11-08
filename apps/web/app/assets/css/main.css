@@ -39,7 +39,7 @@
 }
 
 :root {
-  --ui-radius: 0.125rem;
+  --ui-radius: 0.25rem;
 }
 
 :root,
@@ -57,8 +57,8 @@
   --ui-text-muted: var(--ui-color-neutral-600);
   --ui-text-toned: var(--ui-color-neutral-700);
   --ui-text: var(--ui-color-neutral-800);
-  --ui-border: var(--ui-color-neutral-400);
-  --ui-border-muted: var(--ui-color-neutral-300);
+  --ui-border: var(--ui-color-neutral-300);
+  --ui-border-muted: var(--ui-color-neutral-200);
 }
 
 .dark {

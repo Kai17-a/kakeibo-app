@@ -171,7 +171,7 @@ async function backfill(item: RecurringExpense) {
     <SettingsListHeader
       heading-id="recurring-expense-heading"
       :title="label"
-      description="毎月発生する固定費・準固定費（金額変動）の支出予定を管理します。"
+      description="毎月発生する固定費・準固定費（金額変動）の支出予定を管理します"
       :count="loading || loadError ? null : items.length"
       :add-disabled="loading || !!loadError"
       @add="openForm()"
@@ -183,7 +183,7 @@ async function backfill(item: RecurringExpense) {
       :error="loadError"
       :empty="!items.length"
       empty-icon="i-lucide-repeat"
-      empty-description="毎月の固定費を登録すると、ここに一覧が表示されます。"
+      empty-description="毎月の固定費を登録すると、ここに一覧が表示されます"
       add-label="定期支出を追加"
       @retry="load"
       @add="openForm()"
@@ -293,7 +293,7 @@ async function backfill(item: RecurringExpense) {
       v-model:open="formOpen"
       :label="label"
       :editing="!!editingId"
-      description="毎月の支払額、支払日、適用期間を設定します。"
+      description="毎月の支払額、支払日、適用期間を設定します"
       form-id="recurring-expense-form"
       :state="state"
       :validate="validate"
@@ -306,7 +306,7 @@ async function backfill(item: RecurringExpense) {
         v-if="!categories.length || !paymentMethods.length"
         color="warning"
         title="カテゴリ・支払方法が不足しています"
-        description="設定の「支出カテゴリ」「支払方法」で登録してから追加してください。"
+        description="設定の「支出カテゴリ」「支払方法」で登録してから追加してください"
       />
       <UFormField name="name" label="名称" required>
         <UInput v-model="state.name" class="w-full" />
@@ -320,7 +320,7 @@ async function backfill(item: RecurringExpense) {
         :label="state.is_variable ? '金額（目安・任意）' : '金額'"
         :required="!state.is_variable"
         :description="
-          state.is_variable ? '空欄の場合は「今月分を登録」で毎月入力します。' : undefined
+          state.is_variable ? '空欄の場合は「今月分を登録」で毎月入力します' : undefined
         "
       >
         <UInput
@@ -336,7 +336,7 @@ async function backfill(item: RecurringExpense) {
         v-else
         name="foreignAmount"
         label="毎月のUSD金額"
-        description="実際の引き落とし額は毎月の為替レートで自動計算されます。"
+        description="実際の引き落とし額は毎月の為替レートで自動計算されます"
         required
       >
         <UInput

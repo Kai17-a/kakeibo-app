@@ -13,7 +13,7 @@ useHead({
 });
 useSeoMeta({
   title: "Kakeibo",
-  description: "Kakeibo — 日々の収支と予算を管理する家計簿。",
+  description: "Kakeibo — 日々の収支と予算を管理する家計簿",
 });
 </script>
 

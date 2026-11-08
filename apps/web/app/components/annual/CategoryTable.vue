@@ -14,27 +14,23 @@ const monthNumbers = Array.from({ length: 12 }, (_, index) => index + 1);
   <UCard>
     <template #header>
       <h2 class="text-lg font-semibold">カテゴリ別年間集計</h2>
-      <p class="text-sm text-muted">未計上の固定定期支出を予測額として含みます。</p>
+      <p class="text-sm text-muted">未計上の固定定期支出を予測額として含みます</p>
     </template>
     <div class="overflow-x-auto">
       <table class="w-full min-w-[900px] text-sm">
         <thead>
           <tr class="border-b border-default">
-            <th
-              class="px-3 py-2 text-left text-xs font-medium tracking-wider whitespace-nowrap text-muted uppercase"
-            >
+            <th class="px-3 py-2 text-left text-xs font-medium whitespace-nowrap text-muted">
               カテゴリ
             </th>
             <th
               v-for="month in monthNumbers"
               :key="month"
-              class="px-3 py-2 text-right text-xs font-medium tracking-wider whitespace-nowrap text-muted uppercase"
+              class="px-3 py-2 text-right text-xs font-medium whitespace-nowrap text-muted"
             >
               {{ month }}月
             </th>
-            <th
-              class="px-3 py-2 text-right text-xs font-medium tracking-wider whitespace-nowrap text-muted uppercase"
-            >
+            <th class="px-3 py-2 text-right text-xs font-medium whitespace-nowrap text-muted">
               年間合計
             </th>
           </tr>
@@ -51,7 +47,7 @@ const monthNumbers = Array.from({ length: 12 }, (_, index) => index + 1);
             >
               {{ formatCurrency(value) }}
             </td>
-            <td class="px-3 py-2 text-right font-bold whitespace-nowrap tabular-nums">
+            <td class="px-3 py-2 text-right font-medium whitespace-nowrap tabular-nums">
               {{ formatCurrency(row.total) }}
             </td>
           </tr>

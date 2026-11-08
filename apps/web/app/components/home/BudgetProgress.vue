@@ -39,7 +39,7 @@ const amountClass = { error: "text-error", warning: "text-warning", primary: "te
         />
       </div>
       <p v-if="!actuals.length" class="text-sm text-muted">
-        予算はまだ設定されていません。
+        予算はまだ設定されていません
         <NuxtLink to="/settings/budget" class="font-medium text-primary hover:underline"
           >予算を設定</NuxtLink
         >

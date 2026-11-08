@@ -61,10 +61,10 @@ const variableTotals = computed(() => nonZeroCategoryTotals(classification.value
         <dd class="p-2 text-right tabular-nums">
           {{ formatSignedCurrency(expenseTotal, "negative") }}
         </dd>
-        <dt class="p-2 font-bold">収支</dt>
+        <dt class="p-2 font-medium">収支</dt>
         <dd
           :class="[
-            'p-2 text-right font-bold tabular-nums',
+            'p-2 text-right font-medium tabular-nums',
             balance < 0 ? 'text-error' : balance > 0 ? 'text-primary' : 'text-default',
           ]"
         >
@@ -92,8 +92,8 @@ const variableTotals = computed(() => nonZeroCategoryTotals(classification.value
     </aside>
     <div>
       <div class="flex items-center justify-between gap-4 border-b border-default pb-2">
-        <h2 class="text-sm font-bold">支出（固定費）</h2>
-        <span class="text-sm font-bold whitespace-nowrap tabular-nums">{{
+        <h2 class="text-sm font-medium">支出（固定費）</h2>
+        <span class="text-sm font-medium whitespace-nowrap tabular-nums">{{
           formatCurrency(sumAmounts(classification.fixed))
         }}</span>
       </div>
@@ -109,8 +109,8 @@ const variableTotals = computed(() => nonZeroCategoryTotals(classification.value
         <span class="text-right tabular-nums">{{ formatCurrency(item.amount ?? 0) }}</span>
       </div>
       <div class="mt-5 flex items-center justify-between gap-4 border-b border-default pb-2">
-        <h2 class="text-sm font-bold">準固定費（金額変動）</h2>
-        <span class="text-sm font-bold whitespace-nowrap tabular-nums">{{
+        <h2 class="text-sm font-medium">準固定費（金額変動）</h2>
+        <span class="text-sm font-medium whitespace-nowrap tabular-nums">{{
           formatCurrency(sumAmounts(classification.semiFixed))
         }}</span>
       </div>
@@ -123,8 +123,8 @@ const variableTotals = computed(() => nonZeroCategoryTotals(classification.value
         <span class="text-right tabular-nums">{{ formatCurrency(item.total) }}</span>
       </div>
       <div class="mt-5 flex items-center justify-between gap-4 border-b border-default pb-2">
-        <h2 class="text-sm font-bold">支出（変動費）</h2>
-        <span class="text-sm font-bold whitespace-nowrap tabular-nums">{{
+        <h2 class="text-sm font-medium">支出（変動費）</h2>
+        <span class="text-sm font-medium whitespace-nowrap tabular-nums">{{
           formatCurrency(sumAmounts(classification.variable))
         }}</span>
       </div>

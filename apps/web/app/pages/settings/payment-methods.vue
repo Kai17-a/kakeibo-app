@@ -76,7 +76,7 @@ const sortedItems = computed(() =>
 function validate() {
   const errors = validateNamed(state);
   if (String(state.initial_balance).trim() && !validAmount(state.initial_balance))
-    errors.push({ name: "initial_balance", message: "0以上の整数で入力してください。" });
+    errors.push({ name: "initial_balance", message: "0以上の整数で入力してください" });
   return errors;
 }
 function openForm(item?: PaymentMethod) {
@@ -103,7 +103,7 @@ function save() {
     <SettingsListHeader
       heading-id="payment-method-heading"
       :title="label"
-      description="支出の登録時に選択する支払方法と残高を管理します。"
+      description="支出の登録時に選択する支払方法と残高を管理します"
       :count="loading || loadError ? null : items.length"
       :add-disabled="loading || !!loadError"
       @add="openForm()"
@@ -115,7 +115,7 @@ function save() {
       :error="loadError"
       :empty="!items.length"
       empty-icon="i-lucide-wallet"
-      empty-description="利用する支払方法と開始時点の残高を登録すると、ここに一覧が表示されます。"
+      empty-description="利用する支払方法と開始時点の残高を登録すると、ここに一覧が表示されます"
       add-label="支払方法を追加"
       @retry="load"
       @add="openForm()"
@@ -175,7 +175,7 @@ function save() {
       v-model:open="formOpen"
       :label="label"
       :editing="!!editingId"
-      description="支払方法名、初期残高、説明を設定します。"
+      description="支払方法名、初期残高、説明を設定します"
       form-id="payment-method-form"
       :state="state"
       :validate="validate"
@@ -186,7 +186,7 @@ function save() {
       <UFormField
         name="initial_balance"
         label="初期残高（任意）"
-        description="残高管理を行う場合の開始時点の金額を入力してください。"
+        description="残高管理を行う場合の開始時点の金額を入力してください"
       >
         <UInput
           :model-value="state.initial_balance"
