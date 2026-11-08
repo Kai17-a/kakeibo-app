@@ -101,24 +101,24 @@ const {
 
 <template>
   <div class="flex min-w-0 flex-1">
-    <AppDashboardPanel id="daily">
+    <UDashboardPanel id="daily">
       <template #header>
-        <AppDashboardNavbar title="日別集計">
+        <UDashboardNavbar title="日別集計">
           <template #leading>
-            <AppDashboardSidebarCollapse />
+            <UDashboardSidebarCollapse />
           </template>
           <template #right>
             <MonthNavigator :model-value="month" @update:model-value="setMonth" />
             <TransferButton @click="openNewTransfer" />
             <RecordTransactionButton @click="openNew" />
-            <AppColorModeButton />
+            <UColorModeButton />
           </template>
-        </AppDashboardNavbar>
+        </UDashboardNavbar>
       </template>
       <template #body>
         <DataLoadState :loading="loading" :error="loadError" @retry="load">
-          <AppCard class="shrink-0">
-            <AppTabs
+          <UCard class="shrink-0">
+            <UTabs
               v-model="tab"
               orientation="horizontal"
               variant="pill"
@@ -153,7 +153,7 @@ const {
                 :items="ledger"
                 :empty-text="
                   monthExpenses.length
-                    ? '条件に一致する明細がありません'
+                    ? '条件に一致する明細がありません。'
                     : 'この月の支出明細はありません。'
                 "
                 :category-names="categoryNames"
@@ -177,7 +177,7 @@ const {
                 :items="incomeLedger"
                 :empty-text="
                   monthIncomes.length
-                    ? '条件に一致する明細がありません'
+                    ? '条件に一致する明細がありません。'
                     : 'この月の収入明細はありません。'
                 "
                 :category-names="incomeCategoryNames"
@@ -227,7 +227,7 @@ const {
                 </table>
                 <div v-if="!monthTransfers.length" class="py-12 text-center text-sm text-muted">
                   <p>この月の振替明細はありません。</p>
-                  <AppButton
+                  <UButton
                     icon="i-lucide-arrow-right-left"
                     color="neutral"
                     variant="outline"
@@ -235,7 +235,7 @@ const {
                     @click="openNewTransfer"
                   >
                     振替を登録
-                  </AppButton>
+                  </UButton>
                 </div>
               </div>
             </div>
@@ -250,10 +250,10 @@ const {
               :income-categories="incomeCategories"
               :payment-methods="paymentMethods"
             />
-          </AppCard>
+          </UCard>
         </DataLoadState>
       </template>
-    </AppDashboardPanel>
+    </UDashboardPanel>
 
     <TransactionsTransactionFormModal
       v-if="formOpen"

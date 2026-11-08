@@ -10,7 +10,7 @@ defineProps<{
 </script>
 
 <template>
-  <AppCard class="min-w-0">
+  <UCard class="min-w-0">
     <template #header>
       <h2 class="text-lg font-semibold">年間支出の内訳</h2>
     </template>
@@ -25,9 +25,9 @@ defineProps<{
             >
           </span>
         </div>
-        <AppProgress class="mt-1" :model-value="total ? (item.total / total) * 100 : 0" />
+        <UProgress class="mt-1" :model-value="total ? (item.total / total) * 100 : 0" />
       </div>
       <p v-if="!spending.length" class="text-sm text-muted">この年の支出はまだありません。</p>
     </div>
-  </AppCard>
+  </UCard>
 </template>

@@ -13,7 +13,7 @@ const max = computed(() =>
 </script>
 
 <template>
-  <AppCard class="min-w-0">
+  <UCard class="min-w-0">
     <template #header>
       <h2 class="text-lg font-semibold">月別の収支推移</h2>
     </template>
@@ -35,7 +35,7 @@ const max = computed(() =>
             :title="formatCurrency(item.expense)"
           />
         </div>
-        <span class="mt-2 block text-center text-[11px] whitespace-nowrap sm:text-xs"
+        <span class="mt-2 block text-center text-[10px] whitespace-nowrap sm:text-xs"
           >{{ item.month }}月</span
         >
       </div>
@@ -44,5 +44,5 @@ const max = computed(() =>
       <span class="flex items-center gap-1.5"><span class="size-2.5 bg-primary" />収入</span>
       <span class="flex items-center gap-1.5"><span class="size-2.5 bg-error" />支出</span>
     </div>
-  </AppCard>
+  </UCard>
 </template>

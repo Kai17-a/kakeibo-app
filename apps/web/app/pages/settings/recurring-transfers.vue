@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TableColumn } from "~/types/ui";
+import type { TableColumn } from "@nuxt/ui";
 import type { PaymentMethod, RecurringTransfer } from "~/types/settings";
 import { formatYen } from "~/utils/settings";
 import {
@@ -94,16 +94,16 @@ function save() {
     <SettingsListHeader
       heading-id="recurring-transfer-heading"
       :title="label"
-      description="毎月決まった金額を支払方法間で移動する予定を管理します"
+      description="毎月決まった金額を支払方法間で移動する予定を管理します。"
       :count="loading || loadError ? null : items.length"
       :add-disabled="loading || !!loadError || paymentMethods.length < 2"
       @add="openForm()"
     />
-    <AppAlert
+    <UAlert
       v-if="!loading && !loadError && paymentMethods.length < 2"
       color="warning"
       title="支払方法が2件以上必要です"
-      description="設定の「支払方法」で移動元と移動先を登録してから定期振替を追加してください"
+      description="設定の「支払方法」で移動元と移動先を登録してから定期振替を追加してください。"
     />
     <SettingsCollectionState
       :label="label"
@@ -111,13 +111,13 @@ function save() {
       :error="loadError"
       :empty="!items.length"
       empty-icon="i-lucide-repeat-2"
-      empty-description="毎月の定期振替を登録すると、ここに一覧が表示されます"
+      empty-description="毎月の定期振替を登録すると、ここに一覧が表示されます。"
       add-label="定期振替を追加"
       @retry="load"
       @add="openForm()"
     >
       <div class="min-w-0 overflow-hidden rounded-lg border border-default">
-        <AppTable
+        <UTable
           :data="sortedItems"
           :columns="columns"
           :aria-label="`${label}一覧`"
@@ -149,9 +149,9 @@ function save() {
           </template>
           <template #amount-cell="{ row }">{{ formatYen(row.original.amount) }}</template>
           <template #is_active-cell="{ row }"
-            ><AppBadge :color="row.original.is_active ? 'success' : 'neutral'" variant="soft">{{
+            ><UBadge :color="row.original.is_active ? 'success' : 'neutral'" variant="soft">{{
               row.original.is_active ? "有効" : "無効"
-            }}</AppBadge></template
+            }}</UBadge></template
           >
           <template #actions-cell="{ row }"
             ><RowActionsMenu
@@ -159,14 +159,14 @@ function save() {
               @edit="openForm(row.original)"
               @delete="askDelete(row.original)"
           /></template>
-        </AppTable>
+        </UTable>
       </div>
     </SettingsCollectionState>
     <SettingsFormModal
       v-model:open="formOpen"
       :label="label"
       :editing="!!editingId"
-      description="毎月の振替額、振替日、適用期間を設定します"
+      description="毎月の振替額、振替日、適用期間を設定します。"
       form-id="recurring-transfer-form"
       :state="state"
       :validate="() => validateRecurringTransfer(state, paymentMethods)"
@@ -174,20 +174,20 @@ function save() {
       :error="formError"
       @submit="save"
     >
-      <AppFormField name="name" label="名称" required
-        ><AppInput v-model="state.name" class="w-full" autofocus
-      /></AppFormField>
-      <AppFormField name="amount" label="金額" required
-        ><AppInput
+      <UFormField name="name" label="名称" required
+        ><UInput v-model="state.name" class="w-full" autofocus
+      /></UFormField>
+      <UFormField name="amount" label="金額" required
+        ><UInput
           :model-value="state.amount"
           type="number"
           :min="1"
           :step="1"
           class="w-full"
           @update:model-value="state.amount = String($event ?? '')"
-      /></AppFormField>
-      <AppFormField name="payment_day" label="毎月の振替日" required
-        ><AppInput
+      /></UFormField>
+      <UFormField name="payment_day" label="毎月の振替日" required
+        ><UInput
           :model-value="state.payment_day"
           type="number"
           :min="1"
@@ -196,39 +196,39 @@ function save() {
           :disabled="state.is_month_end"
           class="w-full"
           @update:model-value="updateRecurringPaymentDay(state, $event)"
-      /></AppFormField>
-      <AppFormField name="is_month_end"
-        ><AppCheckbox
+      /></UFormField>
+      <UFormField name="is_month_end"
+        ><UCheckbox
           :model-value="state.is_month_end"
           label="月末（その月の最終日）にする"
           @update:model-value="setRecurringMonthEnd(state, $event === true)"
-      /></AppFormField>
-      <AppFormField name="from_payment_method_id" label="移動元" required
-        ><AppSelect
+      /></UFormField>
+      <UFormField name="from_payment_method_id" label="移動元" required
+        ><USelect
           v-model="state.from_payment_method_id"
           :items="paymentOptions"
           placeholder="選択してください"
           class="w-full"
-      /></AppFormField>
-      <AppFormField name="to_payment_method_id" label="移動先" required
-        ><AppSelect
+      /></UFormField>
+      <UFormField name="to_payment_method_id" label="移動先" required
+        ><USelect
           v-model="state.to_payment_method_id"
           :items="paymentOptions"
           placeholder="選択してください"
           class="w-full"
-      /></AppFormField>
-      <AppFormField name="start_date" label="開始日" required
+      /></UFormField>
+      <UFormField name="start_date" label="開始日" required
         ><DatePicker v-model="state.start_date" required class="w-full"
-      /></AppFormField>
-      <AppFormField name="end_date" label="終了日（任意）"
+      /></UFormField>
+      <UFormField name="end_date" label="終了日（任意）"
         ><DatePicker v-model="state.end_date" :min="state.start_date" clearable class="w-full"
-      /></AppFormField>
-      <AppFormField name="description" label="備考（任意）"
-        ><AppTextarea v-model="state.description" class="w-full"
-      /></AppFormField>
-      <AppFormField name="is_active"
-        ><AppCheckbox v-model="state.is_active" label="有効にする"
-      /></AppFormField>
+      /></UFormField>
+      <UFormField name="description" label="備考（任意）"
+        ><UTextarea v-model="state.description" class="w-full"
+      /></UFormField>
+      <UFormField name="is_active"
+        ><UCheckbox v-model="state.is_active" label="有効にする"
+      /></UFormField>
     </SettingsFormModal>
     <SettingsDeleteDialog
       v-model:open="deleteOpen"

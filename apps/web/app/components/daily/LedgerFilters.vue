@@ -25,11 +25,11 @@ function clear() {
 
 <template>
   <div class="flex flex-wrap items-end gap-3 border-b border-default py-4">
-    <AppFormField label="備考を検索" class="min-w-48 flex-1">
-      <AppInput v-model="keyword" type="search" placeholder="キーワードを入力" class="w-full" />
-    </AppFormField>
-    <AppFormField label="カテゴリ" class="min-w-40 flex-1 sm:flex-none">
-      <AppSelect
+    <UFormField label="備考を検索" class="min-w-48 flex-1">
+      <UInput v-model="keyword" type="search" placeholder="キーワードを入力" class="w-full" />
+    </UFormField>
+    <UFormField label="カテゴリ" class="min-w-40 flex-1 sm:flex-none">
+      <USelect
         :model-value="categoryId || ALL_FILTER_VALUE"
         :items="[
           { label: 'すべて', value: ALL_FILTER_VALUE },
@@ -38,9 +38,9 @@ function clear() {
         class="w-full sm:w-44"
         @update:model-value="categoryId = fromSelectValue($event)"
       />
-    </AppFormField>
-    <AppFormField label="支払方法" class="min-w-40 flex-1 sm:flex-none">
-      <AppSelect
+    </UFormField>
+    <UFormField label="支払方法" class="min-w-40 flex-1 sm:flex-none">
+      <USelect
         :model-value="paymentMethodId || ALL_FILTER_VALUE"
         :items="[
           { label: 'すべて', value: ALL_FILTER_VALUE },
@@ -49,7 +49,7 @@ function clear() {
         class="w-full sm:w-44"
         @update:model-value="paymentMethodId = fromSelectValue($event)"
       />
-    </AppFormField>
-    <AppButton color="neutral" variant="outline" @click="clear"> 条件をクリア </AppButton>
+    </UFormField>
+    <UButton color="neutral" variant="outline" @click="clear"> 条件をクリア </UButton>
   </div>
 </template>

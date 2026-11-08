@@ -4,7 +4,7 @@ const emit = defineEmits<{ click: [] }>();
 
 <!-- Opens the transfer form; the label collapses to the icon on narrow screens. -->
 <template>
-  <AppButton
+  <UButton
     icon="i-lucide-arrow-right-left"
     color="neutral"
     variant="outline"
@@ -12,5 +12,5 @@ const emit = defineEmits<{ click: [] }>();
     @click="emit('click')"
   >
     <span class="hidden sm:inline">振替</span>
-  </AppButton>
+  </UButton>
 </template>

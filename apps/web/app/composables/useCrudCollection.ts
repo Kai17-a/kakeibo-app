@@ -19,7 +19,7 @@ interface CrudCollectionOptions<T extends { id: string }, I> {
 export function useCrudCollection<T extends { id: string }, I>(
   options: CrudCollectionOptions<T, I>,
 ) {
-  const toast = useAppToast();
+  const toast = useToast();
   const items = ref<T[]>([]) as Ref<T[]>;
   const loading = ref(true);
   const loadError = ref("");

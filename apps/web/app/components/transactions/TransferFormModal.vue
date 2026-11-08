@@ -39,9 +39,9 @@ watch(
 );
 
 async function handleSubmit(event: SubmitEvent) {
-  dateError.value = dateStringToCalendarDate(state.date) ? "" : "日付を選択してください";
-  fromPaymentMethodError.value = state.fromPaymentMethodId ? "" : "移動元を選択してください";
-  toPaymentMethodError.value = state.toPaymentMethodId ? "" : "移動先を選択してください";
+  dateError.value = dateStringToCalendarDate(state.date) ? "" : "日付を選択してください。";
+  fromPaymentMethodError.value = state.fromPaymentMethodId ? "" : "移動元を選択してください。";
+  toPaymentMethodError.value = state.toPaymentMethodId ? "" : "移動先を選択してください。";
   if (
     dateError.value ||
     unavailable.value ||
@@ -70,10 +70,10 @@ async function handleSubmit(event: SubmitEvent) {
 </script>
 
 <template>
-  <AppModal
+  <UModal
     :open="open"
     :title="editing ? '振替を編集' : '振替を登録'"
-    description="口座間の資金移動を入力してください"
+    description="口座間の資金移動を入力してください。"
     :dismissible="!saving"
     :close="!saving"
     :ui="{ content: 'max-w-xl', body: 'sm:p-6', footer: 'flex-wrap justify-end gap-2' }"
@@ -94,11 +94,11 @@ async function handleSubmit(event: SubmitEvent) {
         class="grid grid-cols-1 gap-5 sm:grid-cols-2"
         @submit.prevent="handleSubmit"
       >
-        <AppFormField name="date" label="日付" required :error="dateError || undefined">
+        <UFormField name="date" label="日付" required :error="dateError || undefined">
           <DatePicker v-model="state.date" required class="w-full" />
-        </AppFormField>
-        <AppFormField label="金額" required>
-          <AppInput
+        </UFormField>
+        <UFormField label="金額" required>
+          <UInput
             :model-value="state.amount"
             type="number"
             min="1"
@@ -107,45 +107,41 @@ async function handleSubmit(event: SubmitEvent) {
             class="w-full"
             @update:model-value="(value) => (state.amount = String(value ?? ''))"
           />
-        </AppFormField>
-        <AppFormField label="移動元" required :error="fromPaymentMethodError || undefined">
-          <AppSelect
+        </UFormField>
+        <UFormField label="移動元" required :error="fromPaymentMethodError || undefined">
+          <USelect
             v-model="state.fromPaymentMethodId"
             :items="paymentMethodOptions"
             class="w-full"
           />
-        </AppFormField>
-        <AppFormField
+        </UFormField>
+        <UFormField
           label="移動先"
           required
           :error="
             toPaymentMethodError ||
             (state.fromPaymentMethodId === state.toPaymentMethodId
-              ? '移動元と異なる支払方法を選択してください'
+              ? '移動元と異なる支払方法を選択してください。'
               : undefined)
           "
         >
-          <AppSelect
-            v-model="state.toPaymentMethodId"
-            :items="paymentMethodOptions"
-            class="w-full"
-          />
-        </AppFormField>
-        <AppFormField label="メモ（任意）" class="sm:col-span-2">
-          <AppTextarea v-model="state.description" class="w-full" />
-        </AppFormField>
+          <USelect v-model="state.toPaymentMethodId" :items="paymentMethodOptions" class="w-full" />
+        </UFormField>
+        <UFormField label="メモ（任意）" class="sm:col-span-2">
+          <UTextarea v-model="state.description" class="w-full" />
+        </UFormField>
       </form>
     </template>
     <template #footer>
-      <AppButton
+      <UButton
         color="neutral"
         variant="outline"
         :disabled="saving"
         @click="emit('update:open', false)"
       >
         キャンセル
-      </AppButton>
-      <AppButton
+      </UButton>
+      <UButton
         v-if="!editing"
         type="submit"
         form="transfer-form"
@@ -156,15 +152,15 @@ async function handleSubmit(event: SubmitEvent) {
         :disabled="saving || unavailable"
       >
         登録して続ける
-      </AppButton>
-      <AppButton
+      </UButton>
+      <UButton
         type="submit"
         form="transfer-form"
         :loading="saving"
         :disabled="saving || unavailable"
       >
         {{ editing ? "更新する" : "登録する" }}
-      </AppButton>
+      </UButton>
     </template>
-  </AppModal>
+  </UModal>
 </template>

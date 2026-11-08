@@ -16,15 +16,15 @@ const emit = defineEmits<{ add: [] }>();
     <div class="min-w-0 space-y-1">
       <h2
         :id="headingId"
-        class="text-highlighted flex flex-wrap items-center gap-2 text-xl font-semibold"
+        class="flex flex-wrap items-center gap-2 text-xl font-semibold text-highlighted"
       >
         {{ title }}
-        <AppBadge v-if="count !== null" color="neutral" variant="soft"> {{ count }}件 </AppBadge>
+        <UBadge v-if="count !== null" color="neutral" variant="soft"> {{ count }}件 </UBadge>
       </h2>
       <p class="text-sm text-muted">{{ description }}</p>
     </div>
-    <AppButton icon="i-lucide-plus" class="shrink-0" :disabled="addDisabled" @click="emit('add')">
+    <UButton icon="i-lucide-plus" class="shrink-0" :disabled="addDisabled" @click="emit('add')">
       追加
-    </AppButton>
+    </UButton>
   </div>
 </template>

@@ -21,11 +21,11 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <AppCard>
+  <UCard>
     <template #header>
       <div class="flex items-center justify-between">
         <h2 class="text-lg font-semibold">明細</h2>
-        <AppBadge color="neutral" variant="outline"> {{ count }} 件 </AppBadge>
+        <UBadge color="neutral" variant="outline"> {{ count }} 件 </UBadge>
       </div>
       <p class="text-sm text-muted">
         {{ monthLabel }}
@@ -38,7 +38,7 @@ const emit = defineEmits<{
         class="border-b border-muted py-3 last:border-b-0"
       >
         <div class="mb-1 flex items-center justify-between gap-3 text-xs text-muted">
-          <h3 class="text-toned font-medium">
+          <h3 class="font-medium text-toned">
             {{ formatDate(group.date) }}
           </h3>
           <span class="tabular-nums">当日計 {{ formatSignedCurrency(group.total) }}</span>
@@ -83,9 +83,9 @@ const emit = defineEmits<{
     </div>
     <p v-else class="py-10 text-center text-sm text-muted">
       この月の明細はまだありません。収入または支出を記録すると、ここに表示されます。
-      <AppButton icon="i-lucide-plus" class="mx-auto mt-4 flex w-fit" @click="emit('create')">
+      <UButton icon="i-lucide-plus" class="mx-auto mt-4 flex w-fit" @click="emit('create')">
         記録する
-      </AppButton>
+      </UButton>
     </p>
-  </AppCard>
+  </UCard>
 </template>

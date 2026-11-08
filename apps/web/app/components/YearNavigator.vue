@@ -9,27 +9,27 @@ const year = defineModel<string>({ required: true });
 </script>
 
 <template>
-  <AppFieldGroup>
-    <AppButton
+  <UFieldGroup>
+    <UButton
       icon="i-lucide-chevron-left"
       color="neutral"
       variant="outline"
       aria-label="前年"
       @click="year = String(Number(year) - 1)"
     />
-    <AppSelect
+    <USelect
       :model-value="year"
       :items="years.map((item) => ({ label: `${item}年`, value: item }))"
       aria-label="対象年"
       class="w-28"
       @update:model-value="(value) => (year = String(value))"
     />
-    <AppButton
+    <UButton
       icon="i-lucide-chevron-right"
       color="neutral"
       variant="outline"
       aria-label="翌年"
       @click="year = String(Number(year) + 1)"
     />
-  </AppFieldGroup>
+  </UFieldGroup>
 </template>

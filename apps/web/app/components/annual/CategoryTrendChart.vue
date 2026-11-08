@@ -15,7 +15,7 @@ const legend = computed(() => props.months[0]?.values ?? []);
 </script>
 
 <template>
-  <AppCard>
+  <UCard>
     <template #header>
       <h2 class="text-lg font-semibold">カテゴリ別月次推移</h2>
       <p class="text-sm text-muted">月ごとの支出構成</p>
@@ -40,7 +40,7 @@ const legend = computed(() => props.months[0]?.values ?? []);
               :title="`${value.name}: ${formatCurrency(value.total)}`"
             />
           </div>
-          <span class="mt-2 block text-center text-[11px] whitespace-nowrap sm:text-xs"
+          <span class="mt-2 block text-center text-[10px] whitespace-nowrap sm:text-xs"
             >{{ item.month }}月</span
           >
         </div>
@@ -57,5 +57,5 @@ const legend = computed(() => props.months[0]?.values ?? []);
       </div>
     </template>
     <p v-else class="py-24 text-center text-sm text-muted">この年の支出はありません。</p>
-  </AppCard>
+  </UCard>
 </template>

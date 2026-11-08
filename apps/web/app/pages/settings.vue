@@ -5,24 +5,24 @@ const links = [settingsNavigation];
 </script>
 
 <template>
-  <AppDashboardPanel id="settings" :ui="{ body: 'py-6 sm:py-8' }">
+  <UDashboardPanel id="settings" :ui="{ body: 'py-6 sm:py-8' }">
     <template #header>
-      <AppDashboardNavbar title="設定">
+      <UDashboardNavbar title="設定">
         <template #leading>
-          <AppDashboardSidebarCollapse />
+          <UDashboardSidebarCollapse />
         </template>
         <template #right>
-          <AppColorModeButton />
+          <UColorModeButton />
         </template>
-      </AppDashboardNavbar>
-      <AppDashboardToolbar>
-        <AppNavigationMenu :items="links" aria-label="設定タブ" highlight class="-mx-1 flex-1" />
-      </AppDashboardToolbar>
+      </UDashboardNavbar>
+      <UDashboardToolbar>
+        <UNavigationMenu :items="links" aria-label="設定タブ" highlight class="-mx-1 flex-1" />
+      </UDashboardToolbar>
     </template>
     <template #body>
       <div class="mx-auto flex w-full max-w-4xl min-w-0 flex-col gap-6">
         <NuxtPage />
       </div>
     </template>
-  </AppDashboardPanel>
+  </UDashboardPanel>
 </template>

@@ -27,43 +27,43 @@ const balance = computed(() => props.income - props.expense);
       <p class="text-sm text-muted">収入</p>
       <p
         :class="[
-          'mt-1 text-base font-semibold whitespace-nowrap tabular-nums sm:text-2xl',
+          'mt-1 text-base font-bold whitespace-nowrap tabular-nums sm:text-2xl',
           income > 0 ? 'text-primary' : 'text-default',
         ]"
       >
         {{ formatSignedCurrency(income, "positive") }}
       </p>
-      <AppBadge v-if="forecast.income" class="mt-2" color="neutral" variant="soft">
+      <UBadge v-if="forecast.income" class="mt-2" color="neutral" variant="soft">
         うち予定 {{ formatCurrency(forecast.income) }}
-      </AppBadge>
+      </UBadge>
     </div>
     <div class="border-l border-default p-3 sm:p-6">
       <p class="text-sm text-muted">投資</p>
-      <p class="mt-1 text-base font-semibold whitespace-nowrap tabular-nums sm:text-2xl">
+      <p class="mt-1 text-base font-bold whitespace-nowrap tabular-nums sm:text-2xl">
         {{ formatSignedCurrency(investment) }}
       </p>
       <p class="mt-2 text-xs text-muted">投資口座への純移動額</p>
     </div>
-    <div class="border-t border-default p-3 sm:border-t-0 sm:p-6">
+    <div class="border-l border-default p-3 sm:border-t-0 sm:p-6">
       <p class="text-sm text-muted">支出</p>
-      <p class="mt-1 text-base font-semibold whitespace-nowrap tabular-nums sm:text-2xl">
+      <p class="mt-1 text-base font-bold whitespace-nowrap tabular-nums sm:text-2xl">
         {{ formatSignedCurrency(expense, "negative") }}
       </p>
-      <AppBadge v-if="forecast.expense" class="mt-2" color="neutral" variant="soft">
+      <UBadge v-if="forecast.expense" class="mt-2" color="neutral" variant="soft">
         うち予定 {{ formatCurrency(forecast.expense) }}
-      </AppBadge>
+      </UBadge>
     </div>
-    <div class="border-t border-l border-default p-3 sm:border-t-0 sm:p-6">
+    <div class="col-span-2 border-t border-default p-3 sm:col-span-1 sm:border-t-0 sm:p-6">
       <p class="text-sm text-muted">収支</p>
       <p
         :class="[
-          'mt-1 text-lg font-semibold whitespace-nowrap tabular-nums sm:text-2xl',
+          'mt-1 text-lg font-bold whitespace-nowrap tabular-nums sm:text-2xl',
           balance < 0 ? 'text-error' : balance > 0 ? 'text-primary' : 'text-default',
         ]"
       >
         {{ formatSignedCurrency(balance) }}
       </p>
-      <AppProgress
+      <UProgress
         v-if="budgetTotal"
         class="mt-2"
         :model-value="Math.min(100, budgetRate)"

@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import type { TableColumn } from "~/types/ui";
+import type { TableColumn } from "@nuxt/ui";
 import type { Category, CategoryKind } from "~/types/settings";
 import { categoryMove, groupCategories, validateNamed } from "~/utils/settings";
 
 const props = defineProps<{ kind: CategoryKind }>();
 const label = computed(() => (props.kind === "expense" ? "支出カテゴリ" : "収入カテゴリ"));
 const api = useSettingsApi().categories(props.kind);
-const toast = useAppToast();
+const toast = useToast();
 const reordering = ref(false);
 const orderError = ref("");
 const state = reactive({ name: "", description: "", parent_category_id: "none" });
@@ -111,7 +111,7 @@ function save() {
     <SettingsListHeader
       heading-id="category-heading"
       :title="label"
-      description="収支の登録時に選択するカテゴリと表示順を管理します"
+      description="収支の登録時に選択するカテゴリと表示順を管理します。"
       :count="loading || loadError ? null : items.length"
       :add-disabled="loading || !!loadError || reordering"
       @add="openForm()"
@@ -123,13 +123,13 @@ function save() {
       :error="loadError"
       :empty="!items.length"
       empty-icon="i-lucide-tags"
-      empty-description="収支を整理するカテゴリを登録すると、ここに一覧が表示されます"
+      empty-description="収支を整理するカテゴリを登録すると、ここに一覧が表示されます。"
       add-label="カテゴリを追加"
       @retry="load"
       @add="openForm()"
     >
       <div class="min-w-0 overflow-hidden rounded-lg border border-default">
-        <AppTable
+        <UTable
           :data="sortedItems"
           :columns="columns"
           :aria-label="`${label}一覧`"
@@ -162,7 +162,7 @@ function save() {
           </template>
           <template #actions-cell="{ row }">
             <div class="flex items-center justify-end gap-1">
-              <AppButton
+              <UButton
                 icon="i-lucide-arrow-up"
                 color="neutral"
                 variant="ghost"
@@ -171,7 +171,7 @@ function save() {
                 :disabled="reordering || !canMove(row.original, -1)"
                 @click="move(row.original, -1)"
               />
-              <AppButton
+              <UButton
                 icon="i-lucide-arrow-down"
                 color="neutral"
                 variant="ghost"
@@ -187,14 +187,14 @@ function save() {
               />
             </div>
           </template>
-        </AppTable>
+        </UTable>
       </div>
     </SettingsCollectionState>
     <SettingsFormModal
       v-model:open="formOpen"
       :label="label"
       :editing="!!editingId"
-      description="カテゴリ名、親カテゴリ、説明を設定します"
+      description="カテゴリ名、親カテゴリ、説明を設定します。"
       form-id="category-form"
       :state="state"
       :validate="validate"
@@ -202,28 +202,28 @@ function save() {
       :error="formError"
       @submit="save"
     >
-      <AppFormField name="name" label="カテゴリ名" required>
-        <AppInput v-model="state.name" :maxlength="100" class="w-full" autofocus />
-      </AppFormField>
-      <AppFormField
+      <UFormField name="name" label="カテゴリ名" required>
+        <UInput v-model="state.name" :maxlength="100" class="w-full" autofocus />
+      </UFormField>
+      <UFormField
         name="parent_category_id"
         label="親カテゴリ（任意）"
         :description="
           editingHasChildren
-            ? '子カテゴリが存在するため、このカテゴリには親を設定できません'
+            ? '子カテゴリが存在するため、このカテゴリには親を設定できません。'
             : undefined
         "
       >
-        <AppSelect
+        <USelect
           v-model="state.parent_category_id"
           :items="parentOptions"
           :disabled="editingHasChildren"
           class="w-full"
         />
-      </AppFormField>
-      <AppFormField name="description" label="説明（任意）">
-        <AppTextarea v-model="state.description" :maxlength="500" class="w-full" />
-      </AppFormField>
+      </UFormField>
+      <UFormField name="description" label="説明（任意）">
+        <UTextarea v-model="state.description" :maxlength="500" class="w-full" />
+      </UFormField>
     </SettingsFormModal>
     <SettingsDeleteDialog
       v-model:open="deleteOpen"

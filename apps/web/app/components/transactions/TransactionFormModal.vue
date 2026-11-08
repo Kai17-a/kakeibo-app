@@ -120,7 +120,7 @@ watch(
 
 async function handleSubmit(event: SubmitEvent) {
   if (!dateStringToCalendarDate(state.date)) {
-    dateError.value = "日付を選択してください";
+    dateError.value = "日付を選択してください。";
     return;
   }
   const keepOpen = (event.submitter as HTMLButtonElement | null)?.value === "continue";
@@ -171,17 +171,17 @@ async function submit(keepOpen: boolean) {
 </script>
 
 <template>
-  <AppModal
+  <UModal
     :open="open"
     :title="title"
-    description="日付や金額など、明細の内容を入力してください"
+    description="日付や金額など、明細の内容を入力してください。"
     :dismissible="!saving"
     :close="!saving"
     :ui="{ content: 'max-w-xl', body: 'sm:p-6', footer: 'flex-wrap justify-end gap-2' }"
     @update:open="(value) => emit('update:open', value)"
   >
     <template #body>
-      <AppTabs
+      <UTabs
         v-if="!editing && !preset"
         v-model="kind"
         :items="[
@@ -196,11 +196,11 @@ async function submit(keepOpen: boolean) {
         class="grid grid-cols-1 gap-5 sm:grid-cols-2"
         @submit.prevent="handleSubmit"
       >
-        <AppFormField name="date" label="日付" required :error="dateError || undefined">
+        <UFormField name="date" label="日付" required :error="dateError || undefined">
           <DatePicker v-model="state.date" required class="w-full" />
-        </AppFormField>
-        <AppFormField label="金額" required>
-          <AppInput
+        </UFormField>
+        <UFormField label="金額" required>
+          <UInput
             :model-value="state.amount"
             type="number"
             min="1"
@@ -214,12 +214,12 @@ async function submit(keepOpen: boolean) {
             {{ exchangePreview.exchange_rate }}（適用日: {{ exchangePreview.exchange_rate_date }}）
             = {{ formatCurrency(exchangePreview.converted_amount) }}
           </template>
-        </AppFormField>
-        <AppFormField label="カテゴリ">
-          <AppSelect v-model="state.categoryId" :items="categoryOptions" class="w-full" />
-        </AppFormField>
-        <AppFormField :label="`支払方法${kind === 'income' ? '（任意）' : ''}`">
-          <AppSelect
+        </UFormField>
+        <UFormField label="カテゴリ">
+          <USelect v-model="state.categoryId" :items="categoryOptions" class="w-full" />
+        </UFormField>
+        <UFormField :label="`支払方法${kind === 'income' ? '（任意）' : ''}`">
+          <USelect
             :model-value="state.paymentMethodId || NO_PAYMENT_METHOD_VALUE"
             :items="
               kind === 'income'
@@ -232,22 +232,22 @@ async function submit(keepOpen: boolean) {
                 $event == null || $event === NO_PAYMENT_METHOD_VALUE ? '' : String($event)
             "
           />
-        </AppFormField>
-        <AppFormField label="メモ（任意）" class="sm:col-span-2">
-          <AppTextarea v-model="state.description" class="w-full" />
-        </AppFormField>
+        </UFormField>
+        <UFormField label="メモ（任意）" class="sm:col-span-2">
+          <UTextarea v-model="state.description" class="w-full" />
+        </UFormField>
       </form>
     </template>
     <template #footer>
-      <AppButton
+      <UButton
         color="neutral"
         variant="outline"
         :disabled="saving"
         @click="emit('update:open', false)"
       >
         キャンセル
-      </AppButton>
-      <AppButton
+      </UButton>
+      <UButton
         v-if="!editing && !preset"
         type="submit"
         form="transaction-form"
@@ -258,10 +258,10 @@ async function submit(keepOpen: boolean) {
         :disabled="saving"
       >
         登録して続ける
-      </AppButton>
-      <AppButton type="submit" form="transaction-form" :loading="saving" :disabled="saving">
+      </UButton>
+      <UButton type="submit" form="transaction-form" :loading="saving" :disabled="saving">
         {{ editing ? "更新する" : "登録する" }}
-      </AppButton>
+      </UButton>
     </template>
-  </AppModal>
+  </UModal>
 </template>

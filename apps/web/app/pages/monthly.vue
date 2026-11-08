@@ -181,19 +181,19 @@ const {
 
 <template>
   <div class="flex min-w-0 flex-1">
-    <AppDashboardPanel id="monthly">
+    <UDashboardPanel id="monthly">
       <template #header>
-        <AppDashboardNavbar title="月間集計">
+        <UDashboardNavbar title="月間集計">
           <template #leading>
-            <AppDashboardSidebarCollapse />
+            <UDashboardSidebarCollapse />
           </template>
           <template #right>
             <MonthNavigator :model-value="month" @update:model-value="setMonth" />
             <TransferButton @click="openNewTransfer" />
             <RecordTransactionButton @click="openNew" />
-            <AppColorModeButton />
+            <UColorModeButton />
           </template>
-        </AppDashboardNavbar>
+        </UDashboardNavbar>
       </template>
       <template #body>
         <DataLoadState :loading="loading" :error="loadError" @retry="load">
@@ -237,7 +237,7 @@ const {
           </div>
         </DataLoadState>
       </template>
-    </AppDashboardPanel>
+    </UDashboardPanel>
 
     <TransactionsTransactionFormModal
       v-if="formOpen"

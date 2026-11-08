@@ -14,18 +14,18 @@ const columns = [
   {
     accessorKey: "balance",
     header: "収支",
-    meta: { class: { th: "text-right", td: "text-right font-medium tabular-nums" } },
+    meta: { class: { th: "text-right", td: "text-right font-bold tabular-nums" } },
   },
 ];
 </script>
 
 <template>
-  <AppCard>
+  <UCard>
     <template #header>
       <h2 class="text-lg font-semibold">月ごとの収支</h2>
     </template>
     <div class="overflow-x-auto">
-      <AppTable class="min-w-[36rem]" :data="months" :columns="columns">
+      <UTable class="min-w-[36rem]" :data="months" :columns="columns">
         <template #month-cell="{ row }"> {{ row.original.month }}月 </template>
         <template #income-cell="{ row }">
           {{ formatCurrency(row.original.income) }}
@@ -46,7 +46,7 @@ const columns = [
             {{ formatSignedCurrency(row.original.balance) }}
           </span>
         </template>
-      </AppTable>
+      </UTable>
     </div>
-  </AppCard>
+  </UCard>
 </template>

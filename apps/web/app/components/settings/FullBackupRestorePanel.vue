@@ -69,7 +69,7 @@ function reload() {
 
 <template>
   <div class="flex min-w-0 flex-col items-start gap-3 sm:shrink-0 sm:items-end">
-    <AppButton
+    <UButton
       icon="i-lucide-database-backup"
       color="neutral"
       variant="outline"
@@ -78,7 +78,7 @@ function reload() {
       @click="selectFile"
     >
       DBファイルを選択
-    </AppButton>
+    </UButton>
     <input
       ref="fileInput"
       type="file"
@@ -88,10 +88,10 @@ function reload() {
       @change="onFileChange"
     />
 
-    <AppModal
+    <UModal
       :open="open"
       title="フルバックアップから復元"
-      description="現在の家計簿データをバックアップの内容で置き換えます"
+      description="現在の家計簿データをバックアップの内容で置き換えます。"
       :dismissible="!restoring"
       :close="!restoring"
       :ui="{ footer: 'flex-wrap justify-end gap-2' }"
@@ -99,7 +99,7 @@ function reload() {
     >
       <template #body>
         <div class="space-y-4">
-          <AppAlert
+          <UAlert
             color="error"
             variant="soft"
             title="現在のデータはすべて置き換えられます"
@@ -113,10 +113,10 @@ function reload() {
           </dl>
           <p class="text-sm text-muted">
             復元を始める直前に、現在のデータの退避コピーをサーバーの .restore-backups
-            フォルダへ自動作成します（新しい5世代を保持）
+            フォルダへ自動作成します（新しい5世代を保持）。
           </p>
-          <AppAlert v-if="error" color="error" title="復元できませんでした" :description="error" />
-          <AppAlert
+          <UAlert v-if="error" color="error" title="復元できませんでした" :description="error" />
+          <UAlert
             v-if="resultUnknown"
             color="warning"
             title="復元の結果を確認できませんでした"
@@ -133,13 +133,13 @@ function reload() {
         </div>
       </template>
       <template #footer>
-        <AppButton color="neutral" variant="outline" :disabled="restoring" @click="close">
+        <UButton color="neutral" variant="outline" :disabled="restoring" @click="close">
           キャンセル
-        </AppButton>
-        <AppButton color="error" :loading="restoring" :disabled="restoring" @click="restore">
+        </UButton>
+        <UButton color="error" :loading="restoring" :disabled="restoring" @click="restore">
           現在のデータを置き換える
-        </AppButton>
+        </UButton>
       </template>
-    </AppModal>
+    </UModal>
   </div>
 </template>

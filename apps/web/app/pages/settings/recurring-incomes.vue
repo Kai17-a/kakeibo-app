@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TableColumn } from "~/types/ui";
+import type { TableColumn } from "@nuxt/ui";
 import type { Category, RecurringIncome } from "~/types/settings";
 import { formatYen } from "~/utils/settings";
 import {
@@ -127,7 +127,7 @@ function save() {
     <SettingsListHeader
       heading-id="recurring-income-heading"
       :title="label"
-      description="毎月発生する固定収入・準固定収入（金額変動）の入金予定を管理します"
+      description="毎月発生する固定収入・準固定収入（金額変動）の入金予定を管理します。"
       :count="loading || loadError ? null : items.length"
       :add-disabled="loading || !!loadError"
       @add="openForm()"
@@ -139,13 +139,13 @@ function save() {
       :error="loadError"
       :empty="!items.length"
       empty-icon="i-lucide-repeat"
-      empty-description="毎月の定期収入を登録すると、ここに一覧が表示されます"
+      empty-description="毎月の定期収入を登録すると、ここに一覧が表示されます。"
       add-label="定期収入を追加"
       @retry="load"
       @add="openForm()"
     >
       <div class="min-w-0 overflow-hidden rounded-lg border border-default">
-        <AppTable
+        <UTable
           :data="sortedItems"
           :columns="columns"
           :aria-label="`${label}一覧`"
@@ -163,9 +163,9 @@ function save() {
                 <span class="font-medium break-words whitespace-normal text-default">{{
                   row.original.name
                 }}</span>
-                <AppBadge v-if="row.original.is_variable" color="neutral" variant="soft">
+                <UBadge v-if="row.original.is_variable" color="neutral" variant="soft">
                   準固定収入
-                </AppBadge>
+                </UBadge>
               </div>
               <p
                 v-if="row.original.description"
@@ -184,9 +184,9 @@ function save() {
             </div>
           </template>
           <template #is_active-cell="{ row }">
-            <AppBadge :color="row.original.is_active ? 'success' : 'neutral'" variant="soft">
+            <UBadge :color="row.original.is_active ? 'success' : 'neutral'" variant="soft">
               {{ row.original.is_active ? "有効" : "無効" }}
-            </AppBadge>
+            </UBadge>
           </template>
           <template #amount-cell="{ row }">
             <span :class="row.original.amount === null ? 'text-muted' : ''">
@@ -200,14 +200,14 @@ function save() {
               @delete="askDelete(row.original)"
             />
           </template>
-        </AppTable>
+        </UTable>
       </div>
     </SettingsCollectionState>
     <SettingsFormModal
       v-model:open="formOpen"
       :label="label"
       :editing="!!editingId"
-      description="毎月の収入額、入金日、適用期間を設定します"
+      description="毎月の収入額、入金日、適用期間を設定します。"
       form-id="recurring-income-form"
       :state="state"
       :validate="validate"
@@ -215,24 +215,24 @@ function save() {
       :error="formError"
       @submit="save"
     >
-      <AppAlert
+      <UAlert
         v-if="!categories.length"
         color="warning"
         title="収入カテゴリがありません"
-        description="設定の「収入カテゴリ」でカテゴリを登録してから追加してください"
+        description="設定の「収入カテゴリ」でカテゴリを登録してから追加してください。"
       />
-      <AppFormField name="name" label="名称" required>
-        <AppInput v-model="state.name" class="w-full" autofocus />
-      </AppFormField>
-      <AppFormField
+      <UFormField name="name" label="名称" required>
+        <UInput v-model="state.name" class="w-full" autofocus />
+      </UFormField>
+      <UFormField
         name="amount"
         :label="state.is_variable ? '金額（目安・任意）' : '金額'"
         :required="!state.is_variable"
         :description="
-          state.is_variable ? '空欄の場合は「今月分を登録」で毎月入力します' : undefined
+          state.is_variable ? '空欄の場合は「今月分を登録」で毎月入力します。' : undefined
         "
       >
-        <AppInput
+        <UInput
           :model-value="state.amount"
           type="number"
           :min="1"
@@ -240,9 +240,9 @@ function save() {
           class="w-full"
           @update:model-value="state.amount = String($event ?? '')"
         />
-      </AppFormField>
-      <AppFormField name="payment_day" label="毎月の入金日" required>
-        <AppInput
+      </UFormField>
+      <UFormField name="payment_day" label="毎月の入金日" required>
+        <UInput
           :model-value="state.payment_day"
           type="number"
           :min="1"
@@ -252,37 +252,37 @@ function save() {
           class="w-full"
           @update:model-value="updateRecurringPaymentDay(state, $event)"
         />
-      </AppFormField>
-      <AppFormField name="is_month_end">
-        <AppCheckbox
+      </UFormField>
+      <UFormField name="is_month_end">
+        <UCheckbox
           :model-value="state.is_month_end"
           label="月末（その月の最終日）にする"
           @update:model-value="setRecurringMonthEnd(state, $event === true)"
         />
-      </AppFormField>
-      <AppFormField name="category_id" label="カテゴリ" required>
-        <AppSelect
+      </UFormField>
+      <UFormField name="category_id" label="カテゴリ" required>
+        <USelect
           v-model="state.category_id"
           :items="categoryOptions"
           placeholder="選択してください"
           class="w-full"
         />
-      </AppFormField>
-      <AppFormField name="start_date" label="開始日" required>
+      </UFormField>
+      <UFormField name="start_date" label="開始日" required>
         <DatePicker v-model="state.start_date" required class="w-full" />
-      </AppFormField>
-      <AppFormField name="end_date" label="終了日（任意）">
+      </UFormField>
+      <UFormField name="end_date" label="終了日（任意）">
         <DatePicker v-model="state.end_date" :min="state.start_date" clearable class="w-full" />
-      </AppFormField>
-      <AppFormField name="description" label="備考（任意）">
-        <AppTextarea v-model="state.description" class="w-full" />
-      </AppFormField>
-      <AppFormField name="is_variable">
-        <AppCheckbox v-model="state.is_variable" label="金額が月ごとに変動する（準固定収入）" />
-      </AppFormField>
-      <AppFormField name="is_active">
-        <AppCheckbox v-model="state.is_active" label="有効にする" />
-      </AppFormField>
+      </UFormField>
+      <UFormField name="description" label="備考（任意）">
+        <UTextarea v-model="state.description" class="w-full" />
+      </UFormField>
+      <UFormField name="is_variable">
+        <UCheckbox v-model="state.is_variable" label="金額が月ごとに変動する（準固定収入）" />
+      </UFormField>
+      <UFormField name="is_active">
+        <UCheckbox v-model="state.is_active" label="有効にする" />
+      </UFormField>
     </SettingsFormModal>
     <SettingsDeleteDialog
       v-model:open="deleteOpen"

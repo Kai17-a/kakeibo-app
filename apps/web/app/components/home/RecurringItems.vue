@@ -28,7 +28,7 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
 </script>
 
 <template>
-  <AppCard v-if="hasAny" class="bg-default">
+  <UCard v-if="hasAny" class="bg-default">
     <template #header>
       <h2 class="text-lg font-semibold">定期の収支</h2>
     </template>
@@ -58,7 +58,9 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
       </li>
     </ul>
     <template v-if="variableExpenses.length">
-      <h3 class="mt-4 text-xs font-medium text-muted">準固定費（金額変動）</h3>
+      <h3 class="mt-4 text-xs font-semibold tracking-widest text-muted uppercase">
+        準固定費（金額変動）
+      </h3>
       <ul class="mt-2 divide-y divide-default">
         <li
           v-for="item in variableExpenses"
@@ -83,7 +85,7 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
             <b class="block">{{ formatCurrency(postedExpenseAmounts.get(item.id) ?? 0) }}</b>
             <small class="text-muted">登録済み</small>
           </span>
-          <AppButton
+          <UButton
             v-else
             color="neutral"
             variant="outline"
@@ -92,7 +94,7 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
             @click="emit('registerExpense', item)"
           >
             今月分を登録
-          </AppButton>
+          </UButton>
         </li>
       </ul>
     </template>
@@ -116,7 +118,9 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
       </li>
     </ul>
     <template v-if="variableIncomes.length">
-      <h3 class="mt-4 text-xs font-medium text-muted">準固定収入（金額変動）</h3>
+      <h3 class="mt-4 text-xs font-semibold tracking-widest text-muted uppercase">
+        準固定収入（金額変動）
+      </h3>
       <ul class="mt-2 divide-y divide-default">
         <li
           v-for="item in variableIncomes"
@@ -136,7 +140,7 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
             <b class="block">{{ formatCurrency(postedIncomeAmounts.get(item.id) ?? 0) }}</b>
             <small class="text-muted">登録済み</small>
           </span>
-          <AppButton
+          <UButton
             v-else
             color="neutral"
             variant="outline"
@@ -145,20 +149,20 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
             @click="emit('registerIncome', item)"
           >
             今月分を登録
-          </AppButton>
+          </UButton>
         </li>
       </ul>
     </template>
-  </AppCard>
-  <AppCard v-else class="bg-default">
+  </UCard>
+  <UCard v-else class="bg-default">
     <template #header>
       <h2 class="text-lg font-semibold">定期の収支</h2>
     </template>
     <p class="mt-2 text-sm text-muted">
-      定期的な収支はまだ設定されていません
+      定期的な収支はまだ設定されていません。
       <NuxtLink to="/settings/recurring-expenses" class="font-medium text-primary hover:underline">
         定期の収支を設定
       </NuxtLink>
     </p>
-  </AppCard>
+  </UCard>
 </template>

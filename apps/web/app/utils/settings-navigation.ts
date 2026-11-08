@@ -1,4 +1,4 @@
-import type { NavigationMenuItem } from "~/types/ui";
+import type { NavigationMenuItem } from "@nuxt/ui";
 
 export const settingsNavigation = [
   { label: "支出カテゴリ", to: "/settings/expense-categories" },

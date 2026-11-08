@@ -29,7 +29,7 @@ const emit = defineEmits<{ confirm: [] }>();
       <p class="break-all">
         {{ target }}
       </p>
-      <AppAlert
+      <UAlert
         v-if="error"
         color="error"
         title="削除できませんでした"

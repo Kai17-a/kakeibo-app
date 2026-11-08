@@ -33,7 +33,7 @@ export function useTransactionEditor({
   transfers,
 }: TransactionEditorOptions) {
   const transactionsApi = useTransactionsApi();
-  const toast = useAppToast();
+  const toast = useToast();
 
   // --- form modal ---
   const formOpen = ref(false);

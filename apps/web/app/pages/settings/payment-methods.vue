@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TableColumn } from "~/types/ui";
+import type { TableColumn } from "@nuxt/ui";
 import type { PaymentMethod } from "~/types/settings";
 import { validateNamed, validAmount } from "~/utils/settings";
 import { formatSignedCurrency } from "~/utils/format";
@@ -76,7 +76,7 @@ const sortedItems = computed(() =>
 function validate() {
   const errors = validateNamed(state);
   if (String(state.initial_balance).trim() && !validAmount(state.initial_balance))
-    errors.push({ name: "initial_balance", message: "0以上の整数で入力してください" });
+    errors.push({ name: "initial_balance", message: "0以上の整数で入力してください。" });
   return errors;
 }
 function openForm(item?: PaymentMethod) {
@@ -103,7 +103,7 @@ function save() {
     <SettingsListHeader
       heading-id="payment-method-heading"
       :title="label"
-      description="支出の登録時に選択する支払方法と残高を管理します"
+      description="支出の登録時に選択する支払方法と残高を管理します。"
       :count="loading || loadError ? null : items.length"
       :add-disabled="loading || !!loadError"
       @add="openForm()"
@@ -115,13 +115,13 @@ function save() {
       :error="loadError"
       :empty="!items.length"
       empty-icon="i-lucide-wallet"
-      empty-description="利用する支払方法と開始時点の残高を登録すると、ここに一覧が表示されます"
+      empty-description="利用する支払方法と開始時点の残高を登録すると、ここに一覧が表示されます。"
       add-label="支払方法を追加"
       @retry="load"
       @add="openForm()"
     >
       <div class="min-w-0 overflow-hidden rounded-lg border border-default">
-        <AppTable
+        <UTable
           :data="sortedItems"
           :columns="columns"
           :aria-label="`${label}一覧`"
@@ -168,14 +168,14 @@ function save() {
               @delete="askDelete(row.original)"
             />
           </template>
-        </AppTable>
+        </UTable>
       </div>
     </SettingsCollectionState>
     <SettingsFormModal
       v-model:open="formOpen"
       :label="label"
       :editing="!!editingId"
-      description="支払方法名、初期残高、説明を設定します"
+      description="支払方法名、初期残高、説明を設定します。"
       form-id="payment-method-form"
       :state="state"
       :validate="validate"
@@ -183,12 +183,12 @@ function save() {
       :error="formError"
       @submit="save"
     >
-      <AppFormField
+      <UFormField
         name="initial_balance"
         label="初期残高（任意）"
-        description="残高管理を行う場合の開始時点の金額を入力してください"
+        description="残高管理を行う場合の開始時点の金額を入力してください。"
       >
-        <AppInput
+        <UInput
           :model-value="state.initial_balance"
           type="number"
           :min="0"
@@ -196,20 +196,20 @@ function save() {
           class="w-full"
           @update:model-value="state.initial_balance = String($event ?? '')"
         />
-      </AppFormField>
-      <AppFormField name="name" label="支払方法名" required>
-        <AppInput v-model="state.name" :maxlength="100" class="w-full" autofocus />
-      </AppFormField>
-      <AppFormField name="is_investment">
-        <AppCheckbox
+      </UFormField>
+      <UFormField name="name" label="支払方法名" required>
+        <UInput v-model="state.name" :maxlength="100" class="w-full" autofocus />
+      </UFormField>
+      <UFormField name="is_investment">
+        <UCheckbox
           v-model="state.is_investment"
           label="投資口座として扱う"
           description="この口座への振替を投資額として集計します。変更すると過去の集計にも反映されます。"
         />
-      </AppFormField>
-      <AppFormField name="description" label="説明（任意）">
-        <AppTextarea v-model="state.description" :maxlength="500" class="w-full" />
-      </AppFormField>
+      </UFormField>
+      <UFormField name="description" label="説明（任意）">
+        <UTextarea v-model="state.description" :maxlength="500" class="w-full" />
+      </UFormField>
     </SettingsFormModal>
     <SettingsDeleteDialog
       v-model:open="deleteOpen"

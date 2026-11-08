@@ -18,7 +18,7 @@ const amountClass = { error: "text-error", warning: "text-warning", primary: "te
 </script>
 
 <template>
-  <AppCard class="bg-default">
+  <UCard class="bg-default">
     <template #header>
       <h2 class="text-lg font-semibold">予算</h2>
     </template>
@@ -32,18 +32,18 @@ const amountClass = { error: "text-error", warning: "text-warning", primary: "te
             }}）</span
           >
         </div>
-        <AppProgress
+        <UProgress
           class="mt-1"
           :model-value="item.achievementRate === null ? 0 : Math.min(100, item.achievementRate)"
           :color="statusColor(item)"
         />
       </div>
       <p v-if="!actuals.length" class="text-sm text-muted">
-        予算はまだ設定されていません
+        予算はまだ設定されていません。
         <NuxtLink to="/settings/budget" class="font-medium text-primary hover:underline"
           >予算を設定</NuxtLink
         >
       </p>
     </div>
-  </AppCard>
+  </UCard>
 </template>

@@ -76,7 +76,7 @@ const importGroups: {
   },
 ];
 
-const toast = useAppToast();
+const toast = useToast();
 onMounted(() => {
   if (sessionStorage.getItem("kakeibo-restore-success") !== "true") return;
   sessionStorage.removeItem("kakeibo-restore-success");
@@ -87,17 +87,17 @@ onMounted(() => {
 <template>
   <section class="space-y-6" aria-labelledby="data-heading">
     <div class="space-y-1">
-      <h2 id="data-heading" class="text-highlighted text-xl font-semibold">データ管理</h2>
+      <h2 id="data-heading" class="text-xl font-semibold text-highlighted">データ管理</h2>
       <p class="text-sm text-muted">
-        家計簿データの書き出し、バックアップ、CSVからの取り込みを行います
+        家計簿データの書き出し、バックアップ、CSVからの取り込みを行います。
       </p>
     </div>
 
-    <AppCard>
+    <UCard>
       <template #header>
         <h3 class="text-lg font-semibold">データのダウンロード</h3>
         <p class="mt-2 text-sm text-muted">
-          用途に合わせてCSVファイルまたはデータベース全体をダウンロードできます
+          用途に合わせてCSVファイルまたはデータベース全体をダウンロードできます。
         </p>
       </template>
 
@@ -114,7 +114,7 @@ onMounted(() => {
                 <p class="font-medium text-default">{{ item.name }}</p>
                 <p class="mt-0.5 text-sm text-muted">{{ item.description }}</p>
               </div>
-              <AppButton
+              <UButton
                 :to="item.to"
                 external
                 download
@@ -124,18 +124,18 @@ onMounted(() => {
                 class="self-start sm:shrink-0 sm:self-auto"
               >
                 {{ item.action }}
-              </AppButton>
+              </UButton>
             </div>
           </div>
         </section>
       </div>
-    </AppCard>
+    </UCard>
 
-    <AppCard>
+    <UCard>
       <template #header>
         <h3 class="text-lg font-semibold">データのインポート</h3>
         <p class="mt-2 text-sm text-muted">
-          CSVは明細を追加し、フルバックアップは現在の全データを置き換えます
+          CSVは明細を追加し、フルバックアップは現在の全データを置き換えます。
         </p>
       </template>
 
@@ -176,6 +176,6 @@ onMounted(() => {
           </div>
         </section>
       </div>
-    </AppCard>
+    </UCard>
   </section>
 </template>

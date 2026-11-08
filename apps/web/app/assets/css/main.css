@@ -1,304 +1,89 @@
-@layer theme, base, kav, components, utilities;
 @import "tailwindcss";
-/* Expand upstream imports: Tailwind cannot inline url() imports inside a layer. */
-@import "../vendor/kav-ui/css/tokens.css" layer(kav);
-@import "../vendor/kav-ui/css/scales.css" layer(kav);
-@import "../vendor/kav-ui/css/color-palettes.css" layer(kav);
-@import "../vendor/kav-ui/css/base.css" layer(kav);
-@import "../vendor/kav-ui/css/components/buttons.css" layer(kav);
-@import "../vendor/kav-ui/css/components/icon-attributes.css" layer(kav);
-@import "../vendor/kav-ui/css/components/forms.css" layer(kav);
-@import "../vendor/kav-ui/css/components/file-drop.css" layer(kav);
-@import "../vendor/kav-ui/css/components/checks.css" layer(kav);
-@import "../vendor/kav-ui/css/components/select.css" layer(kav);
-@import "../vendor/kav-ui/css/components/input-pickers.css" layer(kav);
-@import "../vendor/kav-ui/css/components/theme-switcher.css" layer(kav);
-@import "../vendor/kav-ui/css/components/color-palettes.css" layer(kav);
-@import "../vendor/kav-ui/css/components/navigation.css" layer(kav);
-@import "../vendor/kav-ui/css/components/scroll.css" layer(kav);
-@import "../vendor/kav-ui/css/components/alerts.css" layer(kav);
-@import "../vendor/kav-ui/css/components/banner.css" layer(kav);
-@import "../vendor/kav-ui/css/components/badges.css" layer(kav);
-@import "../vendor/kav-ui/css/components/table.css" layer(kav);
-@import "../vendor/kav-ui/css/components/data-table.css" layer(kav);
-@import "../vendor/kav-ui/css/utilities.css" layer(kav);
-@import "../vendor/kav-ui/css/components/animations.css" layer(kav);
-@import "../vendor/kav-ui/css/components/toasts.css" layer(kav);
-@import "../vendor/kav-ui/css/components/dialog.css" layer(kav);
-@import "../vendor/kav-ui/css/components/board.css" layer(kav);
-@import "../vendor/kav-ui/css/components/additions.css" layer(kav);
-@import "../vendor/kav-ui/css/components/skeleton.css" layer(kav);
-@import "../vendor/kav-ui/css/components/typography.css" layer(kav);
-@import "../vendor/kav-ui/css/components/spacing.css" layer(kav);
-@import "../vendor/kav-ui/css/components/sidebar.css" layer(kav);
-@import "../vendor/kav-ui/css/components/tips.css" layer(kav);
-@import "../vendor/kav-ui/css/components/flex.css" layer(kav);
-@import "../vendor/kav-ui/css/components/cards.css" layer(kav);
-@import "../vendor/kav-ui/css/components/page-layout.css" layer(kav);
-@import "../vendor/kav-ui/css/components/splitter.css" layer(kav);
-@import "../vendor/kav-ui/css/components/calendar.css" layer(kav);
-@import "../vendor/kav-ui/css/components/datepicker.css" layer(kav);
-@import "../vendor/kav-ui/css/components/loading.css" layer(kav);
-@import "../vendor/kav-ui/css/components/clipboard.css" layer(kav);
-@import "../vendor/kav-ui/css/runtime.css" layer(kav);
-@import "../vendor/kav-ui/css/components/popover.css" layer(kav);
-@import "../vendor/kav-ui/css/components/dropdown.css" layer(kav);
-@import "../vendor/kav-ui/css/components/drawer.css" layer(kav);
-@import "../vendor/kav-ui/css/components/input-group.css" layer(kav);
-@import "../vendor/kav-ui/css/components/button-group.css" layer(kav);
-@import "../vendor/kav-ui/css/components/list-group.css" layer(kav);
-@import "../vendor/kav-ui/css/components/avatar.css" layer(kav);
-@import "../vendor/kav-ui/css/components/chart.css" layer(kav);
-@import "../vendor/kav-ui/css/components/command.css" layer(kav);
-@import "../vendor/kav-ui/css/components/carousel.css" layer(kav);
-@import "../vendor/kav-ui/css/components/timeline.css" layer(kav);
-@import "../vendor/kav-ui/css/components/agent-workflow.css" layer(kav);
-@import "../vendor/kav-ui/css/components/ai-visuals.css" layer(kav);
-@import "../vendor/kav-ui/css/components/rating.css" layer(kav);
-@import "../vendor/kav-ui/css/motion.css" layer(kav);
-@import "../vendor/kav-ui/css/components/animation-presets.css" layer(kav);
-@import "../vendor/kav-ui/css/spacing-utilities.css" layer(kav);
-@import "../vendor/kav-ui/css/responsive-utilities.css" layer(kav);
-@import "../vendor/kav-ui/css/themes.css" layer(kav);
+@import "@nuxt/ui";
 @import "@fontsource-variable/noto-sans";
 @import "@fontsource-variable/playfair-display";
 
-@custom-variant dark (&:where([data-bs-theme="dark"], [data-bs-theme="dark"] *));
-@theme inline {
-  --font-sans: "Noto Sans Variable", sans-serif;
-  --font-serif: "Playfair Display Variable", serif;
-  --color-primary: var(--bs-primary);
-  --color-secondary: var(--bs-secondary-color);
-  --color-success: var(--bs-success);
-  --color-info: var(--bs-info);
-  --color-warning: var(--bs-warning);
-  --color-error: var(--bs-danger);
-  --color-default: var(--bs-body-bg);
-  --color-muted: var(--bs-secondary-bg);
-  --color-elevated: var(--bs-tertiary-bg);
-  --color-accented: var(--bs-border-color);
+@theme {
+  --font-sans: "Lora", sans-serif;
 }
-:root {
-  --ui-primary: var(--bs-primary);
-  --ui-secondary: var(--bs-secondary-color);
-  --ui-success: var(--bs-success);
-  --ui-error: var(--bs-danger);
-  --ui-warning: var(--bs-warning);
-  --ui-info: var(--bs-info);
-  --ui-text: var(--bs-body-color);
-  --ui-text-muted: var(--bs-secondary-color);
-  --ui-bg: var(--bs-body-bg);
-  --ui-bg-muted: var(--bs-secondary-bg);
-  --ui-bg-elevated: var(--bs-tertiary-bg);
-  --ui-border: var(--bs-border-color);
+
+@theme static {
+  --color-cobalt-50: oklch(95.3% 0.022 260.723);
+  --color-cobalt-100: oklch(90.8% 0.045 258.763);
+  --color-cobalt-200: oklch(81.6% 0.091 257.776);
+  --color-cobalt-300: oklch(72.9% 0.14 258.068);
+  --color-cobalt-400: oklch(64.7% 0.186 258.256);
+  --color-cobalt-500: oklch(57.8% 0.228 260.025);
+  --color-cobalt-600: oklch(49.2% 0.19 259.799);
+  --color-cobalt-700: oklch(40.2% 0.152 259.656);
+  --color-cobalt-800: oklch(30.7% 0.109 258.934);
+  --color-cobalt-900: oklch(20.4% 0.063 257.52);
+  --color-cobalt-950: oklch(14.7% 0.037 249.929);
+  --color-cobalt-gray-50: oklch(99.1% 0 0);
+  --color-cobalt-gray-100: oklch(98.2% 0.002 247.839);
+  --color-cobalt-gray-200: oklch(94.2% 0.005 247.879);
+  --color-cobalt-gray-300: oklch(91.1% 0.007 247.901);
+  --color-cobalt-gray-400: oklch(86.7% 0.011 247.949);
+  --color-cobalt-gray-500: oklch(76.9% 0.015 248.017);
+  --color-cobalt-gray-600: oklch(55.8% 0.016 244.893);
+  --color-cobalt-gray-700: oklch(42.8% 0.015 248.172);
+  --color-cobalt-gray-800: oklch(34.5% 0.013 248.212);
+  --color-cobalt-gray-900: oklch(26.2% 0.009 248.19);
+  --color-cobalt-gray-950: oklch(20.7% 0.008 248.192);
 }
+
 @layer base {
   html {
     font-size: 15px;
   }
-  body {
-    margin: 0;
-    min-width: 320px;
-    min-height: 100vh;
-    font-family: var(--font-sans);
-    font-synthesis: none;
-  }
 }
-@layer utilities {
-  .text-default {
-    color: var(--bs-body-color);
-  }
-  .text-muted,
-  .text-dimmed {
-    color: var(--bs-secondary-color);
-  }
-  .text-toned {
-    color: var(--bs-body-color);
-  }
-  .border-default,
-  .border-muted {
-    border-color: var(--bs-border-color);
-  }
-  .divide-default > :not(:last-child) {
-    border-color: var(--bs-border-color);
-  }
-  .ring-default {
-    --tw-ring-color: var(--bs-border-color);
-  }
+
+:root {
+  --ui-radius: 0.125rem;
 }
-@layer components {
-  .app-icon {
-    display: inline-block;
-    width: 1.2em;
-    height: 1.2em;
-    flex-shrink: 0;
-  }
-  .btn {
-    gap: 0.4rem;
-  }
-  .app-badge {
-    background: var(--bs-tertiary-bg);
-    color: var(--bs-body-color);
-    border: 1px solid var(--bs-border-color);
-  }
-  .app-progress {
-    appearance: none;
-    display: block;
-    width: 100%;
-    height: 0.5rem;
-    border: 0;
-    border-radius: 9999px;
-    background: var(--bs-secondary-bg);
-  }
-  .app-progress::-webkit-progress-bar {
-    height: 0.5rem;
-    border-radius: 9999px;
-    background: var(--bs-secondary-bg);
-  }
-  .app-progress::-webkit-progress-value {
-    height: 0.5rem;
-    border-radius: 9999px;
-    background: var(--app-progress-color);
-  }
-  .app-progress::-moz-progress-bar {
-    height: 0.5rem;
-    border-radius: 9999px;
-    background: var(--app-progress-color);
-  }
-  .app-shell-layout {
-    display: flex;
-    min-height: 100dvh;
-  }
-  .app-sidebar-local {
-    width: 15rem;
-    flex-shrink: 0;
-    padding: 1rem;
-    border-right: 1px solid var(--bs-border-color);
-    background: var(--bs-tertiary-bg);
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    position: sticky;
-    top: 0;
-    height: 100dvh;
-    overflow-y: auto;
-  }
-  .app-panel {
-    flex: 1;
-    min-width: 0;
-  }
-  .app-panel-body {
-    padding: 1.5rem;
-  }
-  .app-navbar {
-    min-height: 4rem;
-    padding: 0.75rem 1.5rem;
-    border-bottom: 1px solid var(--bs-border-color);
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.75rem;
-  }
-  .app-navbar h1 {
-    margin: 0;
-  }
-  .app-toolbar {
-    padding: 0.75rem 1.5rem;
-    border-bottom: 1px solid var(--bs-border-color);
-    overflow-x: auto;
-  }
-  .app-navigation {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-  .app-navigation-vertical {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  .app-navigation a,
-  .app-navigation-vertical a {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: var(--bs-border-radius);
-    color: var(--bs-secondary-color);
-    text-decoration: none;
-  }
-  .app-navigation a:hover,
-  .app-navigation-vertical a:hover,
-  .router-link-exact-active,
-  .app-link-active {
-    background: var(--bs-secondary-bg);
-    color: var(--bs-primary) !important;
-  }
-  .app-sidebar-backdrop {
-    display: none;
-  }
-  .sidebar-open .app-sidebar-local {
-    display: none;
-  }
-  .app-dialog {
-    margin: auto;
-    width: min(40rem, 92vw);
-  }
-  .app-dialog-body {
-    padding: 1rem 0;
-  }
-  .ui-dialog.app-dialog form {
-    display: block;
-    margin: 0;
-  }
-  .app-form-fields {
-    display: contents;
-  }
-  .app-row-menu {
-    position: fixed;
-    inset: auto;
-    margin: 0;
-    padding: 0.5rem;
-    min-width: 10rem;
-  }
-  .app-row-menu:not(:popover-open) {
-    display: none;
-  }
-  .app-row-menu:popover-open {
-    display: flex;
-    flex-direction: column;
-  }
-  .ui-toast {
-    display: flex;
-    align-items: start;
-  }
-  .ui-toast-content {
-    flex: 1;
-  }
-  @media (width < 1024px) {
-    .app-sidebar-local {
-      display: none;
-    }
-    .sidebar-open .app-sidebar-local {
-      display: flex;
-      position: fixed;
-      left: 0;
-      top: 0;
-      z-index: 51;
-      width: min(18rem, 85vw);
-    }
-    .sidebar-open .app-sidebar-backdrop {
-      display: block;
-      position: fixed;
-      inset: 0;
-      z-index: 50;
-      background: rgb(0 0 0 / 0.4);
-    }
-    .app-panel-body {
-      padding: 1rem;
-    }
-    .app-navbar {
-      padding: 0.75rem 1rem;
-    }
-  }
+
+:root,
+.light {
+  --ui-primary: var(--ui-color-primary-700);
+  --ui-secondary: var(--ui-color-secondary-600);
+  --ui-error: var(--ui-color-error-700);
+  --ui-warning: var(--ui-color-warning-700);
+  --ui-text-inverted: white;
+  --ui-bg: var(--ui-color-neutral-50);
+  --ui-bg-muted: var(--ui-color-neutral-200);
+  --ui-bg-elevated: var(--ui-color-neutral-100);
+  --ui-bg-accented: var(--ui-color-neutral-300);
+  --ui-text-dimmed: var(--ui-color-neutral-600);
+  --ui-text-muted: var(--ui-color-neutral-600);
+  --ui-text-toned: var(--ui-color-neutral-700);
+  --ui-text: var(--ui-color-neutral-800);
+  --ui-border: var(--ui-color-neutral-400);
+  --ui-border-muted: var(--ui-color-neutral-300);
+}
+
+.dark {
+  --ui-primary: var(--ui-color-primary-400);
+  --ui-secondary: var(--ui-color-secondary-500);
+  --ui-success: var(--ui-color-success-500);
+  --ui-info: var(--ui-color-info-500);
+  --ui-warning: var(--ui-color-warning-400);
+  --ui-error: var(--ui-color-error-400);
+  --ui-text-inverted: var(--ui-color-neutral-950);
+  --ui-bg-muted: var(--ui-color-neutral-700);
+  --ui-text: var(--ui-color-neutral-300);
+  --ui-bg: var(--ui-color-neutral-950);
+  --ui-bg-elevated: var(--ui-color-neutral-800);
+  --ui-bg-accented: var(--ui-color-neutral-700);
+  --ui-text-dimmed: var(--ui-color-neutral-500);
+  --ui-text-muted: var(--ui-color-neutral-400);
+  --ui-text-toned: var(--ui-color-neutral-300);
+  --ui-border: var(--ui-color-neutral-800);
+  --ui-border-muted: var(--ui-color-neutral-700);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  font-synthesis: none;
 }

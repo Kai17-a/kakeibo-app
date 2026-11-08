@@ -28,7 +28,7 @@ function barStyle(balance: number, index: number, count: number) {
 </script>
 
 <template>
-  <AppCard class="min-w-0">
+  <UCard class="min-w-0">
     <template #header>
       <h2 class="text-lg font-semibold">資産残高推移</h2>
       <p class="text-sm text-muted">初期残高を設定した支払方法ごとの月末残高</p>
@@ -49,7 +49,7 @@ function barStyle(balance: number, index: number, count: number) {
               :title="`${value.name}: ${formatCurrency(value.balance)}`"
             />
           </div>
-          <span class="mt-2 block text-center text-[11px] whitespace-nowrap sm:text-xs"
+          <span class="mt-2 block text-center text-[10px] whitespace-nowrap sm:text-xs"
             >{{ item.month }}月</span
           >
         </div>
@@ -62,7 +62,7 @@ function barStyle(balance: number, index: number, count: number) {
       </div>
     </template>
     <p v-else class="py-24 text-center text-sm text-muted">
-      初期残高が設定された支払方法はありません
+      初期残高が設定された支払方法はありません。
     </p>
-  </AppCard>
+  </UCard>
 </template>

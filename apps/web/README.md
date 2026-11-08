@@ -1,6 +1,6 @@
 # Web frontend
 
-Nuxt 4 + Kav-UI のフロントエンド。Kav-UI の CSS は `app/assets/vendor/kav-ui/css/` に同梱し、Vue の自前部品が入力・モーダル・通知などの状態を管理する。出典と更新方法は`app/assets/vendor/kav-ui/README.md` を参照。外部ディレクトリへの相対パス依存はない。既存レイアウトの Tailwind ユーティリティは `@tailwindcss/vite` で処理する。
+Nuxt 4 + Nuxt UI 4で実装したフロントエンド。移行の経緯は`docs/design/nuxt-ui-migration-evaluation.md`を参照。
 
 ## セットアップ
 

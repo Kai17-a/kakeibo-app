@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TableColumn } from "~/types/ui";
+import type { TableColumn } from "@nuxt/ui";
 import type { Budget, Category } from "~/types/settings";
 import {
   availableBudgetCategories,
@@ -45,7 +45,7 @@ const {
   create: api.create,
   update: api.update,
   remove: api.remove,
-  removeErrorMessage: () => "予算を削除できませんでした",
+  removeErrorMessage: () => "予算を削除できませんでした。",
 });
 
 /** Expense categories without a budget yet; a category has at most one budget. */
@@ -94,9 +94,9 @@ function categoryName(id: string) {
 function validate() {
   const errors: { name: string; message: string }[] = [];
   if (!budgetCategories.value.some((item) => item.id === state.category_id))
-    errors.push({ name: "category_id", message: "支出カテゴリを選択してください" });
+    errors.push({ name: "category_id", message: "支出カテゴリを選択してください。" });
   if (!validAmount(state.amount))
-    errors.push({ name: "amount", message: "月額予算を0以上の整数で入力してください" });
+    errors.push({ name: "amount", message: "月額予算を0以上の整数で入力してください。" });
   return errors;
 }
 function openForm(item?: Budget) {
@@ -114,7 +114,7 @@ function save() {
     <SettingsListHeader
       heading-id="budget-heading"
       :title="label"
-      description="支出カテゴリごとに毎月適用する予算を管理します"
+      description="支出カテゴリごとに毎月適用する予算を管理します。"
       :count="loading || loadError ? null : items.length"
       :add-disabled="loading || !!loadError || !unassignedCategories.length"
       @add="openForm()"
@@ -128,14 +128,14 @@ function save() {
       :error="loadError"
       :empty="!items.length"
       empty-icon="i-lucide-chart-pie"
-      empty-description="カテゴリごとの月額予算を設定すると、ここに一覧が表示されます"
+      empty-description="カテゴリごとの月額予算を設定すると、ここに一覧が表示されます。"
       add-label="予算を追加"
       :add-disabled="!unassignedCategories.length"
       @retry="load"
       @add="openForm()"
     >
       <div class="min-w-0 overflow-hidden rounded-lg border border-default">
-        <AppTable
+        <UTable
           :data="items"
           :columns="columns"
           :aria-label="`${label}一覧`"
@@ -159,14 +159,14 @@ function save() {
               @delete="askDelete(row.original)"
             />
           </template>
-        </AppTable>
+        </UTable>
       </div>
     </SettingsCollectionState>
     <SettingsFormModal
       v-model:open="formOpen"
       :label="label"
       :editing="!!editingId"
-      description="支出カテゴリと毎月の予算額を設定します"
+      description="支出カテゴリと毎月の予算額を設定します。"
       form-id="budget-form"
       :state="state"
       :validate="validate"
@@ -174,16 +174,16 @@ function save() {
       :error="formError"
       @submit="save"
     >
-      <AppFormField name="category_id" label="支出カテゴリ" required>
-        <AppSelect
+      <UFormField name="category_id" label="支出カテゴリ" required>
+        <USelect
           v-model="state.category_id"
           :items="categoryOptions"
           placeholder="選択してください"
           class="w-full"
         />
-      </AppFormField>
-      <AppFormField name="amount" label="月額予算" required>
-        <AppInput
+      </UFormField>
+      <UFormField name="amount" label="月額予算" required>
+        <UInput
           :model-value="state.amount"
           type="number"
           :min="0"
@@ -191,7 +191,7 @@ function save() {
           class="w-full"
           @update:model-value="state.amount = String($event ?? '')"
         />
-      </AppFormField>
+      </UFormField>
     </SettingsFormModal>
     <SettingsDeleteDialog
       v-model:open="deleteOpen"
