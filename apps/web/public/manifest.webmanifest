@@ -1,7 +1,7 @@
 {
   "name": "Kakeibo",
   "short_name": "Kakeibo",
-  "start_url": "/",
+  "start_url": "/monthly",
   "display": "standalone",
   "background_color": "#f5f2eb",
   "theme_color": "#f5f2eb",

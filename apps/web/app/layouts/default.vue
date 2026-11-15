@@ -24,15 +24,8 @@ const links = computed(() => {
   return [
     [
       {
-        label: "年間集計",
-        icon: "i-lucide-house",
-        to: selectedYear ? { path: "/", query: { year: selectedYear } } : "/",
-        exact: true,
-        onSelect: closeSidebar,
-      },
-      {
         label: "月間集計",
-        icon: "i-lucide-calendar-range",
+        icon: "i-lucide-house",
         to: selectedMonth ? { path: "/monthly", query: { month: selectedMonth } } : "/monthly",
         exact: true,
         onSelect: closeSidebar,
@@ -41,6 +34,13 @@ const links = computed(() => {
         label: "日別集計",
         icon: "i-lucide-calendar-days",
         to: selectedMonth ? { path: "/daily", query: { month: selectedMonth } } : "/daily",
+        exact: true,
+        onSelect: closeSidebar,
+      },
+      {
+        label: "年間集計",
+        icon: "i-lucide-chart-column",
+        to: selectedYear ? { path: "/", query: { year: selectedYear } } : "/",
         exact: true,
         onSelect: closeSidebar,
       },
