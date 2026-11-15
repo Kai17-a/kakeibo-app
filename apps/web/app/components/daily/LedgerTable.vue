@@ -1,6 +1,6 @@
 <script setup lang="ts" generic="T extends Expense | Income">
 import type { Expense, Income } from "~/types/transactions";
-import { formatDate, formatSignedCurrency } from "~/utils/format";
+import { formatCurrency, formatDate, formatSignedCurrency } from "~/utils/format";
 
 const props = defineProps<{
   kind: "expense" | "income";
@@ -35,7 +35,33 @@ function paymentName(item: T) {
 
 <template>
   <div class="max-h-[38rem] overflow-auto">
-    <table class="w-full min-w-[800px] text-sm">
+    <ul class="space-y-2 sm:hidden">
+      <li v-for="item in items" :key="item.id" class="rounded-md border border-default p-3">
+        <div class="flex items-start justify-between gap-3 text-sm">
+          <div class="min-w-0 break-words">
+            <p class="text-xs text-muted">{{ formatDate(item.transaction_date) }}</p>
+            <p>{{ categoryNames.get(item.category_id) }}</p>
+          </div>
+          <p
+            class="shrink-0 text-right tabular-nums"
+            :class="kind === 'income' && Number(item.amount) > 0 ? 'text-primary' : undefined"
+          >
+            {{ formatCurrency(item.amount) }}
+          </p>
+        </div>
+        <div class="mt-2 flex items-center justify-between gap-2">
+          <p class="min-w-0 text-xs break-words text-muted">
+            {{ paymentName(item) }}<span v-if="item.description"> · {{ item.description }}</span>
+          </p>
+          <RowActionsMenu
+            :label="`${formatDate(item.transaction_date)} ${label(item)}`"
+            @edit="emit('edit', item)"
+            @delete="emit('delete', item)"
+          />
+        </div>
+      </li>
+    </ul>
+    <table class="hidden w-full min-w-[800px] text-sm sm:table">
       <thead class="sticky top-0 bg-default">
         <tr class="border-b border-default">
           <th class="w-32 px-3 py-2 text-left text-xs font-medium whitespace-nowrap text-muted">
