@@ -33,7 +33,10 @@ test("定期振替を月末指定で登録・編集・削除できる", async ({
     },
   );
   await page.goto("/settings/recurring-incomes");
-  await page.getByRole("link", { name: "定期振替", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "定期の収支の切り替え" })
+    .getByRole("link", { name: "振替", exact: true })
+    .click();
   await expect(page).toHaveURL(/recurring-transfers/);
   await page.getByRole("button", { name: "追加", exact: true }).click();
   await page.getByLabel("名称").fill("つみたてNISA");
