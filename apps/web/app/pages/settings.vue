@@ -50,7 +50,7 @@ const currentGroup = computed(() => findSettingsGroup(route.path));
             :variant="currentGroup === group ? 'soft' : 'ghost'"
             :color="currentGroup === group ? 'primary' : 'neutral'"
             :aria-current="currentGroup === group ? 'true' : undefined"
-            class="min-h-[44px] w-full"
+            class="w-full"
           />
         </nav>
         <div class="flex min-w-0 flex-1 flex-col gap-6">

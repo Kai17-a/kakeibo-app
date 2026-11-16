@@ -130,7 +130,7 @@ function save() {
             <div class="min-w-0">
               <button
                 type="button"
-                class="min-h-[44px] text-left font-medium break-words text-default focus-visible:ring-2 focus-visible:ring-primary"
+                class="text-left font-medium break-words text-default focus-visible:ring-2 focus-visible:ring-primary max-sm:min-h-[44px]"
                 :aria-label="`${row.original.name}を編集`"
                 @click.stop="openForm(row.original)"
               >

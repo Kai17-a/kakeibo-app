@@ -159,14 +159,14 @@ function save() {
         <div
           v-for="item in sortedItems"
           :key="item.id"
-          class="category-row flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-elevated/50"
+          class="category-row flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-elevated/50"
           :data-id="item.id"
           :data-parent="item.parent_category_id ?? ''"
           @click="openForm(item)"
         >
           <button
             type="button"
-            class="category-handle flex h-[44px] w-[44px] shrink-0 touch-none items-center justify-center rounded focus-visible:ring-2 focus-visible:ring-primary"
+            class="category-handle flex size-7 shrink-0 touch-none items-center justify-center rounded focus-visible:ring-2 focus-visible:ring-primary max-sm:size-[44px]"
             :aria-label="`${item.name}の並べ替え`"
             :disabled="reordering"
             @click.stop
@@ -178,7 +178,7 @@ function save() {
           <div :class="['min-w-0 flex-1', item.parent_category_id ? 'pl-6' : '']">
             <button
               type="button"
-              class="min-h-[44px] text-left font-medium break-words text-default focus-visible:ring-2 focus-visible:ring-primary"
+              class="text-left font-medium break-words text-default focus-visible:ring-2 focus-visible:ring-primary max-sm:min-h-[44px]"
               :aria-label="`${item.name}を編集`"
               @click.stop="openForm(item)"
             >

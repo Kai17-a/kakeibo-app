@@ -84,7 +84,7 @@ onBeforeRouteLeave(
 <template>
   <section class="space-y-6" aria-labelledby="budget-heading">
     <header>
-      <h2 id="budget-heading" class="text-xl font-semibold text-highlighted">予算</h2>
+      <h2 id="budget-heading" class="text-base font-semibold text-highlighted">予算</h2>
       <p class="mt-1 text-sm text-muted">
         支出カテゴリごとに毎月適用する予算を管理します。空欄は予算なしです。
       </p>
@@ -92,25 +92,29 @@ onBeforeRouteLeave(
     <p v-if="loading" role="status">読み込み中…</p>
     <div v-else-if="loadError" class="space-y-3">
       <UAlert color="error" :description="loadError" title="読み込めませんでした" />
-      <UButton class="min-h-[44px]" color="neutral" variant="outline" @click="load">再試行</UButton>
+      <UButton class="max-sm:min-h-[44px]" color="neutral" variant="outline" @click="load"
+        >再試行</UButton
+      >
     </div>
     <div v-else-if="!categories.length" class="space-y-3 rounded-lg border border-default p-6">
       <p>支出カテゴリがありません</p>
-      <UButton to="/settings/expense-categories" class="min-h-[44px]">カテゴリ設定へ</UButton>
+      <UButton to="/settings/expense-categories" class="max-sm:min-h-[44px]"
+        >カテゴリ設定へ</UButton
+      >
     </div>
     <template v-else>
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <p class="text-lg font-medium tabular-nums">月額予算の合計 {{ formatCurrency(total) }}</p>
+        <p class="text-sm font-medium tabular-nums">月額予算の合計 {{ formatCurrency(total) }}</p>
         <div class="flex gap-2">
           <UButton
             color="neutral"
             variant="outline"
-            class="min-h-[44px]"
+            class="max-sm:min-h-[44px]"
             :disabled="saving || !changed.length"
             @click="reset"
             >元に戻す</UButton
           ><UButton
-            class="min-h-[44px]"
+            class="max-sm:min-h-[44px]"
             :loading="saving"
             :disabled="saving || !changed.length || hasErrors"
             @click="save"
@@ -128,14 +132,14 @@ onBeforeRouteLeave(
         <div
           v-for="category in categories"
           :key="category.id"
-          class="flex items-center justify-between gap-3 p-3 sm:px-4"
+          class="flex items-center justify-between gap-3 px-3 py-2 text-sm sm:px-4"
         >
           <label
             :for="`budget-${category.id}`"
             :class="['min-w-0 break-words', category.parent_category_id ? 'pl-6' : '']"
             >{{ category.name }}</label
           >
-          <div class="w-44 shrink-0">
+          <div class="w-40 shrink-0">
             <UInput
               :id="`budget-${category.id}`"
               v-model="values[category.id]"
@@ -146,7 +150,7 @@ onBeforeRouteLeave(
               :disabled="saving"
               placeholder="予算なし"
               class="w-full"
-              :ui="{ base: 'min-h-[44px] text-right tabular-nums' }"
+              :ui="{ base: 'text-right tabular-nums max-sm:min-h-[44px] max-sm:text-[16px]' }"
               ><template #leading>￥</template></UInput
             >
             <p
