@@ -1,6 +1,7 @@
 use crate::{
     model::payment_methods::{
-        PaymentMethod, PaymentMethodListResponse, PaymentMethodQuery, PaymentMethodUpsertRequest,
+        PaymentMethod, PaymentMethodListResponse, PaymentMethodQuery, PaymentMethodReorderRequest,
+        PaymentMethodUpsertRequest,
     },
     service::payment_methods::PaymentMethodService,
     utils::error::{AppError, AppResult},
@@ -51,5 +52,14 @@ pub async fn update(
 #[utoipa::path(delete,path="/api/payment-methods/{id}",params(("id"=String,Path)),responses((status=204),(status=404)))]
 pub async fn delete(State(s): State<AppState>, Path(id): Path<String>) -> AppResult<StatusCode> {
     s.payment_methods.delete(&id).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(put,path="/api/payment-methods/order",request_body=PaymentMethodReorderRequest,responses((status=204),(status=400)),tag="支払方法")]
+pub async fn reorder(
+    State(s): State<AppState>,
+    Json(v): Json<PaymentMethodReorderRequest>,
+) -> AppResult<StatusCode> {
+    s.payment_methods.reorder(&v).await?;
     Ok(StatusCode::NO_CONTENT)
 }

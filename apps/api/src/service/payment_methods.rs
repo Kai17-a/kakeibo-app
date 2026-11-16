@@ -1,7 +1,7 @@
 use crate::{
     model::payment_methods::{
         PaymentMethod, PaymentMethodListResponse, PaymentMethodPagination, PaymentMethodQuery,
-        PaymentMethodUpsertRequest,
+        PaymentMethodReorderRequest, PaymentMethodUpsertRequest,
     },
     repository::payment_methods::PaymentMethodRepository,
     utils::error::{AppError, AppResult},
@@ -56,6 +56,9 @@ impl PaymentMethodService {
             .map(TryInto::try_into)
             .transpose()?
             .ok_or_else(|| AppError::not_found("payment method", id))
+    }
+    pub async fn reorder(&self, request: &PaymentMethodReorderRequest) -> AppResult<()> {
+        self.repository.reorder(&request.payment_method_ids).await
     }
     pub async fn delete(&self, id: &str) -> AppResult<()> {
         if self.repository.is_referenced_by_transactions(id).await? {

@@ -81,6 +81,7 @@ use crate::{
         import::preview_variable_expenses,
         import::transfers,
         import::preview_transfers,
+        payment_methods::reorder,
         payment_methods::list,
         payment_methods::get,
         payment_methods::create,
@@ -231,7 +232,9 @@ fn tag_for_path(path: &str) -> &'static str {
         | "/api/import/variable-expenses/preview"
         | "/api/import/transfers"
         | "/api/import/transfers/preview" => "インポート",
-        "/api/payment-methods" | "/api/payment-methods/{id}" => "支払方法",
+        "/api/payment-methods" | "/api/payment-methods/{id}" | "/api/payment-methods/order" => {
+            "支払方法"
+        }
         "/api/recurring-expenses"
         | "/api/recurring-expenses/{id}"
         | "/api/recurring-expenses/{id}/exchange-rate"

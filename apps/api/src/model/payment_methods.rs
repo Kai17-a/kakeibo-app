@@ -6,6 +6,7 @@ pub struct PaymentMethod {
     pub id: String,
     pub created_at: String,
     pub updated_at: String,
+    pub display_order: i64,
     pub name: String,
     pub description: Option<String>,
     pub initial_balance: Option<String>,
@@ -38,6 +39,7 @@ impl TryFrom<PaymentMethodRow> for PaymentMethod {
             id: v.id,
             created_at: v.created_at,
             updated_at: v.updated_at,
+            display_order: v.display_order,
             name: v.name,
             description: v.description,
             initial_balance: v.initial_balance,
@@ -87,6 +89,7 @@ impl PaymentMethodQuery {
 #[derive(Debug, Clone, Copy, Deserialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum PaymentMethodSortBy {
+    DisplayOrder,
     Id,
     Name,
     CreatedAt,
@@ -95,6 +98,7 @@ pub enum PaymentMethodSortBy {
 impl PaymentMethodSortBy {
     pub(crate) fn sql(self) -> &'static str {
         match self {
+            Self::DisplayOrder => "display_order",
             Self::Id => "id",
             Self::Name => "name",
             Self::CreatedAt => "created_at",
@@ -115,4 +119,9 @@ impl PaymentMethodSortOrder {
             Self::Desc => "DESC",
         }
     }
+}
+
+#[derive(Debug, Clone, Deserialize, ToSchema)]
+pub struct PaymentMethodReorderRequest {
+    pub payment_method_ids: Vec<String>,
 }

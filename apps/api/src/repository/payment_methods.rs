@@ -3,9 +3,10 @@ use crate::{
     model::payment_methods::{
         PaymentMethodQuery, PaymentMethodSortBy, PaymentMethodSortOrder, PaymentMethodUpsertRequest,
     },
-    utils::error::AppResult,
+    utils::error::{AppError, AppResult},
 };
 use sqlx::{QueryBuilder, Sqlite, SqlitePool};
+use std::collections::HashSet;
 #[derive(Clone)]
 pub struct PaymentMethodRepository {
     pool: SqlitePool,
@@ -16,7 +17,7 @@ impl PaymentMethodRepository {
     }
     pub async fn find_all(&self, q: &PaymentMethodQuery) -> AppResult<Vec<PaymentMethodRow>> {
         let mut b = QueryBuilder::<Sqlite>::new(
-            "SELECT id,created_at,updated_at,name,description,initial_balance,is_investment, \
+            "SELECT id,created_at,updated_at,name,description,initial_balance,is_investment,display_order, \
              (SELECT COALESCE(SUM(CAST(amount AS INTEGER)), 0) FROM incomes \
               WHERE payment_method_id = payment_methods.id) AS income_total, \
              (SELECT COALESCE(SUM(CAST(amount AS INTEGER)), 0) FROM expenses \
@@ -30,7 +31,7 @@ impl PaymentMethodRepository {
         if let Some(id) = &q.id {
             b.push(" AND id = ").push_bind(id);
         }
-        let sort = q.sort_by.unwrap_or(PaymentMethodSortBy::Name);
+        let sort = q.sort_by.unwrap_or(PaymentMethodSortBy::DisplayOrder);
         let order = q.sort_order.unwrap_or(PaymentMethodSortOrder::Asc);
         b.push(" ORDER BY ")
             .push(sort.sql())
@@ -44,6 +45,22 @@ impl PaymentMethodRepository {
             .fetch_all(&self.pool)
             .await
             .map_err(Into::into)
+    }
+    pub async fn reorder(&self, ids: &[String]) -> AppResult<()> {
+        let mut tx = self.pool.begin().await?;
+        let siblings: Vec<String> = sqlx::query_scalar("SELECT id FROM payment_methods")
+            .fetch_all(&mut *tx)
+            .await?;
+        validate_reorder(&siblings, ids)?;
+        for (display_order, id) in ids.iter().enumerate() {
+            sqlx::query("UPDATE payment_methods SET display_order = ?, updated_at = current_timestamp WHERE id = ?")
+                .bind(display_order as i64)
+                .bind(id)
+                .execute(&mut *tx)
+                .await?;
+        }
+        tx.commit().await?;
+        Ok(())
     }
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<PaymentMethodRow>> {
         sqlx::query_as(include_str!("../../queries/payment_methods/find_by_id.sql"))
@@ -115,4 +132,20 @@ impl PaymentMethodRepository {
         .await?
             > 0)
     }
+}
+
+fn validate_reorder(siblings: &[String], requested: &[String]) -> AppResult<()> {
+    let sibling_set: HashSet<_> = siblings.iter().collect();
+    let requested_set: HashSet<_> = requested.iter().collect();
+    if requested_set.len() != requested.len() {
+        return Err(AppError::bad_request(
+            "payment_method_ids must not contain duplicates",
+        ));
+    }
+    if sibling_set != requested_set {
+        return Err(AppError::bad_request(
+            "payment_method_ids must exactly match all payment methods",
+        ));
+    }
+    Ok(())
 }

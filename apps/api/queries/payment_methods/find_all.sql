@@ -6,6 +6,7 @@ SELECT
   , description
   , initial_balance
   , is_investment
+  , display_order
   , (
     SELECT
       COALESCE(SUM(CAST(incomes.amount AS INTEGER)), 0)
@@ -40,4 +41,4 @@ SELECT
   ) AS transfer_out_total
 FROM
   payment_methods
-ORDER BY name, id;
+ORDER BY display_order, id;

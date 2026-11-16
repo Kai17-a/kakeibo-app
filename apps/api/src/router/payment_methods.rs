@@ -3,13 +3,17 @@ use crate::{
     repository::payment_methods::PaymentMethodRepository,
     service::payment_methods::PaymentMethodService,
 };
-use axum::{Router, routing::get};
+use axum::{
+    Router,
+    routing::{get, put},
+};
 use sqlx::SqlitePool;
 pub fn create(pool: SqlitePool) -> Router {
     let state = AppState {
         payment_methods: PaymentMethodService::new(PaymentMethodRepository::new(pool)),
     };
     Router::new()
+        .route("/api/payment-methods/order", put(handler::reorder))
         .route(
             "/api/payment-methods",
             get(handler::list).post(handler::create),

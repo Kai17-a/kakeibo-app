@@ -50,7 +50,7 @@ pub const DATA_TABLES: &[(&str, &str)] = &[
     ),
     (
         "payment_methods",
-        "id, created_at, updated_at, name, description, initial_balance, is_investment",
+        "id, created_at, updated_at, name, description, initial_balance, is_investment, display_order",
     ),
     (
         "recurring_expenses",
