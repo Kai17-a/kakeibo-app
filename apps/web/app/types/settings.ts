@@ -22,6 +22,7 @@ export interface CategoryReorderInput {
   category_ids: string[];
 }
 export interface PaymentMethod extends NamedResource {
+  display_order: number;
   initial_balance: string | null;
   balance: string | null;
   is_investment: boolean;

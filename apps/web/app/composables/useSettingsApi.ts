@@ -50,11 +50,14 @@ export function useSettingsApi() {
       };
     },
     paymentMethods: {
+      reorder: async (payment_method_ids: string[]): Promise<void> => {
+        await client("/api/payment-methods/order", { method: "PUT", body: { payment_method_ids } });
+      },
       ...resource<PaymentMethod, PaymentMethodInput>("/api/payment-methods"),
       list: async () =>
         (
           await client<{ items: PaymentMethod[] }>("/api/payment-methods", {
-            query: { sort_by: "name", sort_order: "asc", per_page: 100 },
+            query: { sort_by: "display_order", sort_order: "asc", per_page: 100 },
           })
         ).items,
     },
