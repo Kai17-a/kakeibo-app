@@ -100,16 +100,6 @@ const columns: TableColumn<RecurringExpense>[] = [
     },
   },
   {
-    accessorKey: "is_active",
-    header: "状態",
-    meta: {
-      class: {
-        th: "hidden w-20 whitespace-nowrap lg:table-cell",
-        td: "hidden w-20 whitespace-nowrap lg:table-cell",
-      },
-    },
-  },
-  {
     id: "actions",
     header: "操作",
     meta: {
@@ -191,11 +181,13 @@ async function backfill(item: RecurringExpense) {
       <div class="min-w-0 overflow-hidden rounded-lg border border-default">
         <UTable
           :data="sortedItems"
+          @select="(_event, row) => openForm(row.original)"
           :columns="columns"
           :aria-label="`${label}一覧`"
           class="w-full"
           :ui="{
             root: 'overflow-hidden',
+            tr: 'cursor-pointer hover:bg-elevated/50',
             base: 'w-full table-fixed',
             th: 'px-3 py-2 sm:px-4',
             td: 'px-3 py-2 whitespace-normal sm:px-4',
@@ -204,9 +196,17 @@ async function backfill(item: RecurringExpense) {
           <template #name-cell="{ row }">
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-2">
-                <span class="font-medium break-words whitespace-normal text-default">{{
-                  row.original.name
-                }}</span>
+                <button
+                  type="button"
+                  class="min-h-[44px] text-left font-medium break-words text-default focus-visible:ring-2 focus-visible:ring-primary"
+                  :aria-label="`${row.original.name}を編集`"
+                  @click.stop="openForm(row.original)"
+                >
+                  {{ row.original.name }}
+                </button>
+                <UBadge v-if="!row.original.is_active" color="neutral" variant="soft"
+                  >停止中</UBadge
+                >
                 <UBadge v-if="row.original.is_variable" color="neutral" variant="soft">
                   準固定費
                 </UBadge>
@@ -220,8 +220,7 @@ async function backfill(item: RecurringExpense) {
               <p class="mt-0.5 text-xs break-words text-muted sm:hidden">
                 {{ categoryName(row.original.category_id) }} /
                 {{ paymentMethodName(row.original.payment_method_id) }} ·
-                {{ formatRecurringSchedule(row.original.payment_day) }} ·
-                {{ row.original.is_active ? "有効" : "無効" }}
+                {{ formatRecurringSchedule(row.original.payment_day) }}
               </p>
             </div>
           </template>
@@ -236,17 +235,15 @@ async function backfill(item: RecurringExpense) {
               {{ row.original.amount === null ? "毎月入力" : formatYen(row.original.amount) }}
             </span>
           </template>
-          <template #is_active-cell="{ row }">
-            <UBadge :color="row.original.is_active ? 'success' : 'neutral'" variant="soft">
-              {{ row.original.is_active ? "有効" : "無効" }}
-            </UBadge>
-          </template>
+
           <template #actions-cell="{ row }">
-            <RowActionsMenu
-              :label="row.original.name"
-              @edit="openForm(row.original)"
-              @delete="askDelete(row.original)"
-            />
+            <div @click.stop>
+              <RowActionsMenu
+                :label="row.original.name"
+                @edit="openForm(row.original)"
+                @delete="askDelete(row.original)"
+              />
+            </div>
           </template>
         </UTable>
       </div>

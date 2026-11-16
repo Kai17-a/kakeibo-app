@@ -123,11 +123,13 @@ function save() {
       <div class="min-w-0 overflow-hidden rounded-lg border border-default">
         <UTable
           :data="sortedItems"
+          @select="(_event, row) => openForm(row.original)"
           :columns="columns"
           :aria-label="`${label}一覧`"
           class="w-full"
           :ui="{
             root: 'overflow-hidden',
+            tr: 'cursor-pointer hover:bg-elevated/50',
             base: 'w-full table-fixed',
             th: 'px-3 py-2 sm:px-4',
             td: 'px-3 py-2 whitespace-normal sm:px-4',
@@ -135,9 +137,14 @@ function save() {
         >
           <template #name-cell="{ row }">
             <div class="min-w-0">
-              <p class="font-medium break-words whitespace-normal text-default">
+              <button
+                type="button"
+                class="min-h-[44px] text-left font-medium break-words text-default focus-visible:ring-2 focus-visible:ring-primary"
+                :aria-label="`${row.original.name}を編集`"
+                @click.stop="openForm(row.original)"
+              >
                 {{ row.original.name }}
-              </p>
+              </button>
               <p
                 v-if="row.original.description"
                 class="mt-0.5 text-xs break-words whitespace-pre-wrap text-muted"
@@ -162,11 +169,13 @@ function save() {
             </span>
           </template>
           <template #actions-cell="{ row }">
-            <RowActionsMenu
-              :label="row.original.name"
-              @edit="openForm(row.original)"
-              @delete="askDelete(row.original)"
-            />
+            <div @click.stop>
+              <RowActionsMenu
+                :label="row.original.name"
+                @edit="openForm(row.original)"
+                @delete="askDelete(row.original)"
+              />
+            </div>
           </template>
         </UTable>
       </div>
