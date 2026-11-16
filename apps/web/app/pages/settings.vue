@@ -39,7 +39,7 @@ const currentGroup = computed(() => findSettingsGroup(route.path));
       </UDashboardNavbar>
     </template>
     <template #body>
-      <div class="mx-auto flex w-full max-w-5xl min-w-0 gap-6">
+      <div class="flex w-full min-w-0 gap-6">
         <nav aria-label="設定グループ" class="hidden w-56 shrink-0 space-y-1 sm:block">
           <UButton
             v-for="group in settingsNavigation"
