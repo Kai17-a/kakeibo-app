@@ -1,205 +1,164 @@
 <script setup lang="ts">
-import type { TableColumn } from "@nuxt/ui";
 import type { Budget, Category } from "~/types/settings";
-import {
-  availableBudgetCategories,
-  formatYen,
-  groupCategories,
-  validAmount,
-} from "~/utils/settings";
+import { groupCategories, validAmount } from "~/utils/settings";
+import { formatCurrency } from "~/utils/format";
 
 useSeoMeta({ title: "予算設定" });
-const label = "予算";
 const settingsApi = useSettingsApi();
 const api = settingsApi.budgets;
+const toast = useToast();
 const categories = ref<Category[]>([]);
-const state = reactive<{ category_id: string; amount: string }>({ category_id: "", amount: "" });
-
-const {
-  items,
-  loading,
-  loadError,
-  load,
-  formOpen,
-  editingId,
-  saving,
-  formError,
-  openForm: openCrudForm,
-  save: saveItem,
-  deleteOpen,
-  deleting,
-  removing,
-  deleteError,
-  askDelete,
-  remove,
-} = useCrudCollection({
-  label,
-  fetch: async () => {
-    const [budgets, expenseCategories] = await Promise.all([
-      api.list(),
-      settingsApi.categories("expense").list(),
-    ]);
-    categories.value = groupCategories(expenseCategories);
-    return budgets;
-  },
-  create: api.create,
-  update: api.update,
-  remove: api.remove,
-  removeErrorMessage: () => "予算を削除できませんでした",
-});
-
-/** Expense categories without a budget yet; a category has at most one budget. */
-const unassignedCategories = computed(() =>
-  availableBudgetCategories(categories.value, items.value),
-);
-const budgetCategories = computed(() =>
-  availableBudgetCategories(
-    categories.value,
-    items.value,
-    items.value.find((item) => item.id === editingId.value)?.category_id,
+const budgets = ref<Budget[]>([]);
+const values = ref<Record<string, string>>({});
+const loading = ref(true);
+const saving = ref(false);
+const loadError = ref("");
+const saveError = ref("");
+const original = (id: string) => budgets.value.find((b) => b.category_id === id);
+const normalized = (value: string) =>
+  value.trim() && validAmount(value) ? String(Number(value)) : value.trim();
+const changed = computed(() =>
+  categories.value.filter(
+    (c) => normalized(values.value[c.id] ?? "") !== normalized(original(c.id)?.amount ?? ""),
   ),
 );
-const categoryOptions = computed(() =>
-  budgetCategories.value.map((item) => ({ label: item.name, value: item.id })),
+const invalid = (id: string) => !!values.value[id]?.trim() && !validAmount(values.value[id]!);
+const hasErrors = computed(() => categories.value.some((c) => invalid(c.id)));
+const total = computed(() =>
+  categories.value.reduce(
+    (sum, c) => sum + (validAmount(values.value[c.id] ?? "") ? Number(values.value[c.id]) : 0),
+    0,
+  ),
 );
-const columns: TableColumn<Budget>[] = [
-  {
-    accessorKey: "category_id",
-    header: "カテゴリ名",
-    cell: ({ row }) => categoryName(row.original.category_id),
-    meta: { class: { th: "w-full min-w-0", td: "w-full min-w-0" } },
-  },
-  {
-    accessorKey: "amount",
-    header: "月額予算",
-    cell: ({ row }) => formatYen(row.original.amount),
-    meta: {
-      class: {
-        th: "w-28 whitespace-nowrap text-right",
-        td: "w-28 whitespace-nowrap text-right tabular-nums",
-      },
-    },
-  },
-  {
-    id: "actions",
-    header: "操作",
-    meta: {
-      class: { th: "w-14 whitespace-nowrap text-right", td: "w-14 whitespace-nowrap text-right" },
-    },
-  },
-];
-function categoryName(id: string) {
-  return categories.value.find((item) => item.id === id)?.name ?? "不明なカテゴリ";
+function reset() {
+  values.value = Object.fromEntries(
+    categories.value.map((c) => [c.id, original(c.id)?.amount ?? ""]),
+  );
+  saveError.value = "";
 }
-function validate() {
-  const errors: { name: string; message: string }[] = [];
-  if (!budgetCategories.value.some((item) => item.id === state.category_id))
-    errors.push({ name: "category_id", message: "支出カテゴリを選択してください" });
-  if (!validAmount(state.amount))
-    errors.push({ name: "amount", message: "月額予算を0以上の整数で入力してください" });
-  return errors;
+async function load() {
+  loading.value = true;
+  loadError.value = "";
+  try {
+    const [rows, cats] = await Promise.all([api.list(), settingsApi.categories("expense").list()]);
+    budgets.value = rows;
+    categories.value = groupCategories(cats);
+    reset();
+  } catch (error) {
+    loadError.value = apiErrorMessage(error);
+  } finally {
+    loading.value = false;
+  }
 }
-function openForm(item?: Budget) {
-  if (!item && !unassignedCategories.value.length) return;
-  Object.assign(state, { category_id: item?.category_id ?? "", amount: item?.amount ?? "" });
-  openCrudForm(item);
+async function save() {
+  if (saving.value || hasErrors.value || !changed.value.length) return;
+  saving.value = true;
+  saveError.value = "";
+  try {
+    for (const category of changed.value) {
+      const existing = original(category.id);
+      const amount = normalized(values.value[category.id] ?? "");
+      if (!amount && existing) {
+        await api.remove(existing.id);
+        budgets.value = budgets.value.filter((b) => b.id !== existing.id);
+      } else if (amount) {
+        const input = { category_id: category.id, amount };
+        const result = existing ? await api.update(existing.id, input) : await api.create(input);
+        budgets.value = [...budgets.value.filter((b) => b.category_id !== category.id), result];
+      }
+    }
+    reset();
+    toast.add({ title: "予算を保存しました", color: "success" });
+  } catch (error) {
+    saveError.value = apiErrorMessage(error);
+  } finally {
+    saving.value = false;
+  }
 }
-function save() {
-  return saveItem({ category_id: state.category_id, amount: String(state.amount).trim() });
-}
+onMounted(load);
+onBeforeRouteLeave(
+  () => !changed.value.length || confirm("保存していない変更があります。移動しますか？"),
+);
 </script>
 
 <template>
   <section class="space-y-6" aria-labelledby="budget-heading">
-    <SettingsListHeader
-      heading-id="budget-heading"
-      :title="label"
-      description="支出カテゴリごとに毎月適用する予算を管理します"
-      :count="loading || loadError ? null : items.length"
-      :add-disabled="loading || !!loadError || !unassignedCategories.length"
-      @add="openForm()"
-    />
-    <p v-if="!loading && !loadError && !unassignedCategories.length" class="text-sm text-muted">
-      予算未設定の支出カテゴリがありません。カテゴリを追加するか、登録済みの予算を編集してください。
-    </p>
-    <SettingsCollectionState
-      :label="label"
-      :loading="loading"
-      :error="loadError"
-      :empty="!items.length"
-      empty-icon="i-lucide-chart-pie"
-      empty-description="カテゴリごとの月額予算を設定すると、ここに一覧が表示されます"
-      add-label="予算を追加"
-      :add-disabled="!unassignedCategories.length"
-      @retry="load"
-      @add="openForm()"
-    >
-      <div class="min-w-0 overflow-hidden rounded-lg border border-default">
-        <UTable
-          :data="items"
-          :columns="columns"
-          :aria-label="`${label}一覧`"
-          class="w-full"
-          :ui="{
-            root: 'overflow-hidden',
-            base: 'w-full table-fixed',
-            th: 'px-3 py-2 sm:px-4',
-            td: 'px-3 py-2 whitespace-normal sm:px-4',
-          }"
-        >
-          <template #category_id-cell="{ row }">
-            <span class="font-medium break-words text-default">{{
-              categoryName(row.original.category_id)
-            }}</span>
-          </template>
-          <template #actions-cell="{ row }">
-            <RowActionsMenu
-              :label="categoryName(row.original.category_id)"
-              @edit="openForm(row.original)"
-              @delete="askDelete(row.original)"
-            />
-          </template>
-        </UTable>
+    <header>
+      <h2 id="budget-heading" class="text-xl font-semibold text-highlighted">予算</h2>
+      <p class="mt-1 text-sm text-muted">
+        支出カテゴリごとに毎月適用する予算を管理します。空欄は予算なしです。
+      </p>
+    </header>
+    <p v-if="loading" role="status">読み込み中…</p>
+    <div v-else-if="loadError" class="space-y-3">
+      <UAlert color="error" :description="loadError" title="読み込めませんでした" />
+      <UButton class="min-h-[44px]" color="neutral" variant="outline" @click="load">再試行</UButton>
+    </div>
+    <div v-else-if="!categories.length" class="space-y-3 rounded-lg border border-default p-6">
+      <p>支出カテゴリがありません</p>
+      <UButton to="/settings/expense-categories" class="min-h-[44px]">カテゴリ設定へ</UButton>
+    </div>
+    <template v-else>
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="text-lg font-medium tabular-nums">月額予算の合計 {{ formatCurrency(total) }}</p>
+        <div class="flex gap-2">
+          <UButton
+            color="neutral"
+            variant="outline"
+            class="min-h-[44px]"
+            :disabled="saving || !changed.length"
+            @click="reset"
+            >元に戻す</UButton
+          ><UButton
+            class="min-h-[44px]"
+            :loading="saving"
+            :disabled="saving || !changed.length || hasErrors"
+            @click="save"
+            >変更を保存</UButton
+          >
+        </div>
       </div>
-    </SettingsCollectionState>
-    <SettingsFormModal
-      v-model:open="formOpen"
-      :label="label"
-      :editing="!!editingId"
-      description="支出カテゴリと毎月の予算額を設定します"
-      form-id="budget-form"
-      :state="state"
-      :validate="validate"
-      :saving="saving"
-      :error="formError"
-      @submit="save"
-    >
-      <UFormField name="category_id" label="支出カテゴリ" required>
-        <USelect
-          v-model="state.category_id"
-          :items="categoryOptions"
-          placeholder="選択してください"
-          class="w-full"
-        />
-      </UFormField>
-      <UFormField name="amount" label="月額予算" required>
-        <UInput
-          :model-value="state.amount"
-          type="number"
-          :min="0"
-          :step="1"
-          class="w-full"
-          @update:model-value="state.amount = String($event ?? '')"
-        />
-      </UFormField>
-    </SettingsFormModal>
-    <SettingsDeleteDialog
-      v-model:open="deleteOpen"
-      :label="label"
-      :target="deleting ? categoryName(deleting.category_id) : ''"
-      :busy="removing"
-      :error="deleteError"
-      @confirm="remove"
-    />
+      <UAlert
+        v-if="saveError"
+        color="error"
+        title="保存できませんでした"
+        :description="saveError"
+      />
+      <div class="divide-y divide-default rounded-lg border border-default">
+        <div
+          v-for="category in categories"
+          :key="category.id"
+          class="flex items-center justify-between gap-3 p-3 sm:px-4"
+        >
+          <label
+            :for="`budget-${category.id}`"
+            :class="['min-w-0 break-words', category.parent_category_id ? 'pl-6' : '']"
+            >{{ category.name }}</label
+          >
+          <div class="w-44 shrink-0">
+            <UInput
+              :id="`budget-${category.id}`"
+              v-model="values[category.id]"
+              inputmode="numeric"
+              :aria-label="`${category.name}の月額予算`"
+              :aria-invalid="invalid(category.id)"
+              :aria-describedby="invalid(category.id) ? `error-${category.id}` : undefined"
+              :disabled="saving"
+              placeholder="予算なし"
+              class="w-full"
+              :ui="{ base: 'min-h-[44px] text-right tabular-nums' }"
+              ><template #leading>￥</template></UInput
+            >
+            <p
+              v-if="invalid(category.id)"
+              :id="`error-${category.id}`"
+              class="mt-1 text-xs text-error"
+            >
+              0以上の整数で入力してください
+            </p>
+          </div>
+        </div>
+      </div>
+    </template>
   </section>
 </template>
