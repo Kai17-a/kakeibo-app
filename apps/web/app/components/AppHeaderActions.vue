@@ -13,6 +13,5 @@ const settings = computed(() => links.value[0]?.[3]);
       aria-label="設定"
       :aria-current="settings?.active ? 'page' : undefined"
     />
-    <UDashboardSearchButton collapsed aria-label="検索" />
   </div>
 </template>
