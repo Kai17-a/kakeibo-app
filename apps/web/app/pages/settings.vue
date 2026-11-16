@@ -5,14 +5,26 @@ const links = [settingsNavigation];
 </script>
 
 <template>
-  <UDashboardPanel id="settings" :ui="{ body: 'py-6 sm:py-8' }">
+  <UDashboardPanel
+    id="settings"
+    class="pb-[calc(3.5rem+env(safe-area-inset-bottom))] sm:pb-0"
+    :ui="{ body: 'py-6 sm:py-8' }"
+  >
     <template #header>
-      <UDashboardNavbar title="設定">
+      <UDashboardNavbar
+        title="設定"
+        :toggle="false"
+        :ui="{
+          title: 'sm:sr-only',
+          root: 'sm:h-auto sm:min-h-(--ui-header-height) sm:flex-wrap sm:py-2',
+        }"
+      >
         <template #leading>
-          <UDashboardSidebarCollapse />
+          <AppHeaderNav />
         </template>
         <template #right>
           <UColorModeButton class="hidden sm:inline-flex" />
+          <AppHeaderActions />
         </template>
       </UDashboardNavbar>
       <UDashboardToolbar>

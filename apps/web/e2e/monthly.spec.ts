@@ -349,7 +349,7 @@ test("画面切り替えで日別・年間集計へ遷移する", async ({ page 
   await page.goto(`/monthly?month=${month}`);
   const navigation = page.getByRole("navigation", { name: "メインナビゲーション" });
 
-  await navigation.getByRole("link", { name: "日別集計" }).click();
+  await navigation.getByRole("link", { name: "明細" }).click();
   await expect(page).toHaveURL(new RegExp(`/daily\\?month=${month}$`));
 
   await navigation.getByRole("link", { name: "年間集計" }).click();

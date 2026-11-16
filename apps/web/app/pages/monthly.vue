@@ -181,11 +181,18 @@ const {
 
 <template>
   <div class="flex min-w-0 flex-1">
-    <UDashboardPanel class="pb-24 sm:pb-0" id="monthly">
+    <UDashboardPanel class="pb-[calc(8rem+env(safe-area-inset-bottom))] sm:pb-0" id="monthly">
       <template #header>
-        <UDashboardNavbar title="月間集計">
+        <UDashboardNavbar
+          title="月間集計"
+          :toggle="false"
+          :ui="{
+            title: 'sm:sr-only',
+            root: 'sm:h-auto sm:min-h-(--ui-header-height) sm:flex-wrap sm:py-2',
+          }"
+        >
           <template #leading>
-            <UDashboardSidebarCollapse class="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0" />
+            <AppHeaderNav />
           </template>
           <template #right>
             <MonthNavigator :model-value="month" @update:model-value="setMonth" />
@@ -200,12 +207,13 @@ const {
               @click="openNew"
             />
             <UColorModeButton class="hidden sm:inline-flex" />
+            <AppHeaderActions />
           </template>
         </UDashboardNavbar>
       </template>
       <template #body>
         <div
-          class="fixed inset-x-0 bottom-0 z-20 flex justify-end gap-3 border-t border-default bg-default px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:hidden"
+          class="fixed right-4 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 flex justify-end gap-3 sm:hidden [&>button]:shadow-lg"
         >
           <TransferButton :disabled="loading || Boolean(loadError)" @click="openNewTransfer" />
           <RecordTransactionButton :disabled="loading || Boolean(loadError)" @click="openNew" />
