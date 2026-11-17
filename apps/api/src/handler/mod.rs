@@ -8,6 +8,7 @@ pub mod health;
 pub mod import;
 pub mod income_categories;
 pub mod incomes;
+pub mod passkeys;
 pub mod payment_methods;
 pub mod recurring_expenses;
 pub mod recurring_incomes;

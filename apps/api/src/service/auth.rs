@@ -25,6 +25,7 @@ pub struct IssuedSession {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AuthenticatedUser {
+    pub user_id: String,
     pub username: String,
     /// True when the expiry moved forward, so the cookie must be sent again.
     pub refreshed: bool,
@@ -111,20 +112,26 @@ impl AuthService {
         };
 
         attempt.succeed();
-        let token = session_cookie::generate_token()?;
-        self.repository
-            .insert_session(
-                &session_cookie::digest(&token),
-                &user.id,
-                now,
-                now.saturating_add(self.session_ttl_seconds),
-            )
-            .await?;
+        let token = self.issue_session(&user.id, now).await?;
         info!(username = %user.username, "Login succeeded");
         Ok(IssuedSession {
             token,
             username: user.username,
         })
+    }
+
+    /// Starts a session for a user whose identity was already verified, and returns its token.
+    pub async fn issue_session(&self, user_id: &str, now: i64) -> AppResult<String> {
+        let token = session_cookie::generate_token()?;
+        self.repository
+            .insert_session(
+                &session_cookie::digest(&token),
+                user_id,
+                now,
+                now.saturating_add(self.session_ttl_seconds),
+            )
+            .await?;
+        Ok(token)
     }
 
     pub async fn authenticate(
@@ -152,6 +159,7 @@ impl AuthService {
                 .await?;
         }
         Ok(Some(AuthenticatedUser {
+            user_id: session.user_id,
             username: session.username,
             refreshed,
         }))

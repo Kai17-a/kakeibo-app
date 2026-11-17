@@ -1,5 +1,5 @@
 use crate::{
-    database::models::auth::{SessionRow, UserRow},
+    database::models::auth::{PasskeyRow, SessionRow, UserRow},
     utils::error::{AppError, AppResult},
 };
 use sqlx::SqlitePool;
@@ -137,5 +137,76 @@ impl AuthRepository {
         .execute(&self.pool)
         .await?
         .rows_affected())
+    }
+
+    pub async fn find_passkeys(&self, user_id: &str) -> AppResult<Vec<PasskeyRow>> {
+        sqlx::query_as(include_str!("../../queries/auth/find_passkeys_by_user.sql"))
+            .bind(user_id)
+            .fetch_all(&self.pool)
+            .await
+            .map_err(Into::into)
+    }
+
+    pub async fn find_passkey(&self, id: &str, user_id: &str) -> AppResult<Option<PasskeyRow>> {
+        sqlx::query_as(include_str!("../../queries/auth/find_passkey.sql"))
+            .bind(id)
+            .bind(user_id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(Into::into)
+    }
+
+    pub async fn insert_passkey(
+        &self,
+        id: &str,
+        user_id: &str,
+        name: &str,
+        credential: &str,
+        now: i64,
+    ) -> AppResult<()> {
+        sqlx::query(include_str!("../../queries/auth/insert_passkey.sql"))
+            .bind(id)
+            .bind(user_id)
+            .bind(name)
+            .bind(credential)
+            .bind(now)
+            .execute(&self.pool)
+            .await
+            .map_err(|error| match &error {
+                sqlx::Error::Database(database) if database.is_unique_violation() => {
+                    AppError::conflict("passkey is already registered")
+                }
+                _ => error.into(),
+            })?;
+        Ok(())
+    }
+
+    pub async fn update_passkey_usage(
+        &self,
+        id: &str,
+        user_id: &str,
+        credential: &str,
+        now: i64,
+    ) -> AppResult<()> {
+        sqlx::query(include_str!("../../queries/auth/update_passkey_usage.sql"))
+            .bind(id)
+            .bind(user_id)
+            .bind(credential)
+            .bind(now)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn delete_passkey(&self, id: &str, user_id: &str) -> AppResult<bool> {
+        Ok(
+            sqlx::query(include_str!("../../queries/auth/delete_passkey.sql"))
+                .bind(id)
+                .bind(user_id)
+                .execute(&self.pool)
+                .await?
+                .rows_affected()
+                > 0,
+        )
     }
 }

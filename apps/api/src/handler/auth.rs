@@ -1,6 +1,7 @@
 use crate::{
     auth::{AuthState, now, session_cookie},
     model::auth::{LoginRequest, SessionResponse, SessionUser},
+    service::auth::AuthService,
     utils::error::{AppError, AppResult},
 };
 use axum::{
@@ -17,6 +18,7 @@ pub async fn session(State(state): State<AuthState>, headers: HeaderMap) -> AppR
             mode: state.mode.as_str(),
             authenticated: true,
             user: None,
+            passkey: false,
         })
         .into_response());
     };
@@ -34,6 +36,7 @@ pub async fn session(State(state): State<AuthState>, headers: HeaderMap) -> AppR
         user: user.as_ref().map(|(_, user)| SessionUser {
             username: user.username.clone(),
         }),
+        passkey: state.passkeys.is_some(),
     };
     let mut response = Json(body).into_response();
     if let Some((token, user)) = user
@@ -57,18 +60,24 @@ pub async fn login(
     let session = service
         .login(&request.username, &request.password, now())
         .await?;
-    if let Some(previous) = session_cookie::read_token(&headers) {
+    signed_in(&state, service, &headers, &session.token).await
+}
+
+/// Ends any session the browser still holds and sends the cookie for the new one.
+pub(crate) async fn signed_in(
+    state: &AuthState,
+    service: &AuthService,
+    headers: &HeaderMap,
+    token: &str,
+) -> AppResult<Response> {
+    if let Some(previous) = session_cookie::read_token(headers) {
         service.logout(&previous).await?;
     }
     Ok((
         StatusCode::NO_CONTENT,
         [(
             header::SET_COOKIE,
-            session_cookie::set_cookie(
-                &session.token,
-                service.session_ttl_seconds(),
-                state.secure_cookie,
-            ),
+            session_cookie::set_cookie(token, service.session_ttl_seconds(), state.secure_cookie),
         )],
     )
         .into_response())
@@ -90,6 +99,6 @@ pub async fn logout(State(state): State<AuthState>, headers: HeaderMap) -> AppRe
         .into_response())
 }
 
-fn disabled() -> AppError {
+pub(crate) fn disabled() -> AppError {
     AppError::not_found("authentication", "local")
 }

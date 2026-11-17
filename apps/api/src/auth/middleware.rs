@@ -11,6 +11,7 @@ use tracing::warn;
 /// The signed-in user, available to handlers as a request extension.
 #[derive(Debug, Clone)]
 pub struct CurrentUser {
+    pub user_id: String,
     pub username: String,
 }
 
@@ -52,6 +53,7 @@ pub async fn enforce(State(state): State<AuthState>, mut request: Request, next:
 
     let refreshed = user.refreshed;
     request.extensions_mut().insert(CurrentUser {
+        user_id: user.user_id,
         username: user.username,
     });
     let mut response = next.run(request).await;

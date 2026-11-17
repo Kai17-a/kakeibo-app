@@ -143,7 +143,7 @@ async fn disabled_mode_leaves_every_route_open() {
     let reply = send(&app, get_request("/api/auth/session", None)).await;
     assert_eq!(
         reply.body,
-        Some(json!({ "mode": "none", "authenticated": true, "user": null }))
+        Some(json!({ "mode": "none", "authenticated": true, "user": null, "passkey": false }))
     );
     assert_eq!(
         send(
@@ -189,7 +189,7 @@ async fn health_auth_and_static_files_stay_public() {
     let reply = send(&app, get_request("/api/auth/session", None)).await;
     assert_eq!(
         reply.body,
-        Some(json!({ "mode": "local", "authenticated": false, "user": null }))
+        Some(json!({ "mode": "local", "authenticated": false, "user": null, "passkey": true }))
     );
 }
 
@@ -223,7 +223,9 @@ async fn session_cookie_grants_access() {
     let reply = send(&app, get_request("/api/auth/session", Some(&cookie))).await;
     assert_eq!(
         reply.body,
-        Some(json!({ "mode": "local", "authenticated": true, "user": { "username": USERNAME } }))
+        Some(
+            json!({ "mode": "local", "authenticated": true, "user": { "username": USERNAME }, "passkey": true })
+        )
     );
 }
 
