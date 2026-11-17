@@ -65,7 +65,7 @@ const importGroups: {
         kind: "recurring-expense",
         name: "固定費データ",
         description:
-          "名称・金額・通貨・外貨金額・支払日・開始日・終了日・カテゴリ・支払方法・金額変動・メモ",
+          "名称・金額・通貨・外貨金額・支払日・開始日・終了日・カテゴリ・支払方法・金額変動・備考",
       },
       {
         kind: "variable-expense",
@@ -85,7 +85,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="space-y-6">
+  <section class="space-y-6" aria-label="データ管理">
     <div class="space-y-1">
       <p class="text-sm text-muted">
         家計簿データの書き出し、バックアップ、CSVからの取り込みを行います

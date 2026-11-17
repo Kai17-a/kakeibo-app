@@ -67,7 +67,7 @@ const columns = computed<TableColumn<Row>[]>(() => {
       { accessorKey: "category", header: "カテゴリ" },
       { accessorKey: "payment_method", header: "支払方法" },
       { accessorKey: "is_variable", header: "金額変動" },
-      { accessorKey: "description", header: "メモ" },
+      { accessorKey: "description", header: "備考" },
     ];
   }
   if (props.kind === "expense") {
