@@ -1,7 +1,6 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 @import "@fontsource-variable/noto-sans";
-@import "@fontsource-variable/playfair-display";
 
 @theme {
   --font-sans: "Noto Sans Variable", sans-serif;
