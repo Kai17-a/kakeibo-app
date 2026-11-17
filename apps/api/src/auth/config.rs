@@ -3,6 +3,7 @@
 //! Authentication is off unless `KAKEIBO_AUTH_MODE` selects a mode, so existing deployments keep
 //! working without any change.
 
+use super::password;
 use std::{
     fmt::{self, Display, Formatter},
     path::PathBuf,
@@ -13,6 +14,7 @@ pub const MODE_VAR: &str = "KAKEIBO_AUTH_MODE";
 pub const PUBLIC_URL_VAR: &str = "KAKEIBO_PUBLIC_URL";
 pub const SESSION_TTL_VAR: &str = "KAKEIBO_AUTH_SESSION_TTL";
 pub const DATABASE_VAR: &str = "KAKEIBO_AUTH_DATABASE";
+pub const MIN_PASSWORD_LENGTH_VAR: &str = "KAKEIBO_AUTH_MIN_PASSWORD_LENGTH";
 
 const DEFAULT_SESSION_TTL: Duration = Duration::from_secs(30 * 24 * 60 * 60);
 const DEFAULT_DATABASE_PATH: &str = "auth.db";
@@ -45,6 +47,8 @@ pub struct AuthConfig {
     /// SQLite file for accounts and sessions. It is kept apart from the household database so
     /// that restoring a backup never replaces credentials.
     pub database_path: PathBuf,
+    /// Shortest password accepted when adding a user or changing a password.
+    pub min_password_length: usize,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -69,6 +73,7 @@ impl AuthConfig {
             Some(value) => parse_mode(&value)?,
         };
         let database_path = database_path(&lookup);
+        let min_password_length = min_password_length(&lookup)?;
 
         if mode == AuthMode::None {
             return Ok(Self {
@@ -77,6 +82,7 @@ impl AuthConfig {
                 secure_cookie: false,
                 session_ttl: DEFAULT_SESSION_TTL,
                 database_path,
+                min_password_length,
             });
         }
 
@@ -102,6 +108,7 @@ impl AuthConfig {
             secure_cookie,
             session_ttl,
             database_path,
+            min_password_length,
         })
     }
 
@@ -116,6 +123,24 @@ pub fn database_path(lookup: impl Fn(&str) -> Option<String>) -> PathBuf {
     lookup(DATABASE_VAR)
         .filter(|value| !value.trim().is_empty())
         .map_or_else(|| PathBuf::from(DEFAULT_DATABASE_PATH), PathBuf::from)
+}
+
+/// The minimum password length, which the account commands also need.
+pub fn min_password_length(lookup: impl Fn(&str) -> Option<String>) -> Result<usize, ConfigError> {
+    let Some(value) = lookup(MIN_PASSWORD_LENGTH_VAR) else {
+        return Ok(password::DEFAULT_MIN_PASSWORD_LENGTH);
+    };
+    value
+        .trim()
+        .parse::<usize>()
+        .ok()
+        .filter(|length| (1..=password::MAX_PASSWORD_LENGTH).contains(length))
+        .ok_or_else(|| {
+            ConfigError(format!(
+                "{MIN_PASSWORD_LENGTH_VAR} must be a number from 1 to {}",
+                password::MAX_PASSWORD_LENGTH
+            ))
+        })
 }
 
 fn parse_mode(value: &str) -> Result<AuthMode, ConfigError> {

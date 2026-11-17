@@ -8,15 +8,17 @@ use crate::utils::error::{AppError, AppResult};
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::SaltString};
 use std::sync::OnceLock;
 
-/// NIST SP 800-63B asks for at least 15 characters when a password is the only factor.
-pub const MIN_PASSWORD_LENGTH: usize = 15;
+/// The minimum length unless `KAKEIBO_AUTH_MIN_PASSWORD_LENGTH` says otherwise.
+pub const DEFAULT_MIN_PASSWORD_LENGTH: usize = 8;
 pub const MAX_PASSWORD_LENGTH: usize = 256;
 
-pub fn validate(password: &str) -> AppResult<()> {
+/// Checks the length only; character classes are never required.
+pub fn validate(password: &str, min_length: usize) -> AppResult<()> {
     let length = password.chars().count();
-    if length < MIN_PASSWORD_LENGTH {
+    if length < min_length.max(1) {
         return Err(AppError::bad_request(&format!(
-            "password must be at least {MIN_PASSWORD_LENGTH} characters"
+            "password must be at least {} characters",
+            min_length.max(1)
         )));
     }
     if length > MAX_PASSWORD_LENGTH {

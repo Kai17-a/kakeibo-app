@@ -38,10 +38,10 @@ impl AuthState {
     pub fn local(config: &AuthConfig, pool: SqlitePool) -> Self {
         Self {
             mode: AuthMode::Local,
-            service: Some(AuthService::new(
-                AuthRepository::new(pool),
-                config.session_ttl_seconds(),
-            )),
+            service: Some(
+                AuthService::new(AuthRepository::new(pool), config.session_ttl_seconds())
+                    .with_min_password_length(config.min_password_length),
+            ),
             public_origin: config.public_origin.clone(),
             secure_cookie: config.secure_cookie,
         }

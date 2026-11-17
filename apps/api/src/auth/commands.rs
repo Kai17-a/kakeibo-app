@@ -18,12 +18,16 @@ pub async fn run(command: AuthCommand) -> ExitCode {
 }
 
 async fn execute(command: AuthCommand) -> Result<(), String> {
-    let path = config::database_path(|key| std::env::var(key).ok());
+    let lookup = |key: &str| std::env::var(key).ok();
+    let path = config::database_path(lookup);
+    let min_password_length =
+        config::min_password_length(lookup).map_err(|error| error.to_string())?;
     let pool = database::connect(&path)
         .await
         .map_err(|error| error.to_string())?;
     // The session lifetime does not matter for account management.
-    let service = AuthService::new(AuthRepository::new(pool), 0);
+    let service = AuthService::new(AuthRepository::new(pool), 0)
+        .with_min_password_length(min_password_length);
 
     match command {
         AuthCommand::AddUser {

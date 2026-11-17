@@ -1,7 +1,7 @@
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use kakeibo_app::{
-    auth::{database, password::MIN_PASSWORD_LENGTH},
+    auth::{database, password::DEFAULT_MIN_PASSWORD_LENGTH},
     repository::auth::AuthRepository,
     service::auth::AuthService,
 };
@@ -10,6 +10,10 @@ use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
 const PASSWORD: &str = "correct horse battery staple";
 
 async fn service() -> (AuthService, SqlitePool) {
+    service_with_min_length(DEFAULT_MIN_PASSWORD_LENGTH).await
+}
+
+async fn service_with_min_length(min_password_length: usize) -> (AuthService, SqlitePool) {
     let pool = SqlitePoolOptions::new()
         .max_connections(1)
         .connect("sqlite::memory:")
@@ -17,7 +21,8 @@ async fn service() -> (AuthService, SqlitePool) {
         .unwrap();
     database::migrate(&pool).await.unwrap();
     (
-        AuthService::new(AuthRepository::new(pool.clone()), 3600),
+        AuthService::new(AuthRepository::new(pool.clone()), 3600)
+            .with_min_password_length(min_password_length),
         pool,
     )
 }
@@ -64,14 +69,14 @@ async fn rejects_duplicate_usernames_ignoring_case() {
 #[tokio::test]
 async fn rejects_short_passwords() {
     let (service, _) = service().await;
-    let short = "a".repeat(MIN_PASSWORD_LENGTH - 1);
+    let short = "a".repeat(DEFAULT_MIN_PASSWORD_LENGTH - 1);
 
     let error = service.add_user("kaito", &short).await.unwrap_err();
 
     assert_eq!(status(error), StatusCode::BAD_REQUEST);
     assert!(
         service
-            .add_user("kaito", &"a".repeat(MIN_PASSWORD_LENGTH))
+            .add_user("kaito", &"a".repeat(DEFAULT_MIN_PASSWORD_LENGTH))
             .await
             .is_ok()
     );
@@ -172,5 +177,34 @@ async fn deletes_only_expired_sessions() {
             .await
             .unwrap()
             .is_some()
+    );
+}
+
+#[tokio::test]
+async fn uses_the_configured_minimum_password_length() {
+    let (service, _) = service_with_min_length(20).await;
+
+    let error = service
+        .add_user("kaito", &"a".repeat(19))
+        .await
+        .unwrap_err();
+    assert_eq!(status(error), StatusCode::BAD_REQUEST);
+    service.add_user("kaito", &"a".repeat(20)).await.unwrap();
+
+    let error = service
+        .set_password("kaito", &"b".repeat(19))
+        .await
+        .unwrap_err();
+    assert_eq!(status(error), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn a_minimum_of_one_accepts_any_non_empty_password() {
+    let (service, _) = service_with_min_length(1).await;
+
+    service.add_user("kaito", "a").await.unwrap();
+    assert_eq!(
+        status(service.add_user("hanako", "").await.unwrap_err()),
+        StatusCode::BAD_REQUEST
     );
 }

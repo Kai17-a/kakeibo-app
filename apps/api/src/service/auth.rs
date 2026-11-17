@@ -32,6 +32,7 @@ pub struct AuthService {
     repository: AuthRepository,
     limiter: Arc<LoginRateLimiter>,
     session_ttl_seconds: i64,
+    min_password_length: usize,
 }
 
 impl AuthService {
@@ -40,7 +41,14 @@ impl AuthService {
             repository,
             limiter: Arc::new(LoginRateLimiter::default()),
             session_ttl_seconds,
+            min_password_length: password::DEFAULT_MIN_PASSWORD_LENGTH,
         }
+    }
+
+    /// Sets the shortest password that `add_user` and `set_password` accept.
+    pub fn with_min_password_length(mut self, min_password_length: usize) -> Self {
+        self.min_password_length = min_password_length;
+        self
     }
 
     pub fn session_ttl_seconds(&self) -> i64 {
@@ -141,14 +149,14 @@ impl AuthService {
 
     pub async fn add_user(&self, username: &str, password: &str) -> AppResult<()> {
         let username = validate_username(username)?;
-        password::validate(password)?;
+        password::validate(password, self.min_password_length)?;
         let hash = password::hash(password)?;
         self.repository.insert_user(username, &hash).await
     }
 
     /// Changes the password and signs the user out of every session.
     pub async fn set_password(&self, username: &str, password: &str) -> AppResult<()> {
-        password::validate(password)?;
+        password::validate(password, self.min_password_length)?;
         let hash = password::hash(password)?;
         if self
             .repository

@@ -144,3 +144,31 @@ fn accepts_custom_database_path() {
 
     assert_eq!(config.database_path, PathBuf::from("/data/custom-auth.db"));
 }
+
+#[test]
+fn minimum_password_length_defaults_to_eight() {
+    let config = parse(&[]).unwrap();
+
+    assert_eq!(config.min_password_length, 8);
+}
+
+#[test]
+fn accepts_custom_minimum_password_length() {
+    for (value, expected) in [("1", 1), (" 20 ", 20), ("256", 256)] {
+        let config = parse(&[("KAKEIBO_AUTH_MIN_PASSWORD_LENGTH", value)]).unwrap();
+
+        assert_eq!(config.min_password_length, expected, "{value}");
+    }
+}
+
+#[test]
+fn rejects_invalid_minimum_password_length() {
+    for value in ["", "0", "257", "-1", "abc"] {
+        let error = parse(&[("KAKEIBO_AUTH_MIN_PASSWORD_LENGTH", value)]).unwrap_err();
+
+        assert!(
+            error.contains("KAKEIBO_AUTH_MIN_PASSWORD_LENGTH"),
+            "{value}: {error}"
+        );
+    }
+}
