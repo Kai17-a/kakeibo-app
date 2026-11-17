@@ -42,6 +42,7 @@ test("loginErrorMessage explains each failure", () => {
   assert.equal(loginErrorMessage(401), "ユーザー名またはパスワードが違います。");
   assert.match(loginErrorMessage(429), /15分ほど待って/);
   assert.equal(loginErrorMessage(400), "ユーザー名とパスワードを入力してください。");
+  assert.match(loginErrorMessage(403), /KAKEIBO_PUBLIC_URL/);
   assert.match(loginErrorMessage(undefined), /通信に失敗しました/);
   assert.match(loginErrorMessage(500), /通信に失敗しました/);
 });

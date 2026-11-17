@@ -30,6 +30,9 @@ export function loginErrorMessage(status: number | undefined): string {
       return "ユーザー名とパスワードを入力してください。";
     case 401:
       return "ユーザー名またはパスワードが違います。";
+    case 403:
+      // The server rejects the browser's origin: KAKEIBO_PUBLIC_URL differs from this URL.
+      return "このURLからはログインできません。サーバーの KAKEIBO_PUBLIC_URL を、ブラウザで開いているURLに合わせてください。";
     case 429:
       return "ログインの失敗が続いたため、一時的にログインできません。15分ほど待ってからお試しください。";
     default:

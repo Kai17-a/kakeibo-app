@@ -142,3 +142,14 @@ test("認証が無効ならログイン画面を出さず、ログアウトも�
   await expect(page).toHaveURL("/");
   await expect(page.getByRole("button", { name: "ログアウト" })).toHaveCount(0);
 });
+
+test("別オリジンとして拒否されたら KAKEIBO_PUBLIC_URL の確認を案内する", async ({ page }) => {
+  await mockLocalAuth(page, { status: 403 });
+  await page.goto("/login");
+
+  await page.getByLabel("ユーザー名").fill("kaito");
+  await page.getByLabel("パスワード").fill("correct horse battery");
+  await page.getByRole("button", { name: "ログイン" }).click();
+
+  await expect(page.getByRole("alert")).toContainText("KAKEIBO_PUBLIC_URL");
+});
