@@ -4,6 +4,7 @@ pub struct PaymentMethodRow {
     pub id: String,
     pub created_at: String,
     pub updated_at: String,
+    pub display_order: i64,
     pub name: String,
     pub description: Option<String>,
     pub initial_balance: Option<String>,

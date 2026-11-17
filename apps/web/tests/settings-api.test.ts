@@ -54,7 +54,7 @@ test("settings API uses the correct endpoints, queries and mutation payloads wit
     assert.deepEqual(await api.paymentMethods.list(), response.items);
     assert.deepEqual(calls.at(-1), {
       path: "/api/payment-methods",
-      options: { query: { sort_by: "name", sort_order: "asc", per_page: 100 } },
+      options: { query: { sort_by: "display_order", sort_order: "asc", per_page: 100 } },
     });
     assert.equal(await api.budgets.list(), response);
     assert.deepEqual(calls.at(-1), { path: "/api/budgets", options: {} });

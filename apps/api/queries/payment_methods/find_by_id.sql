@@ -6,6 +6,7 @@ SELECT
   , description
   , initial_balance
   , is_investment
+  , display_order
   , (
     SELECT
       COALESCE(SUM(CAST(incomes.amount AS INTEGER)), 0)

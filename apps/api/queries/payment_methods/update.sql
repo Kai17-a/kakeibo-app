@@ -8,7 +8,7 @@ SET
 WHERE
   id = ?
 RETURNING
-  id, created_at, updated_at, name, description, initial_balance, is_investment
+  id, created_at, updated_at, name, description, initial_balance, is_investment, display_order
   , (
     SELECT
       coalesce(sum(cast(incomes.amount AS INTEGER)), 0)
