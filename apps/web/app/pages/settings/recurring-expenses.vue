@@ -386,7 +386,7 @@ async function backfill(item: RecurringExpense) {
       <UFormField name="end_date" label="終了日（任意）">
         <DatePicker v-model="state.end_date" :min="state.start_date" clearable class="w-full" />
       </UFormField>
-      <UFormField name="description" label="備考（任意）">
+      <UFormField name="description" label="メモ（任意）">
         <UTextarea v-model="state.description" class="w-full" />
       </UFormField>
       <UFormField name="is_variable">
@@ -395,7 +395,7 @@ async function backfill(item: RecurringExpense) {
       <UFormField v-if="editingId" name="sync_future_transactions">
         <UCheckbox
           v-model="state.sync_future_transactions"
-          label="今月以降に生成済みの明細へ金額・カテゴリ・支払方法・備考を反映する"
+          label="今月以降に生成済みの明細へ金額・カテゴリ・支払方法・メモを反映する"
         />
       </UFormField>
       <UFormField name="is_active">

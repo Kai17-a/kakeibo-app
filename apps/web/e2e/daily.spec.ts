@@ -40,9 +40,11 @@ test("5つのタブを切り替えられる", async ({ page }) => {
   await page.goto("/daily");
 
   await expect(page.getByRole("button", { name: "振替" }).first()).toBeVisible();
-  await expect(page.getByText("収支サマリー")).toBeVisible();
   await expect(page.getByRole("tab")).toHaveCount(5);
-  await page.getByRole("tab", { name: "支出明細" }).click();
+  await expect(page.getByRole("tab", { name: "支出明細" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
   await expect(page.getByRole("cell", { name: "電車代", exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "収入明細" }).click();
   await expect(page.getByText("この月の収入明細はありません。")).toBeVisible();
@@ -51,7 +53,9 @@ test("5つのタブを切り替えられる", async ({ page }) => {
   await page.getByRole("button", { name: "振替を登録" }).click();
   await expect(page.getByRole("heading", { name: "振替を登録" })).toBeVisible();
   await page.getByRole("button", { name: "キャンセル" }).click();
-  await page.getByRole("tab", { name: "月ごとのカテゴリ別支出" }).click();
+  await page.getByRole("tab", { name: "月次内訳" }).click();
+  await expect(page.getByText("収支サマリー")).toBeVisible();
+  await page.getByRole("tab", { name: "カテゴリ別" }).click();
   await expect(page.getByText("日ごとのカテゴリ別支出")).toBeVisible();
 });
 
@@ -150,7 +154,7 @@ test("支出明細をキーワードで絞り込む", async ({ page }) => {
   await expect(page.getByRole("cell", { name: "電車代", exact: true })).toBeVisible();
   await expect(page.getByRole("cell", { name: "書籍代", exact: true })).toBeVisible();
 
-  await page.getByLabel("備考を検索").fill("書籍");
+  await page.getByLabel("メモを検索").fill("書籍");
   await expect(page.getByRole("cell", { name: "書籍代", exact: true })).toBeVisible();
   await expect(page.getByRole("cell", { name: "電車代", exact: true })).not.toBeVisible();
 

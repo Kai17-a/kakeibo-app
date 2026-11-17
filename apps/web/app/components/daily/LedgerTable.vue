@@ -1,6 +1,6 @@
 <script setup lang="ts" generic="T extends Expense | Income">
 import type { Expense, Income } from "~/types/transactions";
-import { formatCurrency, formatDate, formatSignedCurrency } from "~/utils/format";
+import { formatDate, formatSignedCurrency } from "~/utils/format";
 
 const props = defineProps<{
   kind: "expense" | "income";
@@ -46,7 +46,7 @@ function paymentName(item: T) {
             class="shrink-0 text-right tabular-nums"
             :class="kind === 'income' && Number(item.amount) > 0 ? 'text-primary' : undefined"
           >
-            {{ formatCurrency(item.amount) }}
+            {{ formatSignedCurrency(item.amount, kind === "expense" ? "negative" : "positive") }}
           </p>
         </div>
         <div class="mt-2 flex items-center justify-between gap-2">
@@ -72,7 +72,7 @@ function paymentName(item: T) {
           <th class="w-32 px-3 py-2 text-right text-xs font-medium whitespace-nowrap text-muted">
             金額
           </th>
-          <th class="min-w-40 px-3 py-2 text-left text-xs font-medium text-muted">備考</th>
+          <th class="min-w-40 px-3 py-2 text-left text-xs font-medium text-muted">メモ</th>
           <th class="w-36 px-3 py-2 text-right">
             <span class="sr-only">操作</span>
           </th>

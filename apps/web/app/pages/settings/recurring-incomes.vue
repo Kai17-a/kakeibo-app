@@ -271,7 +271,7 @@ function save() {
       <UFormField name="end_date" label="終了日（任意）">
         <DatePicker v-model="state.end_date" :min="state.start_date" clearable class="w-full" />
       </UFormField>
-      <UFormField name="description" label="備考（任意）">
+      <UFormField name="description" label="メモ（任意）">
         <UTextarea v-model="state.description" class="w-full" />
       </UFormField>
       <UFormField name="is_variable">
