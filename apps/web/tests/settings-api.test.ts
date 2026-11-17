@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { useSettingsApi } from "../app/composables/useSettingsApi.ts";
 
+// Auto-imported from app/utils/auth.ts in the Nuxt build.
+const notifyUnauthorized = () => {};
+
 test("settings API uses the correct endpoints, queries and mutation payloads without retries", async () => {
   const calls: { path: string; options: Record<string, unknown> }[] = [];
   const response = { items: [{ id: "category" }] };
@@ -10,11 +13,19 @@ test("settings API uses the correct endpoints, queries and mutation payloads wit
     return response;
   };
   const original = Object.getOwnPropertyDescriptor(globalThis, "$fetch");
+  Object.defineProperty(globalThis, "notifyUnauthorized", {
+    configurable: true,
+    value: notifyUnauthorized,
+  });
   Object.defineProperty(globalThis, "$fetch", {
     configurable: true,
     value: {
       create(options: Record<string, unknown>) {
-        assert.deepEqual(options, { retry: 0, timeout: 15000 });
+        assert.deepEqual(options, {
+          retry: 0,
+          timeout: 15000,
+          onResponseError: notifyUnauthorized,
+        });
         return client;
       },
     },
@@ -113,5 +124,6 @@ test("settings API uses the correct endpoints, queries and mutation payloads wit
   } finally {
     if (original) Object.defineProperty(globalThis, "$fetch", original);
     else Reflect.deleteProperty(globalThis, "$fetch");
+    Reflect.deleteProperty(globalThis, "notifyUnauthorized");
   }
 });

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const links = useAppNavigation();
 const settings = computed(() => links.value[0]?.[3]);
+const auth = useAuth();
 </script>
 
 <template>
@@ -13,5 +14,14 @@ const settings = computed(() => links.value[0]?.[3]);
       aria-label="設定"
       :aria-current="settings?.active ? 'page' : undefined"
     />
+    <UTooltip v-if="auth.canLogout.value" text="ログアウト">
+      <UButton
+        icon="i-lucide-log-out"
+        color="neutral"
+        variant="ghost"
+        aria-label="ログアウト"
+        @click="auth.logout()"
+      />
+    </UTooltip>
   </div>
 </template>

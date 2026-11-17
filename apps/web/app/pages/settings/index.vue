@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { settingsNavigation } from "~/utils/settings-navigation";
 
+const auth = useAuth();
+
 onMounted(() => {
   if (window.matchMedia("(min-width: 640px)").matches) {
     void navigateTo(settingsNavigation[0]!.pages[0]!.to, { replace: true });
@@ -27,4 +29,19 @@ onMounted(() => {
       <UIcon name="i-lucide-chevron-right" class="size-5 shrink-0 text-muted" />
     </NuxtLink>
   </nav>
+  <div v-if="auth.canLogout.value" class="mt-6 sm:hidden">
+    <UButton
+      icon="i-lucide-log-out"
+      color="neutral"
+      variant="outline"
+      size="xl"
+      block
+      @click="auth.logout()"
+    >
+      ログアウト
+      <span v-if="auth.session.value?.user" class="text-muted">
+        （{{ auth.session.value.user.username }}）
+      </span>
+    </UButton>
+  </div>
 </template>

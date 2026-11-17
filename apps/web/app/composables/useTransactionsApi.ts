@@ -10,7 +10,7 @@ import type {
 } from "~/types/transactions";
 
 export function useTransactionsApi() {
-  const client = $fetch.create({ retry: 0, timeout: 15000 });
+  const client = $fetch.create({ retry: 0, timeout: 15000, onResponseError: notifyUnauthorized });
 
   async function expenses() {
     return client<Expense[]>("/api/expenses");

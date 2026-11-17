@@ -44,6 +44,7 @@ async function restore() {
       headers: { "content-type": "application/octet-stream" },
       body: selectedFile.value,
       retry: 0,
+      onResponseError: notifyUnauthorized,
     });
     sessionStorage.setItem("kakeibo-restore-success", "true");
     window.location.reload();
