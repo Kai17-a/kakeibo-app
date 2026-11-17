@@ -11,7 +11,7 @@
 | `none`（既定） | 認証しない |
 | `local` | アプリが持つユーザー名とパスワードでログインする |
 
-リバースプロキシのヘッダー認証（`proxy`）とアプリ内 OIDC（`oidc`）は、必要になったときに追加する。パスキーは `local` のログイン方法として追加する。
+リバースプロキシのヘッダー認証（`proxy`）とアプリ内 OIDC（`oidc`）は、必要になったときに追加する。`local` ではパスワードに加えてパスキーでもログインできる。
 
 ## 環境変数
 
@@ -68,6 +68,28 @@
 | `GET /api/auth/session` | `{ mode, authenticated, user }`。認証が無効なら `authenticated` は常に true |
 | `POST /api/auth/login` | `{ username, password }`。成功で 204 と Set-Cookie、失敗で 401、ロック中は 429。認証が無効なら 404 |
 | `POST /api/auth/logout` | セッションを削除して Cookie を消す。認証が無効なら 404 |
+
+## パスキー
+
+`local` のログイン方法として WebAuthn のパスキーを使える（webauthn-rs）。ログインしたあとに設定画面の「ログイン > パスキー」から登録し、以後はログイン画面の「パスキーでログイン」で入れる。
+
+- Relying Party は `KAKEIBO_PUBLIC_URL` から決める。オリジンはそのURL、RP ID はそのホスト名。ホストが IP アドレスなどで RP ID にできないときは、警告をログに出してパスキーだけを無効にする（`/api/auth/session` の `passkey` が false になる）。ブラウザは HTTPS か `localhost` でしかパスキーを使えない。
+- ログイン画面ではユーザー名を聞かないため、登録時に discoverable credential（`residentKey: required`）を求め、ログインは discoverable authentication で行う。credential の user handle にはユーザー ID（UUID の 32 桁表記）を入れる。
+- ユーザー確認（生体認証や画面ロック）を必須にする。パスキー単独で多要素とみなせるため、パスワードとの併用は求めない。
+- 登録・ログインの途中状態はメモリ上に 5 分だけ持ち、ID で 1 回だけ取り出せる。同時に 256 件までで、超えたら 429 を返す。
+- パスキーは `auth.db` の `passkeys` テーブルに保存する（credential ID、名前、webauthn-rs の Passkey を JSON にしたもの、登録日時、最終使用日時）。ユーザーを削除すると、そのユーザーのパスキーも消える。
+- 自分のパスキーだけを一覧・削除できる。パスワードを変えてもパスキーは残る。
+
+| メソッドとパス | 内容 |
+|---|---|
+| `POST /api/auth/passkey/challenge` | ログイン用の options と `challenge_id` を返す。認証不要 |
+| `POST /api/auth/passkey/login` | `{ challenge_id, credential }`。成功で 204 と Set-Cookie、失敗で 401、期限切れや使用済みの challenge は 400 |
+| `GET /api/passkeys` | 自分のパスキーの一覧 |
+| `POST /api/passkeys/registration` | 登録用の options と `challenge_id` を返す |
+| `POST /api/passkeys` | `{ challenge_id, name, credential }`。名前は 1〜64 文字 |
+| `DELETE /api/passkeys/{id}` | 自分のパスキーを削除する |
+
+`/api/passkeys` は通常の API と同じくセッションが必要。
 
 ## ユーザー管理（CLI）
 
