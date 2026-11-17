@@ -97,6 +97,7 @@ async function handleSubmit(event: SubmitEvent) {
     :close="!saving"
     :ui="{
       content: 'max-w-xl',
+      close: 'max-sm:size-[44px]',
       body: 'sm:p-6',
       footer: 'flex-wrap justify-end gap-2 max-sm:[&_button]:min-h-[44px]',
     }"
