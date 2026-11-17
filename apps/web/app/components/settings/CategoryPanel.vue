@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TableColumn } from "@nuxt/ui";
+import SortableJs from "sortablejs";
 import type { Category, CategoryKind } from "~/types/settings";
 import { categoryMove, groupCategories, validateNamed } from "~/utils/settings";
 
@@ -47,20 +47,6 @@ const parentOptions = computed(() => [
     .filter((item) => item.parent_category_id === null && item.id !== editingId.value)
     .map((item) => ({ label: item.name, value: item.id })),
 ]);
-const columns: TableColumn<Category>[] = [
-  {
-    accessorKey: "name",
-    header: "カテゴリ名",
-    meta: { class: { th: "w-full min-w-0", td: "w-full min-w-0" } },
-  },
-  {
-    id: "actions",
-    header: "操作",
-    meta: {
-      class: { th: "w-32 whitespace-nowrap text-right", td: "w-32 whitespace-nowrap text-right" },
-    },
-  },
-];
 const validate = validateNamed;
 function openForm(item?: Category) {
   Object.assign(state, {
@@ -73,19 +59,23 @@ function openForm(item?: Category) {
 function parentName(item: Category) {
   return items.value.find((candidate) => candidate.id === item.parent_category_id)?.name;
 }
-function canMove(item: Category, direction: -1 | 1) {
-  return categoryMove(items.value, item.id, direction) !== null;
-}
 async function move(item: Category, direction: -1 | 1) {
   if (reordering.value) return;
   const result = categoryMove(items.value, item.id, direction);
   if (!result) return;
+  await reorder(result.input.parent_category_id, result.input.category_ids);
+}
+async function reorder(parent: string | null, ids: string[]) {
+  if (reordering.value) return;
   const previous = items.value;
-  items.value = result.items;
+  items.value = items.value.map((item) => ({
+    ...item,
+    display_order: ids.includes(item.id) ? ids.indexOf(item.id) : item.display_order,
+  }));
   reordering.value = true;
   orderError.value = "";
   try {
-    await api.reorder(result.input);
+    await api.reorder({ parent_category_id: parent, category_ids: ids });
     toast.add({ title: "カテゴリの表示順を更新しました", color: "success" });
   } catch (error) {
     items.value = previous;
@@ -94,6 +84,39 @@ async function move(item: Category, direction: -1 | 1) {
     reordering.value = false;
   }
 }
+const list = ref<HTMLElement | null>(null);
+let sortable: SortableJs | undefined;
+watch(
+  [list, reordering],
+  () => {
+    sortable?.destroy();
+    if (!list.value) return;
+    sortable = SortableJs.create(list.value, {
+      handle: ".category-handle",
+      draggable: ".category-row",
+      disabled: reordering.value,
+      animation: 150,
+      delay: 150,
+      delayOnTouchOnly: true,
+      touchStartThreshold: 5,
+      onMove: (event) => event.dragged.dataset.parent === event.related.dataset.parent,
+      onEnd: (event) => {
+        const id = event.item.dataset.id;
+        const item = items.value.find((entry) => entry.id === id);
+        const container = event.from;
+        const ids = Array.from(container.children)
+          .filter((el) => (el as HTMLElement).dataset.parent === event.item.dataset.parent)
+          .map((el) => (el as HTMLElement).dataset.id!);
+        // Restore Vue's DOM order before applying the reactive update.
+        const children = Array.from(container.children).filter((el) => el !== event.item);
+        container.insertBefore(event.item, children[event.oldIndex ?? 0] ?? null);
+        if (item && event.oldIndex !== event.newIndex) void reorder(item.parent_category_id, ids);
+      },
+    });
+  },
+  { flush: "post" },
+);
+onBeforeUnmount(() => sortable?.destroy());
 function save() {
   return saveItem({
     name: state.name.trim(),
@@ -128,67 +151,58 @@ function save() {
       @retry="load"
       @add="openForm()"
     >
-      <div class="min-w-0 overflow-hidden rounded-lg border border-default">
-        <UTable
-          :data="sortedItems"
-          :columns="columns"
-          :aria-label="`${label}一覧`"
-          class="w-full"
-          :ui="{
-            root: 'overflow-hidden',
-            base: 'w-full table-fixed',
-            th: 'px-3 py-2 sm:px-4',
-            td: 'px-3 py-2 whitespace-normal sm:px-4',
-          }"
+      <div
+        ref="list"
+        class="divide-y divide-default overflow-hidden rounded-lg border border-default"
+        :aria-label="`${label}一覧`"
+      >
+        <div
+          v-for="item in sortedItems"
+          :key="item.id"
+          class="category-row flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-elevated/50"
+          :data-id="item.id"
+          :data-parent="item.parent_category_id ?? ''"
+          @click="openForm(item)"
         >
-          <template #name-cell="{ row }">
-            <div :class="['min-w-0', row.original.parent_category_id !== null ? 'pl-6' : '']">
-              <p class="font-medium break-words whitespace-normal text-default">
-                {{ row.original.name }}
-              </p>
-              <p
-                v-if="row.original.parent_category_id !== null || row.original.description"
-                class="mt-0.5 text-xs whitespace-normal text-muted"
-              >
-                <span v-if="row.original.parent_category_id !== null"
-                  >親: {{ parentName(row.original) }}</span
-                >
-                <span v-if="row.original.parent_category_id !== null && row.original.description">
-                  ·
-                </span>
-                <span class="break-words whitespace-pre-wrap">{{ row.original.description }}</span>
-              </p>
-            </div>
-          </template>
-          <template #actions-cell="{ row }">
-            <div class="flex items-center justify-end gap-1">
-              <UButton
-                icon="i-lucide-arrow-up"
-                color="neutral"
-                variant="ghost"
-                size="sm"
-                :aria-label="`${row.original.name}を上へ移動`"
-                :disabled="reordering || !canMove(row.original, -1)"
-                @click="move(row.original, -1)"
-              />
-              <UButton
-                icon="i-lucide-arrow-down"
-                color="neutral"
-                variant="ghost"
-                size="sm"
-                :aria-label="`${row.original.name}を下へ移動`"
-                :disabled="reordering || !canMove(row.original, 1)"
-                @click="move(row.original, 1)"
-              />
-              <RowActionsMenu
-                :label="row.original.name"
-                @edit="openForm(row.original)"
-                @delete="askDelete(row.original)"
-              />
-            </div>
-          </template>
-        </UTable>
+          <button
+            type="button"
+            class="category-handle flex size-7 shrink-0 touch-none items-center justify-center rounded focus-visible:ring-2 focus-visible:ring-primary max-sm:size-[44px]"
+            :aria-label="`${item.name}の並べ替え`"
+            :disabled="reordering"
+            @click.stop
+            @keydown.up.prevent.stop="move(item, -1)"
+            @keydown.down.prevent.stop="move(item, 1)"
+          >
+            <UIcon name="i-lucide-grip-vertical" class="size-5 text-muted" />
+          </button>
+          <div :class="['min-w-0 flex-1', item.parent_category_id ? 'pl-6' : '']">
+            <button
+              type="button"
+              class="text-left font-medium break-words text-default focus-visible:ring-2 focus-visible:ring-primary max-sm:min-h-[44px]"
+              :aria-label="`${item.name}を編集`"
+              @click.stop="openForm(item)"
+            >
+              {{ item.name }}
+            </button>
+            <p
+              v-if="item.parent_category_id || item.description"
+              class="text-xs break-words whitespace-pre-wrap text-muted"
+            >
+              <span v-if="item.parent_category_id">親: {{ parentName(item) }} </span
+              >{{ item.description }}
+            </p>
+          </div>
+          <div @click.stop>
+            <RowActionsMenu :label="item.name" @edit="openForm(item)" @delete="askDelete(item)" />
+          </div>
+        </div>
       </div>
+      <UAlert
+        v-if="orderError"
+        color="error"
+        title="表示順を更新できませんでした"
+        :description="orderError"
+      />
     </SettingsCollectionState>
     <SettingsFormModal
       v-model:open="formOpen"

@@ -12,6 +12,11 @@ const props = defineProps<{
   onSubmit: (input: TransferInput, keepOpen: boolean) => Promise<boolean>;
 }>();
 
+function focusAmount(event: Event) {
+  event.preventDefault();
+  document.querySelector<HTMLInputElement>("#transfer-form input[type=number]")?.focus();
+}
+
 const emit = defineEmits<{ "update:open": [value: boolean] }>();
 const editing = computed(() => Boolean(props.initialTransfer));
 const unavailable = computed(() => props.paymentMethods.length < 2);
@@ -85,11 +90,16 @@ async function handleSubmit(event: SubmitEvent) {
 <template>
   <UModal
     :open="open"
+    :content="{ onOpenAutoFocus: focusAmount }"
     :title="editing ? '振替を編集' : '振替を登録'"
     description="口座間の資金移動を入力してください"
     :dismissible="!saving"
     :close="!saving"
-    :ui="{ content: 'max-w-xl', body: 'sm:p-6', footer: 'flex-wrap justify-end gap-2' }"
+    :ui="{
+      content: 'max-w-xl',
+      body: 'sm:p-6',
+      footer: 'flex-wrap justify-end gap-2 max-sm:[&_button]:min-h-[44px]',
+    }"
     @update:open="requestClose"
   >
     <template #body>
@@ -104,7 +114,7 @@ async function handleSubmit(event: SubmitEvent) {
       </p>
       <form
         id="transfer-form"
-        class="grid grid-cols-1 gap-5 sm:grid-cols-2"
+        class="grid grid-cols-1 gap-5 sm:grid-cols-2 max-sm:[&_button]:min-h-[44px] max-sm:[&_button]:text-[16px] max-sm:[&_input]:min-h-[44px] max-sm:[&_input]:text-[16px] max-sm:[&_textarea]:min-h-[44px] max-sm:[&_textarea]:text-[16px]"
         @submit.prevent="handleSubmit"
       >
         <UFormField name="date" label="日付" required :error="dateError || undefined">
@@ -114,6 +124,7 @@ async function handleSubmit(event: SubmitEvent) {
           <UInput
             :model-value="state.amount"
             type="number"
+            inputmode="numeric"
             min="1"
             step="1"
             required

@@ -27,6 +27,11 @@ const props = defineProps<{
   onSubmit: (submission: TransactionSubmission, keepOpen: boolean) => Promise<boolean>;
 }>();
 
+function focusAmount(event: Event) {
+  event.preventDefault();
+  document.querySelector<HTMLInputElement>("#transaction-form input[type=number]")?.focus();
+}
+
 const emit = defineEmits<{ "update:open": [value: boolean] }>();
 
 const editing = computed(() => Boolean(props.initialExpense ?? props.initialIncome));
@@ -93,17 +98,28 @@ const paymentMethodOptions = computed(() =>
   props.paymentMethods.map((method) => ({ label: method.name, value: method.id })),
 );
 
-watch(kind, (next, previous) => {
-  if (next === previous) return;
-  state.paymentMethodId = next === "income" ? "" : (props.paymentMethods[0]?.id ?? "");
-  if (!categories.value.some((category) => category.id === state.categoryId)) {
-    state.categoryId = categories.value[0]?.id ?? "";
+function previousValue(field: string, items: { id: string }[], fallback: string) {
+  try {
+    const value = localStorage.getItem(`kakeibo:last-${kind.value}-${field}`);
+    if (field === "payment" && kind.value === "income" && value === "") return "";
+    return value !== null && items.some((item) => item.id === value) ? value : fallback;
+  } catch {
+    return fallback;
   }
-});
-
-if (!state.categoryId) {
-  state.categoryId = categories.value[0]?.id ?? "";
 }
+function applyPreviousValues() {
+  state.categoryId = previousValue("category", categories.value, categories.value[0]?.id ?? "");
+  state.paymentMethodId = previousValue(
+    "payment",
+    props.paymentMethods,
+    kind.value === "income" ? "" : (props.paymentMethods[0]?.id ?? ""),
+  );
+}
+watch(kind, (next, previous) => {
+  if (next !== previous) applyPreviousValues();
+});
+if (!editing.value && !preset.value) applyPreviousValues();
+else if (!state.categoryId) state.categoryId = categories.value[0]?.id ?? "";
 
 const title = computed(() => {
   if (props.initialExpense) return "支出を編集";
@@ -178,6 +194,20 @@ async function submit(keepOpen: boolean) {
           } satisfies IncomeInput,
         };
   const saved = await props.onSubmit(submission, keepOpen);
+  if (saved && !editing.value) {
+    try {
+      localStorage.setItem(
+        `kakeibo:last-${submission.kind}-category`,
+        submission.input.category_id,
+      );
+      localStorage.setItem(
+        `kakeibo:last-${submission.kind}-payment`,
+        submission.input.payment_method_id ?? "",
+      );
+    } catch {
+      // 保存できない環境でも登録は継続する。
+    }
+  }
   if (saved && keepOpen) {
     state.amount = "";
     state.description = "";
@@ -189,11 +219,16 @@ async function submit(keepOpen: boolean) {
 <template>
   <UModal
     :open="open"
+    :content="{ onOpenAutoFocus: focusAmount }"
     :title="title"
     description="日付や金額など、明細の内容を入力してください"
     :dismissible="!saving"
     :close="!saving"
-    :ui="{ content: 'max-w-xl', body: 'sm:p-6', footer: 'flex-wrap justify-end gap-2' }"
+    :ui="{
+      content: 'max-w-xl',
+      body: 'sm:p-6',
+      footer: 'flex-wrap justify-end gap-2 max-sm:[&_button]:min-h-[44px]',
+    }"
     @update:open="requestClose"
   >
     <template #body>
@@ -213,7 +248,7 @@ async function submit(keepOpen: boolean) {
       />
       <form
         id="transaction-form"
-        class="grid grid-cols-1 gap-5 sm:grid-cols-2"
+        class="grid grid-cols-1 gap-5 sm:grid-cols-2 max-sm:[&_button]:min-h-[44px] max-sm:[&_button]:text-[16px] max-sm:[&_input]:min-h-[44px] max-sm:[&_input]:text-[16px] max-sm:[&_textarea]:min-h-[44px] max-sm:[&_textarea]:text-[16px]"
         @submit.prevent="handleSubmit"
       >
         <UFormField name="date" label="日付" required :error="dateError || undefined">
@@ -223,6 +258,7 @@ async function submit(keepOpen: boolean) {
           <UInput
             :model-value="state.amount"
             type="number"
+            inputmode="numeric"
             min="1"
             step="1"
             required

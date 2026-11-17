@@ -1,3 +1,5 @@
+import { formatCurrency } from "./format.ts";
+
 interface OrderedCategory {
   id: string;
   parent_category_id: string | null;
@@ -66,5 +68,5 @@ export function validAmount(value: string | number): boolean {
   );
 }
 export function formatYen(value: string | null): string {
-  return value === null ? "未設定" : `${Number(value).toLocaleString("ja-JP")}円`;
+  return value === null ? "未設定" : formatCurrency(value);
 }

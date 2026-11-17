@@ -70,11 +70,6 @@ const columns: TableColumn<RecurringTransfer>[] = [
     meta: { class: { th: "w-28 text-right", td: "w-28 text-right tabular-nums" } },
   },
   {
-    accessorKey: "is_active",
-    header: "状態",
-    meta: { class: { th: "hidden w-20 lg:table-cell", td: "hidden w-20 lg:table-cell" } },
-  },
-  {
     id: "actions",
     header: "操作",
     meta: { class: { th: "w-14 text-right", td: "w-14 text-right" } },
@@ -119,11 +114,13 @@ function save() {
       <div class="min-w-0 overflow-hidden rounded-lg border border-default">
         <UTable
           :data="sortedItems"
+          @select="(_event, row) => openForm(row.original)"
           :columns="columns"
           :aria-label="`${label}一覧`"
           class="w-full"
           :ui="{
             root: 'overflow-hidden',
+            tr: 'cursor-pointer hover:bg-elevated/50',
             base: 'w-full table-fixed',
             th: 'px-3 py-2 sm:px-4',
             td: 'px-3 py-2 whitespace-normal sm:px-4',
@@ -131,7 +128,15 @@ function save() {
         >
           <template #name-cell="{ row }">
             <div class="min-w-0">
-              <p class="font-medium break-words text-default">{{ row.original.name }}</p>
+              <button
+                type="button"
+                class="text-left font-medium break-words text-default focus-visible:ring-2 focus-visible:ring-primary max-sm:min-h-[44px]"
+                :aria-label="`${row.original.name}を編集`"
+                @click.stop="openForm(row.original)"
+              >
+                {{ row.original.name }}
+              </button>
+              <UBadge v-if="!row.original.is_active" color="neutral" variant="soft">停止中</UBadge>
               <p class="mt-0.5 text-xs break-words text-muted">
                 {{ paymentNames.get(row.original.from_payment_method_id) ?? "不明" }} →
                 {{ paymentNames.get(row.original.to_payment_method_id) ?? "不明" }}
@@ -148,17 +153,15 @@ function save() {
             </div>
           </template>
           <template #amount-cell="{ row }">{{ formatYen(row.original.amount) }}</template>
-          <template #is_active-cell="{ row }"
-            ><UBadge :color="row.original.is_active ? 'success' : 'neutral'" variant="soft">{{
-              row.original.is_active ? "有効" : "無効"
-            }}</UBadge></template
-          >
+
           <template #actions-cell="{ row }"
-            ><RowActionsMenu
-              :label="row.original.name"
-              @edit="openForm(row.original)"
-              @delete="askDelete(row.original)"
-          /></template>
+            ><div @click.stop>
+              <RowActionsMenu
+                :label="row.original.name"
+                @edit="openForm(row.original)"
+                @delete="askDelete(row.original)"
+              /></div
+          ></template>
         </UTable>
       </div>
     </SettingsCollectionState>

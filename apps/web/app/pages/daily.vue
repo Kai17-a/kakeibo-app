@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { formatCurrency, formatDate } from "~/utils/format";
 import { inPeriod } from "~/utils/summaries";
 import { filterExpenses, filterIncomes } from "~/utils/filters";
 
-useSeoMeta({ title: "日別集計" });
+useSeoMeta({ title: "明細" });
 
 const { month, setMonth } = useMonthQuery("/daily");
 const {
@@ -101,11 +102,18 @@ const {
 
 <template>
   <div class="flex min-w-0 flex-1">
-    <UDashboardPanel class="pb-24 sm:pb-0" id="daily">
+    <UDashboardPanel class="pb-[calc(8rem+env(safe-area-inset-bottom))] sm:pb-0" id="daily">
       <template #header>
-        <UDashboardNavbar title="日別集計">
+        <UDashboardNavbar
+          title="明細"
+          :toggle="false"
+          :ui="{
+            title: 'sm:sr-only',
+            root: 'sm:h-auto sm:min-h-(--ui-header-height) sm:flex-wrap sm:py-2',
+          }"
+        >
           <template #leading>
-            <UDashboardSidebarCollapse class="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0" />
+            <AppHeaderNav />
           </template>
           <template #right>
             <MonthNavigator :model-value="month" @update:model-value="setMonth" />
@@ -120,12 +128,13 @@ const {
               @click="openNew"
             />
             <UColorModeButton class="hidden sm:inline-flex" />
+            <AppHeaderActions />
           </template>
         </UDashboardNavbar>
       </template>
       <template #body>
         <div
-          class="fixed inset-x-0 bottom-0 z-20 flex justify-end gap-3 border-t border-default bg-default px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:hidden"
+          class="fixed right-4 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 flex justify-end gap-3 sm:hidden [&>button]:shadow-lg"
         >
           <TransferButton :disabled="loading || Boolean(loadError)" @click="openNewTransfer" />
           <RecordTransactionButton :disabled="loading || Boolean(loadError)" @click="openNew" />
@@ -204,7 +213,35 @@ const {
             <div v-else-if="tab === 'transfer-details'" class="min-w-0">
               <h2 class="mb-4 text-base font-semibold">振替明細</h2>
               <div class="overflow-auto">
-                <table class="w-full min-w-[640px] text-sm">
+                <ul class="space-y-2 sm:hidden">
+                  <li
+                    v-for="item in monthTransfers"
+                    :key="item.id"
+                    class="rounded-md border border-default p-3"
+                  >
+                    <div class="flex items-start justify-between gap-3 text-sm">
+                      <p class="min-w-0">{{ formatDate(item.transaction_date) }} 振替</p>
+                      <p class="shrink-0 text-right tabular-nums">
+                        {{ formatCurrency(item.amount) }}
+                      </p>
+                    </div>
+                    <div class="mt-2 flex items-center justify-between gap-2">
+                      <div class="min-w-0 text-xs break-words text-muted">
+                        <p>
+                          {{ paymentNames.get(item.from_payment_method_id) }} →
+                          {{ paymentNames.get(item.to_payment_method_id) }}
+                        </p>
+                        <p v-if="item.description">{{ item.description }}</p>
+                      </div>
+                      <RowActionsMenu
+                        :label="`${formatDate(item.transaction_date)} 振替`"
+                        @edit="editTransfer(item)"
+                        @delete="askDeleteTransfer(item)"
+                      />
+                    </div>
+                  </li>
+                </ul>
+                <table class="hidden w-full min-w-[640px] text-sm sm:table">
                   <thead>
                     <tr class="border-b border-default">
                       <th class="px-3 py-2 text-left">日付</th>
@@ -226,12 +263,12 @@ const {
                         {{ paymentNames.get(item.to_payment_method_id) }}
                       </td>
                       <td class="px-3 py-2 text-right tabular-nums">
-                        {{ Number(item.amount).toLocaleString("ja-JP") }}円
+                        {{ formatCurrency(item.amount) }}
                       </td>
                       <td class="px-3 py-2">{{ item.description ?? "" }}</td>
                       <td class="px-3 py-2 text-right">
                         <RowActionsMenu
-                          :label="`${item.transaction_date} 振替`"
+                          :label="`${formatDate(item.transaction_date)} 振替`"
                           @edit="editTransfer(item)"
                           @delete="askDeleteTransfer(item)"
                         />

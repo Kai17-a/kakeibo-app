@@ -91,9 +91,9 @@ test("振替明細で口座名と金額を表示し編集・削除する", async
   await page.goto("/daily?month=2026-10");
   await page.getByRole("tab", { name: "振替明細" }).click();
   await expect(page.getByRole("cell", { name: "銀行 → NISA" })).toBeVisible();
-  await expect(page.getByRole("cell", { name: "30,000円" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "￥30,000" })).toBeVisible();
 
-  await page.getByRole("button", { name: "2026-10-03 振替の操作" }).click();
+  await page.getByRole("button", { name: "10月3日(土) 振替の操作" }).click();
   await page.getByRole("menuitem", { name: "編集" }).click();
   await expect(page.getByRole("heading", { name: "振替を編集" })).toBeVisible();
   await expect(page.getByLabel("移動元")).toContainText("銀行");
@@ -102,9 +102,9 @@ test("振替明細で口座名と金額を表示し編集・削除する", async
   await page.getByLabel("金額").fill("40000");
   await page.getByRole("button", { name: "更新する" }).click();
   await expect(page.getByText("振替を更新しました", { exact: true })).toBeVisible();
-  await expect(page.getByRole("cell", { name: "40,000円" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "￥40,000" })).toBeVisible();
 
-  await page.getByRole("button", { name: "2026-10-03 振替の操作" }).click();
+  await page.getByRole("button", { name: "10月3日(土) 振替の操作" }).click();
   await page.getByRole("menuitem", { name: "削除" }).click();
   await page.getByRole("button", { name: "削除", exact: true }).click();
   await expect(page.getByText("明細を削除しました", { exact: true })).toBeVisible();
