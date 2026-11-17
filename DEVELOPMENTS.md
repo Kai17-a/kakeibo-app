@@ -40,6 +40,16 @@ mise run web-dev
 `http://localhost:5173` を開いてください。開発サーバーは `/api` を
 `http://localhost:8000` にプロキシします。
 
+### 認証を有効にして開発する
+
+```bash
+cd apps/api
+cargo run -- auth add-user dev
+KAKEIBO_AUTH_MODE=local KAKEIBO_PUBLIC_URL=http://localhost:5173 cargo run
+```
+
+`KAKEIBO_PUBLIC_URL` にはブラウザで開くURL（開発サーバーなら `http://localhost:5173`）を指定します。異なるオリジンからの書き込みリクエストは拒否されます。
+
 ### Check
 
 ```bash

@@ -40,6 +40,45 @@ volumes:
 docker compose up -d
 ```
 
+### 認証（オプション）
+
+既定では認証なしで動きます。インターネットに公開する場合などは、環境変数で認証を有効にできます。
+
+```yaml
+services:
+  app:
+    image: ghcr.io/kai17-a/kakeibo-app:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - kakeibo-data:/data
+    environment:
+      RUST_LOG: info
+      KAKEIBO_AUTH_MODE: local
+      KAKEIBO_PUBLIC_URL: https://kakeibo.example.com
+    restart: unless-stopped
+```
+
+| 環境変数 | 内容 |
+|---|---|
+| `KAKEIBO_AUTH_MODE` | `none`（既定、認証なし）または `local`（ユーザー名とパスワード） |
+| `KAKEIBO_PUBLIC_URL` | `local` のとき必須。ブラウザで開くURL（例: `https://kakeibo.example.com`）。httpsならCookieに `Secure` を付けます |
+| `KAKEIBO_AUTH_SESSION_TTL` | ログイン状態の有効期間。既定は `30d`。秒数、または `m`・`h`・`d` を付けて指定します |
+| `KAKEIBO_AUTH_DATABASE` | ユーザーとセッションを保存するファイル。既定は `/data/auth.db` |
+
+ユーザーはコンテナ内のコマンドで登録します。パスワードは15文字以上です。
+
+```bash
+docker compose exec app /app/kakeibo-app auth add-user <ユーザー名>
+docker compose exec app /app/kakeibo-app auth set-password <ユーザー名>  # 変更すると全端末でログアウトします
+docker compose exec app /app/kakeibo-app auth list-users
+docker compose exec app /app/kakeibo-app auth remove-user <ユーザー名>
+```
+
+- 登録したユーザーは全員が同じ家計データを使います
+- ユーザー情報は家計データとは別の `auth.db` に保存されるため、フルバックアップの復元でパスワードが巻き戻ることはありません
+- 同じユーザー名で15分以内に5回失敗すると、15分間ログインできなくなります
+
 ### データの永続化
 
 SQLiteデータベースはコンテナ内の `/data/kakeibo.db` に保存されます。上記のコマンドと設定では、Dockerボリューム `kakeibo-data` にデータを永続化します。
