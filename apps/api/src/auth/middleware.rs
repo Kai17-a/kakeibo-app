@@ -6,6 +6,7 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
+use tracing::warn;
 
 /// The signed-in user, available to handlers as a request extension.
 #[derive(Debug, Clone)]
@@ -23,6 +24,17 @@ pub async fn enforce(State(state): State<AuthState>, mut request: Request, next:
         && !is_safe_method(request.method())
         && !is_same_origin(request.headers(), &state.public_origin)
     {
+        let origin = request
+            .headers()
+            .get(header::ORIGIN)
+            .and_then(|value| value.to_str().ok())
+            .unwrap_or("(none)");
+        // Usually a KAKEIBO_PUBLIC_URL that differs from the URL opened in the browser.
+        warn!(
+            origin,
+            expected = %state.public_origin,
+            "Rejected a cross-origin request; check KAKEIBO_PUBLIC_URL"
+        );
         return AppError::forbidden("cross-origin request rejected").into_response();
     }
     if !requires_session(path) {
