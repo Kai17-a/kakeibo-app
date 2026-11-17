@@ -14,6 +14,7 @@ WORKDIR /build/apps/api
 
 COPY apps/api/Cargo.toml apps/api/Cargo.lock ./
 COPY apps/api/migrations ./migrations
+COPY apps/api/migrations_auth ./migrations_auth
 COPY apps/api/queries ./queries
 COPY apps/api/src ./src
 RUN cargo build --release --locked

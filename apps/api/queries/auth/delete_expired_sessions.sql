@@ -1,0 +1,5 @@
+DELETE
+FROM
+  sessions
+WHERE
+  expires_at <= ?1;
