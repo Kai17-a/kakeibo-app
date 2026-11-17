@@ -65,8 +65,9 @@ services:
 | `KAKEIBO_PUBLIC_URL` | `local` のとき必須。ブラウザで開くURL（例: `https://kakeibo.example.com`）。httpsならCookieに `Secure` を付けます |
 | `KAKEIBO_AUTH_SESSION_TTL` | ログイン状態の有効期間。既定は `30d`。秒数、または `m`・`h`・`d` を付けて指定します |
 | `KAKEIBO_AUTH_DATABASE` | ユーザーとセッションを保存するファイル。既定は `/data/auth.db` |
+| `KAKEIBO_AUTH_MIN_PASSWORD_LENGTH` | パスワードの最小文字数（1〜256）。既定は `8` |
 
-ユーザーはコンテナ内のコマンドで登録します。パスワードは15文字以上です。
+ユーザーはコンテナ内のコマンドで登録します。パスワードは `KAKEIBO_AUTH_MIN_PASSWORD_LENGTH` の文字数（既定は8文字）以上にしてください。
 
 ```bash
 docker compose exec app /app/kakeibo-app auth add-user <ユーザー名>
