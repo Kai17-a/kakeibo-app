@@ -144,12 +144,13 @@ const {
             <UTabs
               v-model="tab"
               orientation="horizontal"
-              variant="pill"
+              variant="link"
               :content="false"
               :items="tabItems"
               :ui="{
-                list: 'overflow-x-auto',
-                trigger: 'shrink-0',
+                list: 'overflow-x-auto px-0',
+                indicator: 'bottom-0 h-[2px]',
+                trigger: 'shrink-0 grow-0',
                 label: 'overflow-visible text-clip whitespace-nowrap',
               }"
               class="mb-5 w-full"
