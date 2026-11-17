@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { findSettingsGroup, settingsNavigation } from "~/utils/settings-navigation";
+import { findSettingsGroup, visibleSettingsNavigation } from "~/utils/settings-navigation";
 
 const route = useRoute();
+const auth = useAuth();
 const currentGroup = computed(() => findSettingsGroup(route.path));
 const groupItems = computed(() =>
-  settingsNavigation.map((group) => ({
+  visibleSettingsNavigation(auth.session.value?.mode === "local").map((group) => ({
     label: group.label,
     icon: group.icon,
     to: group.pages[0]!.to,

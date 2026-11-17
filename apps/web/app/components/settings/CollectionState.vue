@@ -11,10 +11,12 @@ withDefaults(
     /** The label of the add button shown in the empty state. */
     addLabel: string;
     addDisabled?: boolean;
+    /** Hides the add button in the empty state, for pages whose add form is always visible. */
+    showAdd?: boolean;
     /** Height class of each loading placeholder row. */
     skeletonClass?: string;
   }>(),
-  { addDisabled: false, skeletonClass: "h-16" },
+  { addDisabled: false, showAdd: true, skeletonClass: "h-16" },
 );
 
 const emit = defineEmits<{ retry: []; add: [] }>();
@@ -42,6 +44,7 @@ const emit = defineEmits<{ retry: []; add: [] }>();
       <h3 class="font-semibold">{{ label }}がありません</h3>
       <p class="text-sm text-muted">{{ emptyDescription }}</p>
       <UButton
+        v-if="showAdd"
         color="neutral"
         variant="outline"
         icon="i-lucide-plus"

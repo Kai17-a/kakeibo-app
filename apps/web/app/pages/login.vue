@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { loginErrorMessage, safeRedirectPath } from "~/utils/auth";
+import { passkeyErrorMessage, passkeySupported } from "~/utils/webauthn";
 
 definePageMeta({ layout: false });
 useSeoMeta({ title: "ログイン" });
@@ -10,6 +11,12 @@ const route = useRoute();
 const state = reactive({ username: "", password: "" });
 const submitting = ref(false);
 const error = ref("");
+// Read after mounting: the browser API is not available while the page is prerendered.
+const canUsePasskey = ref(false);
+onMounted(() => {
+  canUsePasskey.value = passkeySupported();
+});
+const showPasskey = computed(() => canUsePasskey.value && !!auth.session.value?.passkey);
 
 function validate(value: typeof state) {
   const errors: { name: string; message: string }[] = [];
@@ -17,6 +24,19 @@ function validate(value: typeof state) {
     errors.push({ name: "username", message: "ユーザー名を入力してください" });
   if (!value.password) errors.push({ name: "password", message: "パスワードを入力してください" });
   return errors;
+}
+
+async function loginWithPasskey() {
+  submitting.value = true;
+  error.value = "";
+  try {
+    await auth.loginWithPasskey();
+    await navigateTo(safeRedirectPath(route.query.redirect), { replace: true });
+  } catch (cause) {
+    error.value = passkeyErrorMessage(cause);
+  } finally {
+    submitting.value = false;
+  }
 }
 
 async function submit() {
@@ -77,6 +97,21 @@ async function submit() {
         </UFormField>
         <UButton type="submit" block size="xl" :loading="submitting">ログイン</UButton>
       </UForm>
+
+      <template v-if="showPasskey">
+        <USeparator label="または" />
+        <UButton
+          icon="i-lucide-key-round"
+          color="neutral"
+          variant="outline"
+          block
+          size="xl"
+          :disabled="submitting"
+          @click="loginWithPasskey"
+        >
+          パスキーでログイン
+        </UButton>
+      </template>
     </UCard>
   </main>
 </template>
