@@ -3,6 +3,14 @@ import { findSettingsGroup, settingsNavigation } from "~/utils/settings-navigati
 
 const route = useRoute();
 const currentGroup = computed(() => findSettingsGroup(route.path));
+const groupItems = computed(() =>
+  settingsNavigation.map((group) => ({
+    label: group.label,
+    icon: group.icon,
+    to: group.pages[0]!.to,
+    active: currentGroup.value === group,
+  })),
+);
 </script>
 
 <template>
@@ -40,22 +48,18 @@ const currentGroup = computed(() => findSettingsGroup(route.path));
     </template>
     <template #body>
       <div class="flex w-full min-w-0 gap-6">
-        <nav aria-label="設定グループ" class="hidden w-56 shrink-0 space-y-1 sm:block">
-          <UButton
-            v-for="group in settingsNavigation"
-            :key="group.label"
-            :to="group.pages[0]!.to"
-            :icon="group.icon"
-            :label="group.label"
-            :variant="currentGroup === group ? 'soft' : 'ghost'"
-            :color="currentGroup === group ? 'primary' : 'neutral'"
-            :aria-current="currentGroup === group ? 'true' : undefined"
-            class="w-full"
-          />
-        </nav>
-        <div class="flex min-w-0 flex-1 flex-col gap-6">
-          <SettingsSubNav />
-          <NuxtPage />
+        <UNavigationMenu
+          :items="groupItems"
+          orientation="vertical"
+          aria-label="設定グループ"
+          class="hidden w-56 shrink-0 sm:block"
+        />
+        <div class="min-w-0 flex-1">
+          <UCard v-if="currentGroup" :ui="{ body: 'space-y-6' }">
+            <SettingsSubNav />
+            <NuxtPage />
+          </UCard>
+          <NuxtPage v-else />
         </div>
       </div>
     </template>

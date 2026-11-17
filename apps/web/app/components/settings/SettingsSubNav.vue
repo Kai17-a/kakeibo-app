@@ -9,21 +9,23 @@ const group = computed(() => findSettingsGroup(route.path));
   <nav
     v-if="group && group.pages.length > 1"
     :aria-label="`${group.label}の切り替え`"
-    class="flex rounded-lg bg-elevated p-1"
+    class="border-b border-default"
   >
-    <NuxtLink
-      v-for="page in group.pages"
-      :key="page.to"
-      :to="page.to"
-      :aria-current="route.path.replace(/\/$/, '') === page.to ? 'page' : undefined"
-      class="flex min-w-0 flex-1 items-center justify-center rounded-md px-2 py-1.5 text-center text-sm font-medium focus-visible:outline-2 focus-visible:outline-primary max-sm:min-h-[44px]"
-      :class="
-        route.path.replace(/\/$/, '') === page.to
-          ? 'bg-default text-highlighted shadow-sm'
-          : 'text-muted hover:text-default'
-      "
-    >
-      {{ page.label }}
-    </NuxtLink>
+    <div class="flex w-fit max-w-full overflow-x-auto">
+      <NuxtLink
+        v-for="page in group.pages"
+        :key="page.to"
+        :to="page.to"
+        :aria-current="route.path.replace(/\/$/, '') === page.to ? 'page' : undefined"
+        class="relative flex shrink-0 items-center justify-center px-3 py-2 text-center text-sm font-medium focus-visible:outline-2 focus-visible:outline-primary max-sm:min-h-[44px]"
+        :class="
+          route.path.replace(/\/$/, '') === page.to
+            ? 'text-primary after:absolute after:inset-x-0 after:bottom-0 after:h-[2px] after:rounded-full after:bg-primary'
+            : 'text-muted hover:text-default'
+        "
+      >
+        {{ page.label }}
+      </NuxtLink>
+    </div>
   </nav>
 </template>

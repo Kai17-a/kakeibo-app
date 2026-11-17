@@ -93,13 +93,13 @@ onMounted(() => {
       </p>
     </div>
 
-    <UCard>
-      <template #header>
+    <section class="space-y-6 border-t border-default pt-6">
+      <div>
         <h3 class="text-sm font-semibold">データのダウンロード</h3>
         <p class="mt-2 text-sm text-muted">
           用途に合わせてCSVファイルまたはデータベース全体をダウンロードできます
         </p>
-      </template>
+      </div>
 
       <div class="space-y-6">
         <section v-for="group in downloadGroups" :key="group.id" :aria-labelledby="group.id">
@@ -129,15 +129,15 @@ onMounted(() => {
           </div>
         </section>
       </div>
-    </UCard>
+    </section>
 
-    <UCard>
-      <template #header>
+    <section class="space-y-6 border-t border-default pt-6">
+      <div>
         <h3 class="text-sm font-semibold">データのインポート</h3>
         <p class="mt-2 text-sm text-muted">
           CSVは明細を追加し、フルバックアップは現在の全データを置き換えます
         </p>
-      </template>
+      </div>
 
       <div class="space-y-6">
         <section v-for="group in importGroups" :key="group.id" :aria-labelledby="group.id">
@@ -176,6 +176,6 @@ onMounted(() => {
           </div>
         </section>
       </div>
-    </UCard>
+    </section>
   </section>
 </template>

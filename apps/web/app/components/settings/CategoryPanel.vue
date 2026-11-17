@@ -153,7 +153,7 @@ function save() {
     >
       <div
         ref="list"
-        class="divide-y divide-default overflow-hidden rounded-lg border border-default"
+        class="divide-y divide-default overflow-hidden border-y border-default"
         :aria-label="`${label}一覧`"
       >
         <div
