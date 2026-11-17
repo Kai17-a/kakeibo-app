@@ -3,6 +3,7 @@ import { formatCurrency, formatSignedCurrency } from "~/utils/format";
 
 const props = defineProps<{
   monthLabel: string;
+  missingIncomeNames?: string[];
   /** Totals including the forecast of recurring items not yet recorded. */
   income: number;
   expense: number;
@@ -54,14 +55,23 @@ const balance = computed(() => props.income - props.expense);
       </UBadge>
     </div>
     <div class="border-t border-l border-default p-3 sm:border-t-0 sm:p-6">
-      <p class="text-sm text-muted">収支</p>
+      <p class="text-sm text-muted">{{ missingIncomeNames?.length ? "収支（暫定）" : "収支" }}</p>
       <p
         :class="[
           'mt-1 text-lg font-semibold whitespace-nowrap tabular-nums sm:text-2xl',
-          balance < 0 ? 'text-error' : balance > 0 ? 'text-primary' : 'text-default',
+          missingIncomeNames?.length
+            ? 'text-default'
+            : balance < 0
+              ? 'text-error'
+              : balance > 0
+                ? 'text-primary'
+                : 'text-default',
         ]"
       >
         {{ formatSignedCurrency(balance) }}
+      </p>
+      <p v-if="missingIncomeNames?.length" class="mt-2 text-xs text-muted">
+        {{ missingIncomeNames.map((name) => `${name} 未登録`).join("・") }}
       </p>
       <UProgress
         v-if="budgetTotal"

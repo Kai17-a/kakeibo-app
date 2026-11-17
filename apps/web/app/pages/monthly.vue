@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ExchangeRatePreview } from "~/types/transactions";
 import {
+  activeInMonth,
   budgetActuals,
   categoryTotals,
   inPeriod,
@@ -73,11 +74,35 @@ const postedRecurringAmounts = computed(() =>
 );
 
 const activeRecurringExpenses = computed(() =>
-  recurringExpenses.value.filter((item) => item.is_active),
+  recurringExpenses.value.filter((item) => item.is_active && activeInMonth(item, month.value)),
 );
 const activeRecurringIncomes = computed(() =>
-  recurringIncomes.value.filter((item) => item.is_active),
+  recurringIncomes.value.filter((item) => item.is_active && activeInMonth(item, month.value)),
 );
+
+const missingVariableIncomes = computed(() =>
+  activeRecurringIncomes.value.filter(
+    (item) => item.is_variable && !postedRecurringAmounts.value.incomes.has(item.id),
+  ),
+);
+const missingVariableItems = computed(() => [
+  ...activeRecurringExpenses.value.filter(
+    (item) => item.is_variable && !postedRecurringAmounts.value.expenses.has(item.id),
+  ),
+  ...missingVariableIncomes.value,
+]);
+function scrollToRecurring() {
+  const first = missingVariableItems.value[0];
+  const button = first
+    ? document.querySelector<HTMLElement>(`[aria-label="${CSS.escape(first.name)}の今月分を登録"]`)
+    : null;
+  if (button) {
+    button.scrollIntoView({ block: "center" });
+    button.focus({ preventScroll: true });
+    return;
+  }
+  document.getElementById("recurring-items")?.scrollIntoView({ block: "start" });
+}
 
 const expenseNames = computed(
   () => new Map(expenseCategories.value.map((item) => [item.id, item.name])),
@@ -228,7 +253,26 @@ const {
               :budget-total="budgetTotal"
               :budget-rate="budgetRate"
               :investment="investment"
+              :missing-income-names="missingVariableIncomes.map((item) => item.name)"
             />
+
+            <div
+              v-if="missingVariableItems.length"
+              class="flex min-w-0 items-center gap-2 rounded-lg border border-default bg-elevated/50 px-3 py-2 text-sm"
+            >
+              <UIcon name="i-lucide-calendar-clock" class="size-4 shrink-0 text-muted" />
+              <span class="shrink-0">今月の未登録 {{ missingVariableItems.length }}件</span>
+              <span class="min-w-0 flex-1 truncate text-muted">{{
+                missingVariableItems.map((item) => item.name).join("・")
+              }}</span>
+              <UButton
+                color="neutral"
+                variant="outline"
+                class="shrink-0 max-sm:min-h-[44px]"
+                @click="scrollToRecurring"
+                >登録する</UButton
+              >
+            </div>
 
             <div class="grid gap-6 lg:grid-cols-[1fr_1.6fr]">
               <div class="order-2 space-y-6 lg:order-1">
