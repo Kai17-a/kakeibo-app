@@ -85,9 +85,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="space-y-6" aria-labelledby="data-heading">
+  <section class="space-y-6" aria-label="データ管理">
     <div class="space-y-1">
-      <h2 id="data-heading" class="text-base font-semibold text-highlighted">データ管理</h2>
       <p class="text-sm text-muted">
         家計簿データの書き出し、バックアップ、CSVからの取り込みを行います
       </p>
@@ -95,7 +94,7 @@ onMounted(() => {
 
     <section class="space-y-6 border-t border-default pt-6">
       <div>
-        <h3 class="text-sm font-semibold">データのダウンロード</h3>
+        <h2 class="text-base font-semibold text-highlighted">データのダウンロード</h2>
         <p class="mt-2 text-sm text-muted">
           用途に合わせてCSVファイルまたはデータベース全体をダウンロードできます
         </p>
@@ -103,7 +102,7 @@ onMounted(() => {
 
       <div class="space-y-6">
         <section v-for="group in downloadGroups" :key="group.id" :aria-labelledby="group.id">
-          <h4 :id="group.id" class="text-sm font-medium text-muted">{{ group.title }}</h4>
+          <h3 :id="group.id" class="text-sm font-medium text-muted">{{ group.title }}</h3>
           <div class="mt-2 divide-y divide-default border-t border-default">
             <div
               v-for="item in group.items"
@@ -133,7 +132,7 @@ onMounted(() => {
 
     <section class="space-y-6 border-t border-default pt-6">
       <div>
-        <h3 class="text-sm font-semibold">データのインポート</h3>
+        <h2 class="text-base font-semibold text-highlighted">データのインポート</h2>
         <p class="mt-2 text-sm text-muted">
           CSVは明細を追加し、フルバックアップは現在の全データを置き換えます
         </p>
@@ -141,7 +140,7 @@ onMounted(() => {
 
       <div class="space-y-6">
         <section v-for="group in importGroups" :key="group.id" :aria-labelledby="group.id">
-          <h4 :id="group.id" class="text-sm font-medium text-muted">{{ group.title }}</h4>
+          <h3 :id="group.id" class="text-sm font-medium text-muted">{{ group.title }}</h3>
           <div class="mt-2 divide-y divide-default border-t border-default">
             <div
               v-for="item in group.items"
@@ -158,9 +157,9 @@ onMounted(() => {
         </section>
 
         <section aria-labelledby="backup-restore-heading">
-          <h4 id="backup-restore-heading" class="text-sm font-medium text-muted">
+          <h3 id="backup-restore-heading" class="text-sm font-medium text-muted">
             データベース全体の復元
-          </h4>
+          </h3>
           <div class="mt-2 divide-y divide-default border-t border-default">
             <div
               class="flex min-w-0 flex-col gap-3 py-4 last:pb-0 sm:flex-row sm:items-start sm:justify-between"

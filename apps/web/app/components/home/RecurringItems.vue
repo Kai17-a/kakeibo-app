@@ -28,7 +28,7 @@ const hasAny = computed(() => props.recurringExpenses.length || props.recurringI
 </script>
 
 <template>
-  <UCard v-if="hasAny" class="bg-default">
+  <UCard v-if="hasAny" id="recurring-items" class="scroll-mt-24 bg-default">
     <template #header>
       <h2 class="text-lg font-semibold">定期の収支</h2>
     </template>

@@ -49,6 +49,9 @@ const groupItems = computed(() =>
     <template #body>
       <div class="flex w-full min-w-0 gap-6">
         <UNavigationMenu
+          :ui="{
+            link: 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary focus-visible:outline-solid',
+          }"
           :items="groupItems"
           orientation="vertical"
           aria-label="設定グループ"

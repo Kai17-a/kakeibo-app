@@ -25,7 +25,7 @@ function clear() {
 
 <template>
   <div class="flex flex-wrap items-end gap-3 border-b border-default py-4">
-    <UFormField label="備考を検索" class="min-w-48 flex-1">
+    <UFormField label="メモを検索" class="min-w-48 flex-1">
       <UInput v-model="keyword" type="search" placeholder="キーワードを入力" class="w-full" />
     </UFormField>
     <UFormField label="カテゴリ" class="min-w-40 flex-1 sm:flex-none">

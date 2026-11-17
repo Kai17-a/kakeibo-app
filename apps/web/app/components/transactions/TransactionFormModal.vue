@@ -226,6 +226,7 @@ async function submit(keepOpen: boolean) {
     :close="!saving"
     :ui="{
       content: 'max-w-xl',
+      close: 'max-sm:size-[44px]',
       body: 'sm:p-6',
       footer: 'flex-wrap justify-end gap-2 max-sm:[&_button]:min-h-[44px]',
     }"
@@ -243,6 +244,7 @@ async function submit(keepOpen: boolean) {
           { label: '支出', value: 'expense' },
           { label: '収入', value: 'income' },
         ]"
+        :ui="{ trigger: 'max-sm:min-h-[44px]' }"
         variant="link"
         class="mb-5 w-fit"
       />

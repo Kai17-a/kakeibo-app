@@ -7,7 +7,10 @@ import type {
 } from "~/types/settings";
 import type { Expense, Income, Transfer } from "~/types/transactions";
 
-function activeInMonth(item: { start_date: string; end_date: string | null }, month: string) {
+export function activeInMonth(
+  item: { start_date: string; end_date: string | null },
+  month: string,
+) {
   const first = `${month}-01`;
   const last = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0))
     .toISOString()

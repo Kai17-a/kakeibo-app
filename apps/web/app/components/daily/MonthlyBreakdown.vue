@@ -80,7 +80,7 @@ const variableTotals = computed(() => nonZeroCategoryTotals(classification.value
         <span>{{ item.name }}</span>
         <span class="text-right tabular-nums">{{ formatCurrency(item.total) }}</span>
       </div>
-      <h2 class="mt-5 border-b border-default pb-2 text-base font-semibold">支払種別</h2>
+      <h2 class="mt-5 border-b border-default pb-2 text-base font-semibold">支払方法</h2>
       <div
         v-for="item in paymentBreakdown"
         :key="item.id"

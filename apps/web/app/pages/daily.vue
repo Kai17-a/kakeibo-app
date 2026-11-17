@@ -24,14 +24,14 @@ const monthIncomes = computed(() => inPeriod(incomes.value, month.value));
 const monthTransfers = computed(() => inPeriod(transfers.value, month.value).toSorted(byDate));
 
 const tab = ref<"summary" | "details" | "income-details" | "transfer-details" | "categories">(
-  "summary",
+  "details",
 );
 const tabItems = [
-  { label: "収支・明細", value: "summary" },
   { label: "支出明細", value: "details" },
   { label: "収入明細", value: "income-details" },
   { label: "振替明細", value: "transfer-details" },
-  { label: "月ごとのカテゴリ別支出", value: "categories" },
+  { label: "月次内訳", value: "summary" },
+  { label: "カテゴリ別", value: "categories" },
 ];
 
 const keyword = ref("");
@@ -150,7 +150,7 @@ const {
               :ui="{
                 list: 'overflow-x-auto px-0',
                 indicator: 'bottom-0 h-[2px]',
-                trigger: 'shrink-0 grow-0',
+                trigger: 'shrink-0 grow-0 max-sm:min-h-[44px]',
                 label: 'overflow-visible text-clip whitespace-nowrap',
               }"
               class="mb-5 w-full"

@@ -26,6 +26,7 @@ const items = [
       color="neutral"
       variant="ghost"
       size="sm"
+      class="max-sm:size-[44px]"
       :aria-label="`${label}の操作`"
     />
   </UDropdownMenu>
