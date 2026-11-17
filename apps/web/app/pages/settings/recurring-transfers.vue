@@ -111,7 +111,7 @@ function save() {
       @retry="load"
       @add="openForm()"
     >
-      <div class="min-w-0 overflow-hidden rounded-lg border border-default">
+      <div class="min-w-0 overflow-hidden border-y border-default">
         <UTable
           :data="sortedItems"
           @select="(_event, row) => openForm(row.original)"

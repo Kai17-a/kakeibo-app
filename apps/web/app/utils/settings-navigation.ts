@@ -1,7 +1,7 @@
 export const settingsNavigation = [
   {
     label: "予算",
-    icon: "i-lucide-piggy-bank",
+    icon: "i-lucide-wallet",
     description: "カテゴリごとの月額予算",
     pages: [{ label: "予算", to: "/settings/budget" }],
   },

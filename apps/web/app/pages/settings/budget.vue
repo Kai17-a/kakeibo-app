@@ -96,7 +96,7 @@ onBeforeRouteLeave(
         >再試行</UButton
       >
     </div>
-    <div v-else-if="!categories.length" class="space-y-3 rounded-lg border border-default p-6">
+    <div v-else-if="!categories.length" class="space-y-3 border-y border-default p-6">
       <p>支出カテゴリがありません</p>
       <UButton to="/settings/expense-categories" class="max-sm:min-h-[44px]"
         >カテゴリ設定へ</UButton
@@ -128,7 +128,7 @@ onBeforeRouteLeave(
         title="保存できませんでした"
         :description="saveError"
       />
-      <div class="divide-y divide-default rounded-lg border border-default">
+      <div class="divide-y divide-default border-y border-default">
         <div
           v-for="category in categories"
           :key="category.id"
