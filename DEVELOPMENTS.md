@@ -94,8 +94,10 @@ mise run test-data-clear
 ├── apps/
 │   ├── api/
 │   │   ├── migrations/  # SQLxマイグレーション
+│   │   ├── migrations_auth/  # 認証用DB（auth.db）のマイグレーション
 │   │   ├── queries/     # リソースごとのSQLクエリ
 │   │   ├── src/
+│   │   │   ├── auth/        # 認証の設定、セッション、ミドルウェア、CLI
 │   │   │   ├── database/    # DB接続、マイグレーション、DBモデル
 │   │   │   ├── handler/     # HTTPリクエスト・レスポンス処理
 │   │   │   ├── model/       # APIのリクエスト・レスポンスモデル

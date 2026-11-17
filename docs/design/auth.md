@@ -1,0 +1,77 @@
+# 認証
+
+環境変数で有効にするオプションの認証。既定は無効で、設定しなければ従来どおりすべてのリクエストを通す。
+
+家計データはユーザーごとに分けない。認証は「アクセスできる人を限る門」として働き、登録したユーザーは全員が同じ家計データを扱う。
+
+## モード
+
+| `KAKEIBO_AUTH_MODE` | 内容 |
+|---|---|
+| `none`（既定） | 認証しない |
+| `local` | アプリが持つユーザー名とパスワードでログインする |
+
+リバースプロキシのヘッダー認証（`proxy`）とアプリ内 OIDC（`oidc`）は、必要になったときに追加する。パスキーは `local` のログイン方法として追加する。
+
+## 環境変数
+
+| 変数 | 必須 | 既定 | 内容 |
+|---|---|---|---|
+| `KAKEIBO_AUTH_MODE` | | `none` | `none` または `local` |
+| `KAKEIBO_PUBLIC_URL` | `local` のとき | | ブラウザで開く URL。`Origin` の照合と、Cookie に `Secure` を付けるか（https のとき付ける）の判定に使う |
+| `KAKEIBO_AUTH_SESSION_TTL` | | `30d` | セッションの有効期間。秒数、または `m`・`h`・`d` を付けた値 |
+| `KAKEIBO_AUTH_DATABASE` | | `auth.db` | ユーザーとセッションを保存する SQLite ファイル |
+
+設定が不正なときは、原因の変数名をログに出して起動を止める。
+
+## データの置き場所
+
+ユーザーとセッションは、家計データの `kakeibo.db` とは別の `auth.db` に保存する（マイグレーションは `apps/api/migrations_auth/`）。フルバックアップの取得と復元は `kakeibo.db` だけを対象にするため、バックアップを復元してもパスワードやセッションは巻き戻らない。
+
+## パスワード
+
+- Argon2id（OWASP 推奨の既定値：19 MiB、2 回、並列度 1）でハッシュ化する。salt はパスワードごとに生成し、PHC 形式のハッシュ文字列に含める。
+- 長さは 15 文字以上 256 文字以下。パスワードだけで認証する場合の NIST SP 800-63B の推奨に合わせる。文字種の強制はしない。
+- 存在しないユーザー名でもダミーのハッシュと照合し、応答時間からユーザー名の有無を推測させない。
+- ユーザー名は大文字と小文字を区別しない。
+
+## セッション
+
+- ログインに成功すると 32 バイトの乱数トークンを発行し、Cookie `kakeibo_session` で返す。DB にはトークンの SHA-256 だけを保存する。
+- Cookie の属性は `HttpOnly; SameSite=Lax; Path=/`。`KAKEIBO_PUBLIC_URL` が https なら `Secure` も付ける。
+- 使われているセッションは、1 時間に 1 回まで有効期限を延ばし、Cookie を送り直す。期限切れのセッションは参照時と 1 時間ごとの掃除で削除する。
+- ログイン時に既存のセッション Cookie があれば、そのセッションは削除する。
+- パスワードを変えるか、ユーザーを削除すると、そのユーザーのセッションはすべて消える。
+
+## 保護する範囲
+
+`local` のときだけミドルウェアを入れる。
+
+- セッションが必要：`/api/*`（`/api/auth/*` を除く）、`/docs`
+- 公開：`/api/auth/*`、`/health`、SPA の静的ファイル（ログイン画面を表示するため）
+- 状態を変えるリクエスト（GET・HEAD・OPTIONS 以外）で `Origin` が `KAKEIBO_PUBLIC_URL` と一致しないものは 403 にする。`Origin` がなく `Sec-Fetch-Site: cross-site` のものも拒否する。
+
+## ログインの回数制限
+
+同じユーザー名で 15 分以内に 5 回失敗すると、15 分間ロックして 429 を返す。リバースプロキシの後ろでは全員の IP が同じになりうるため、IP ではなくユーザー名で数える。カウンタはメモリ上にあり、再起動でリセットされる。
+
+## API
+
+| メソッドとパス | 内容 |
+|---|---|
+| `GET /api/auth/session` | `{ mode, authenticated, user }`。認証が無効なら `authenticated` は常に true |
+| `POST /api/auth/login` | `{ username, password }`。成功で 204 と Set-Cookie、失敗で 401、ロック中は 429。認証が無効なら 404 |
+| `POST /api/auth/logout` | セッションを削除して Cookie を消す。認証が無効なら 404 |
+
+## ユーザー管理（CLI）
+
+```bash
+kakeibo-app auth add-user <username>       # パスワードを 2 回入力
+kakeibo-app auth set-password <username>   # パスワードを変え、全セッションを無効にする
+kakeibo-app auth list-users
+kakeibo-app auth remove-user <username>
+```
+
+`add-user` と `set-password` は `--password-stdin` を付けると標準入力の 1 行目をパスワードとして読む。`auth.db` の場所は `KAKEIBO_AUTH_DATABASE` に従う。
+
+`local` で起動したときにユーザーが 0 人なら、警告をログに出す（API はすべて 401 になる）。初回にセットアップ画面は出さない。公開した直後に他人に先に登録されるのを防ぐため。
