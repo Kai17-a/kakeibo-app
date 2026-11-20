@@ -76,7 +76,7 @@
 - Relying Party は `KAKEIBO_PUBLIC_URL` から決める。オリジンはそのURL、RP ID はそのホスト名。ホストが IP アドレスなどで RP ID にできないときは、警告をログに出してパスキーだけを無効にする（`/api/auth/session` の `passkey` が false になる）。ブラウザは HTTPS か `localhost` でしかパスキーを使えない。
 - ログイン画面ではユーザー名を聞かないため、登録時に discoverable credential（`residentKey: required`）を求め、ログインは discoverable authentication で行う。credential の user handle にはユーザー ID（UUID の 32 桁表記）を入れる。
 - ユーザー確認（生体認証や画面ロック）を必須にする。パスキー単独で多要素とみなせるため、パスワードとの併用は求めない。
-- 登録・ログインの途中状態はメモリ上に 5 分だけ持ち、ID で 1 回だけ取り出せる。同時に 256 件までで、超えたら 429 を返す。
+- 登録・ログインの途中状態はメモリ上に 5 分だけ持ち、ID で 1 回だけ取り出せる。同時に 1024 件まで持ち、超えたらいちばん古いものから捨てる（ログインの challenge は誰でも要求できるため、満杯で断ると、だれでもパスキーでのログインを止められてしまう）。
 - パスキーは `auth.db` の `passkeys` テーブルに保存する（credential ID、名前、webauthn-rs の Passkey を JSON にしたもの、登録日時、最終使用日時）。ユーザーを削除すると、そのユーザーのパスキーも消える。
 - 自分のパスキーだけを一覧・削除できる。パスワードを変えてもパスキーは残る。
 
