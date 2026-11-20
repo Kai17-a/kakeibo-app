@@ -4,12 +4,15 @@ use crate::{
     utils::error::{AppError, AppResult},
 };
 use std::sync::Arc;
+use tokio::sync::Semaphore;
 use tracing::info;
 
 pub const MAX_USERNAME_LENGTH: usize = 64;
 /// How often an active session's expiry is pushed forward. Refreshing on every request would
 /// write to the database for every API call.
 pub const SESSION_REFRESH_INTERVAL_SECONDS: i64 = 60 * 60;
+/// Password checks allowed to run at the same time, which bounds the memory Argon2 uses.
+const MAX_CONCURRENT_PASSWORD_CHECKS: usize = 4;
 
 const INVALID_CREDENTIALS: &str = "invalid username or password";
 
@@ -31,6 +34,7 @@ pub struct AuthenticatedUser {
 pub struct AuthService {
     repository: AuthRepository,
     limiter: Arc<LoginRateLimiter>,
+    password_checks: Arc<Semaphore>,
     session_ttl_seconds: i64,
     min_password_length: usize,
 }
@@ -40,6 +44,7 @@ impl AuthService {
         Self {
             repository,
             limiter: Arc::new(LoginRateLimiter::default()),
+            password_checks: Arc::new(Semaphore::new(MAX_CONCURRENT_PASSWORD_CHECKS)),
             session_ttl_seconds,
             min_password_length: password::DEFAULT_MIN_PASSWORD_LENGTH,
         }
@@ -65,32 +70,47 @@ impl AuthService {
         if username.is_empty() || password.is_empty() {
             return Err(AppError::bad_request("username and password are required"));
         }
-        if self.limiter.locked_for(username, now).is_some() {
+        // No registered username is this long, so it cannot match; rejecting it before the
+        // limiter keeps oversized names out of memory and the logs.
+        if username.chars().count() > MAX_USERNAME_LENGTH {
+            return Err(AppError::unauthorized(INVALID_CREDENTIALS));
+        }
+        let Some(attempt) = self.limiter.begin(username, now) else {
             return Err(AppError::too_many_requests(
                 "too many failed login attempts; try again later",
             ));
-        }
+        };
 
         let user = self.repository.find_user(username).await?;
-        // Argon2 is deliberately slow, so it runs off the async worker threads.
+        // Argon2 is deliberately slow and uses about 19 MiB per check, so checks run off the
+        // async worker threads and only a few at a time.
+        // The permit moves into the blocking task, so it is held until the check really ends
+        // even if the client disconnects meanwhile.
+        let permit = Arc::clone(&self.password_checks)
+            .acquire_owned()
+            .await
+            .map_err(|error| AppError::context("Password verification failed", error))?;
         let stored_hash = user.as_ref().map(|user| user.password_hash.clone());
         let candidate = password.to_owned();
-        let verified = tokio::task::spawn_blocking(move || match stored_hash {
-            Some(stored_hash) => password::verify(&candidate, &stored_hash),
-            None => {
-                password::verify_against_dummy(&candidate);
-                false
+        let verified = tokio::task::spawn_blocking(move || {
+            let _permit = permit;
+            match stored_hash {
+                Some(stored_hash) => password::verify(&candidate, &stored_hash),
+                None => {
+                    password::verify_against_dummy(&candidate);
+                    false
+                }
             }
         })
         .await
         .map_err(|error| AppError::context("Password verification failed", error))?;
         let Some(user) = user.filter(|_| verified) else {
-            self.limiter.record_failure(username, now);
+            attempt.fail(now);
             info!(username, "Login failed");
             return Err(AppError::unauthorized(INVALID_CREDENTIALS));
         };
 
-        self.limiter.record_success(username);
+        attempt.succeed();
         let token = session_cookie::generate_token()?;
         self.repository
             .insert_session(
