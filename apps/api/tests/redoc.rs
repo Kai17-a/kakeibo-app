@@ -26,6 +26,8 @@ async fn serves_api_documentation() {
     assert!(html.contains("/api/expenses"));
     assert!(html.contains("/api/income-categories"));
     assert!(html.contains("/api/backup"));
+    assert!(html.contains("/api/auth/login"));
+    assert!(html.contains("/api/passkeys"));
     assert!(html.contains("/health"));
     assert!(html.contains("Kakeibo API"));
     assert!(html.contains("収入カテゴリ"));

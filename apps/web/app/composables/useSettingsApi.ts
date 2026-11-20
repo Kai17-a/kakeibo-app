@@ -18,7 +18,7 @@ import type {
 } from "~/types/settings";
 
 export function useSettingsApi() {
-  const client = $fetch.create({ retry: 0, timeout: 15000 });
+  const client = $fetch.create({ retry: 0, timeout: 15000, onResponseError: notifyUnauthorized });
   function resource<T, Input>(path: string) {
     return {
       create: (body: Input) =>

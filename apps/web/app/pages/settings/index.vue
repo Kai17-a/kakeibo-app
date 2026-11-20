@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { settingsNavigation } from "~/utils/settings-navigation";
+import { settingsNavigation, visibleSettingsNavigation } from "~/utils/settings-navigation";
+
+const auth = useAuth();
+const groups = computed(() => visibleSettingsNavigation(auth.session.value?.mode === "local"));
 
 onMounted(() => {
   if (window.matchMedia("(min-width: 640px)").matches) {
@@ -14,7 +17,7 @@ onMounted(() => {
     class="divide-y divide-default rounded-lg border border-default sm:hidden"
   >
     <NuxtLink
-      v-for="group in settingsNavigation"
+      v-for="group in groups"
       :key="group.label"
       :to="group.pages[0]!.to"
       class="flex min-h-14 items-center gap-3 p-4 first:rounded-t-lg last:rounded-b-lg hover:bg-elevated focus-visible:outline-2 focus-visible:outline-primary"
@@ -27,4 +30,19 @@ onMounted(() => {
       <UIcon name="i-lucide-chevron-right" class="size-5 shrink-0 text-muted" />
     </NuxtLink>
   </nav>
+  <div v-if="auth.canLogout.value" class="mt-6 sm:hidden">
+    <UButton
+      icon="i-lucide-log-out"
+      color="neutral"
+      variant="outline"
+      size="xl"
+      block
+      @click="auth.logout()"
+    >
+      ログアウト
+      <span v-if="auth.session.value?.user" class="text-muted">
+        （{{ auth.session.value.user.username }}）
+      </span>
+    </UButton>
+  </div>
 </template>

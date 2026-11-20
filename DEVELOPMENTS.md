@@ -37,8 +37,18 @@ mise run web-install
 mise run web-dev
 ```
 
-`http://localhost:5173` を開いてください。開発サーバーは `/api` を
+`http://localhost:3000` を開いてください。開発サーバーは `/api` を
 `http://localhost:8000` にプロキシします。
+
+### 認証を有効にして開発する
+
+```bash
+cd apps/api
+cargo run -- auth add-user dev
+KAKEIBO_AUTH_MODE=local KAKEIBO_PUBLIC_URL=http://localhost:3000 cargo run
+```
+
+`KAKEIBO_PUBLIC_URL` にはブラウザで開くURL（開発サーバーなら `http://localhost:3000`）を指定します。異なるオリジンからの書き込みリクエストは拒否され、ログイン画面に「このURLからはログインできません」と表示されます。
 
 ### Check
 
@@ -94,8 +104,10 @@ mise run test-data-clear
 ├── apps/
 │   ├── api/
 │   │   ├── migrations/  # SQLxマイグレーション
+│   │   ├── migrations_auth/  # 認証用DB（auth.db）のマイグレーション
 │   │   ├── queries/     # リソースごとのSQLクエリ
 │   │   ├── src/
+│   │   │   ├── auth/        # 認証の設定、セッション、ミドルウェア、CLI
 │   │   │   ├── database/    # DB接続、マイグレーション、DBモデル
 │   │   │   ├── handler/     # HTTPリクエスト・レスポンス処理
 │   │   │   ├── model/       # APIのリクエスト・レスポンスモデル

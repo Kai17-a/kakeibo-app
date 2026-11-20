@@ -5,9 +5,13 @@ use utoipa_redoc::{Redoc, Servable};
 
 use crate::{
     handler::{
-        backup, budgets, expense_categories, expenses, export, health, import, income_categories,
-        incomes, payment_methods, recurring_expenses, recurring_incomes, recurring_transfers,
-        transfers,
+        auth, backup, budgets, expense_categories, expenses, export, health, import,
+        income_categories, incomes, passkeys, payment_methods, recurring_expenses,
+        recurring_incomes, recurring_transfers, transfers,
+    },
+    model::auth::{
+        LoginRequest, PasskeyChallenge, PasskeyLoginRequest, PasskeyRegistrationRequest,
+        PasskeySummary, SessionResponse, SessionUser,
     },
     model::budgets::{Budget, BudgetUpsertRequest},
     model::expense_categories::{
@@ -45,6 +49,15 @@ use crate::{
 #[derive(OpenApi)]
 #[openapi(
     paths(
+        auth::session,
+        auth::login,
+        auth::logout,
+        passkeys::start_login,
+        passkeys::login,
+        passkeys::list,
+        passkeys::start_registration,
+        passkeys::register,
+        passkeys::delete,
         backup::get,
         backup::restore,
         budgets::list,
@@ -118,6 +131,13 @@ use crate::{
         health::get
     ),
     components(schemas(
+        LoginRequest,
+        SessionResponse,
+        SessionUser,
+        PasskeyChallenge,
+        PasskeyLoginRequest,
+        PasskeyRegistrationRequest,
+        PasskeySummary,
         Budget,
         BudgetUpsertRequest,
         ExpenseCategory,
@@ -174,6 +194,8 @@ use crate::{
         version = "0.1.0"
     ),
     tags(
+        (name = "認証", description = "ログインとセッション（KAKEIBO_AUTH_MODE=local のとき）"),
+        (name = "パスキー", description = "ログインに使うパスキーの登録と削除"),
         (name = "バックアップ", description = "SQLiteデータベースのバックアップ"),
         (name = "収入", description = "収入の登録・参照・更新・削除"),
         (name = "収入カテゴリ", description = "収入カテゴリの管理"),
@@ -215,6 +237,12 @@ fn set_operation(operation: &mut Option<Operation>, tag: &str, summary: &str) {
 
 fn tag_for_path(path: &str) -> &'static str {
     match path {
+        "/api/auth/session"
+        | "/api/auth/login"
+        | "/api/auth/logout"
+        | "/api/auth/passkey/challenge"
+        | "/api/auth/passkey/login" => "認証",
+        "/api/passkeys" | "/api/passkeys/registration" | "/api/passkeys/{id}" => "パスキー",
         "/api/backup" | "/api/backup/restore" => "バックアップ",
         "/api/incomes" | "/api/incomes/{id}" => "収入",
         "/api/income-categories" | "/api/income-categories/{id}" => "収入カテゴリ",
@@ -252,6 +280,12 @@ fn operation_summary(method: &str, path: &str) -> &'static str {
         ("GET", false) if path == "/api/backup" => "DBをバックアップ",
         ("POST", false) if path == "/api/backup/restore" => "DBを復元",
         ("GET", false) if path == "/health" => "稼働状態を確認",
+        ("GET", false) if path == "/api/auth/session" => "セッションを確認",
+        ("POST", false) if path == "/api/auth/login" => "ログイン",
+        ("POST", false) if path == "/api/auth/logout" => "ログアウト",
+        ("POST", false) if path == "/api/auth/passkey/challenge" => "パスキーログインを開始",
+        ("POST", false) if path == "/api/auth/passkey/login" => "パスキーでログイン",
+        ("POST", false) if path == "/api/passkeys/registration" => "パスキー登録を開始",
         ("GET", false) if path.starts_with("/api/export/") => "CSVをエクスポート",
         ("GET", false) if path.ends_with("/pending-months") => "未計上月を取得",
         ("GET", false) => "一覧を取得",

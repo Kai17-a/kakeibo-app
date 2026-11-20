@@ -44,6 +44,20 @@ impl AppError {
         }
     }
 
+    pub fn unauthorized(message: &str) -> Self {
+        Self {
+            message: message.to_owned(),
+            status: StatusCode::UNAUTHORIZED,
+        }
+    }
+
+    pub fn too_many_requests(message: &str) -> Self {
+        Self {
+            message: message.to_owned(),
+            status: StatusCode::TOO_MANY_REQUESTS,
+        }
+    }
+
     pub fn forbidden(message: &str) -> Self {
         Self {
             message: message.to_owned(),

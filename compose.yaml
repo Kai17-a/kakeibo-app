@@ -7,6 +7,12 @@ services:
       - kakeibo-data:/data
     environment:
       RUST_LOG: info
+    # 認証を有効にするときはコメントを外す（ユーザー登録: docker compose exec app /app/kakeibo-app auth add-user <ユーザー名>）
+    # KAKEIBO_AUTH_MODE: local
+    # KAKEIBO_PUBLIC_URL: http://localhost:8000 # ブラウザで開くURL
+    # KAKEIBO_AUTH_SESSION_TTL: 30d
+    # KAKEIBO_AUTH_DATABASE: /data/auth.db
+    # KAKEIBO_AUTH_MIN_PASSWORD_LENGTH: 8
     restart: unless-stopped
 
 volumes:

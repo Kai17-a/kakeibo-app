@@ -25,7 +25,7 @@ const importPaths: Record<ImportKind, string> = {
 };
 
 export function useImportApi() {
-  const client = $fetch.create({ retry: 0, timeout: 15000 });
+  const client = $fetch.create({ retry: 0, timeout: 15000, onResponseError: notifyUnauthorized });
 
   function preview(kind: "expense", csv: string): Promise<ExpenseImportPreview>;
   function preview(kind: "income", csv: string): Promise<IncomeImportPreview>;

@@ -1,4 +1,13 @@
-export const settingsNavigation = [
+export interface SettingsGroup {
+  label: string;
+  icon: string;
+  description: string;
+  pages: { label: string; to: string }[];
+  /** Shown only when the server has login enabled. */
+  requiresLogin?: boolean;
+}
+
+export const settingsNavigation: SettingsGroup[] = [
   {
     label: "予算",
     icon: "i-lucide-wallet",
@@ -31,7 +40,19 @@ export const settingsNavigation = [
     description: "データの取り込みとバックアップ",
     pages: [{ label: "データ管理", to: "/settings/data" }],
   },
+  {
+    label: "ログイン",
+    icon: "i-lucide-key-round",
+    description: "パスキーの登録と削除",
+    pages: [{ label: "パスキー", to: "/settings/passkeys" }],
+    requiresLogin: true,
+  },
 ];
+
+/** The groups to list, leaving out login settings when the server has authentication off. */
+export function visibleSettingsNavigation(loginEnabled: boolean): SettingsGroup[] {
+  return settingsNavigation.filter((group) => loginEnabled || !group.requiresLogin);
+}
 
 export function findSettingsGroup(path: string) {
   return settingsNavigation.find((group) =>
